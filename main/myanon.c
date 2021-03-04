@@ -252,14 +252,17 @@ int main(int argc, char **argv)
     /* Include stats if requested in config file */
     if (stats)
     {
+        unsigned long total_anon = 0;
         ts_end = get_ts_in_ms();
         fprintf(stdout, "-- Total execution time: %lu ms\n", ts_end - ts_beg);
         fprintf(stdout, "-- Time spent for anonymization: %lu ms\n", anon_time);
         for (cur = infos; cur != NULL; cur = cur->hh.next)
         {
-            fprintf(stdout, "-- Field %s anonymized %d time(s)\n",
+            fprintf(stdout, "-- Field %s anonymized %lu time(s)\n",
                     cur->key, cur->nbhits);
+            total_anon += cur->nbhits;
         }
+        fprintf(stdout, "-- TOTAL Number of anonymization(s): %lu\n", total_anon);
     }
 
     /* Free Flex memory (clean Valgrind report) */

@@ -91,7 +91,7 @@ typedef struct anon_st
     unsigned short len;           /* requested length from config file */
     char domain[CONFIG_SIZE];     /* Email only: domain */
     unsigned short domainlen;     /* Email only: domain length */
-    unsigned int nbhits;          /* Number of times this field has been anonymized */
+    unsigned long nbhits;         /* Number of times this field has been anonymized */
     char fixedvalue[CONFIG_SIZE]; /* Fixed value */
     unsigned short fixedvaluelen; /* Length of fixed value */
     UT_hash_handle hh;            /* uthash handle */
