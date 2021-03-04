@@ -1,6 +1,6 @@
 # Myanon
 
-Myanon is a MySQL dump anonymizer, reading a dump from stdin, and producing an anonymized version on stdout.
+Myanon is a MySQL dump anonymizer, reading a dump from stdin, and producing an anonymized version to stdout.
 
 Anonymization is done through a deterministic hmac processing based on sha-256. When used on fields acting as foreign keys, constraints are kept.
 
