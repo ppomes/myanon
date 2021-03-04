@@ -51,7 +51,7 @@ static anon_st work;
 
 %union {
   unsigned short shortval;
-  unsigned char strval[CONFIG_SIZE];
+  char strval[CONFIG_SIZE];
 }
 
 /* 
