@@ -76,6 +76,9 @@ inthash                 { return INTHASH; }
                         }
 [ \n]
 #.*
-.
+.                       {
+                          config_error("Syntax error");
+                          exit(EXIT_FAILURE);
+                        }
 
 %%
