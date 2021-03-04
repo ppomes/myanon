@@ -94,7 +94,7 @@ bool is_anonymized() {
                                       return CREATE_TABLE;
                                     }
                                   }
-^INSERT\ INTO\ `[^`]+`            { DUPOUT
+^(INSERT|REPLACE)\ INTO\ `[^`]+`  { DUPOUT
                                     if (is_anonymized()) {
                                       BEGIN(ST_VALUES);
                                       DEBUG_MSG("\nENTERING STATE ST_VALUES")
@@ -141,25 +141,25 @@ bool is_anonymized() {
                                         }
 
 
-<ST_VALUES>VALUES                   { DUPOUT return VALUES ;}
-<ST_VALUES>`[^`]+`                  { DUPOUT return IDENTIFIER ;}
-<ST_VALUES>\(                       { DUPOUT return LEFTPAR; }
-<ST_VALUES>\)                       { DUPOUT return RIGHTPAR; }
-<ST_VALUES>;                        { DUPOUT return SEMICOLUMN; }
-<ST_VALUES>,                        { DUPOUT return COMA; }
-<ST_VALUES>NULL                     { return VALUE; }
-<ST_VALUES>_binary\ '(\\.|[^'\\])*' { return VALUE; }
-<ST_VALUES>'(\\.|[^'\\])*'          { return VALUE; }
-<ST_VALUES>[0-9\-\.e]+              { return VALUE; }
-<ST_VALUES>[ \n]                    { DUPOUT }
-<ST_VALUES>^INSERT\ INTO\ `[^`]+`   { DUPOUT
-                                      if (is_anonymized()) {
-                                       return INSERT_INTO;
-                                      }
-                                    }
-<ST_VALUES>.                        { BEGIN(INITIAL);
-                                      DEBUG_MSG("\nENTERING STATE INITIAL")
-                                      DUPOUT
-                                    }
+<ST_VALUES>VALUES                           { DUPOUT return VALUES ;}
+<ST_VALUES>`[^`]+`                          { DUPOUT return IDENTIFIER ;}
+<ST_VALUES>\(                               { DUPOUT return LEFTPAR; }
+<ST_VALUES>\)                               { DUPOUT return RIGHTPAR; }
+<ST_VALUES>;                                { DUPOUT return SEMICOLUMN; }
+<ST_VALUES>,                                { DUPOUT return COMA; }
+<ST_VALUES>NULL                             { return VALUE; }
+<ST_VALUES>_binary\ '(\\.|[^'\\])*'         { return VALUE; }
+<ST_VALUES>'(\\.|[^'\\])*'                  { return VALUE; }
+<ST_VALUES>[0-9\-\.e]+                      { return VALUE; }
+<ST_VALUES>[ \n]                            { DUPOUT }
+<ST_VALUES>^(INSERT|REPLACE)\ INTO\ `[^`]+` { DUPOUT
+                                              if (is_anonymized()) {
+                                                return INSERT_INTO;
+                                              }
+                                            }
+<ST_VALUES>.                                { BEGIN(INITIAL);
+                                              DEBUG_MSG("\nENTERING STATE INITIAL")
+                                              DUPOUT
+                                            }
 
 %%
