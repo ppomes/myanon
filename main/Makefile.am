@@ -8,6 +8,9 @@ bin_PROGRAMS = myanon
 # Sources
 myanon_SOURCES = configparser.y configscanner.l dumpparser.y dumpscanner.l myanon.c
 
+# Headers
+noinst_HEADERS = myanon.h
+
 # Flex/Bison flags
 AM_YFLAGS = -d -Wno-yacc
 AM_LFLAGS = -8

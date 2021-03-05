@@ -24,5 +24,5 @@ AC_CHECK_HEADERS(sys/time.h, ,[AC_MSG_ERROR([Cannot find sys/time.h header])])
 
 AC_CONFIG_FILES([Makefile
                  hmac/Makefile
-		 main/Makefile])
+                 main/Makefile])
 AC_OUTPUT
