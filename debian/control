@@ -1,0 +1,8 @@
+Source: myanon
+Section: admin
+Maintainer: Pierre POMES <pierre.pomes@gmail.com>
+Priority: optional
+
+Package: myanon
+Architecture: amd64
+Description: MySQL dump anonymizer
