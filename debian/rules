@@ -1,3 +1,6 @@
 #!/usr/bin/make -f
 %:
 	dh $@ --with autoreconf 
+
+override_dh_installexamples:
+	dh_installexamples main/myanon-sample.conf
