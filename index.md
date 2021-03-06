@@ -1,37 +1,17 @@
-## Welcome to GitHub Pages
+# Myanon
 
-You can use the [editor on GitHub](https://github.com/ppomes/mysqldump_anonymizer/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+Myanon is a MySQL dump anonymizer, reading a dump from stdin, and producing an anonymized version to stdout.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+Anonymization is done through a deterministic hmac processing based on sha-256. When used on fields acting as foreign keys, constraints are kept.
 
-### Markdown
+A configuration file is used to store the hmac secret and to select which fields need to be anonymized. A self-commented sample is provided (main/myanon-sample.conf)
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+This tool is in alfa stage. Please report any issue.
 
-```markdown
-Syntax highlighted code block
+## Simple use case
 
-# Header 1
-## Header 2
-### Header 3
+Example to create both a real crypted (sensitive) backup and an anonymized (non-sentitive) backup from a single mysqldump command:
 
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
 ```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/ppomes/mysqldump_anonymizer/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+mysqldump mydb | tee >(myanon -f myanon.cfg | gzip > mydb_anon.sql.gz) | gpg -e -r me@domain.com > mydb.sql.gz.gpg
+```
