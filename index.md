@@ -6,7 +6,7 @@ Anonymization is done through a deterministic hmac processing based on sha-256. 
 
 A configuration file is used to store the hmac secret and to select which fields need to be anonymized.
 
-This tool is in alfa stage. Please report any issue.
+This tool is in alpha stage. Please report any issue.
 
 ## Simple use case
 
