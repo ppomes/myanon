@@ -33,6 +33,7 @@ brew install bison
 ./configure
 make
 ```
+(Please ensure binaries installed by brew are in your $PATH)
 
 ## Compilation/link flags
 
