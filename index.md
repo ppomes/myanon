@@ -3,7 +3,7 @@ title: "A mysqldump anomymizer"
 title-heading: false
 ---
 
-## What is myanon?
+## What is Myanon?
 
 Myanon is a *mysqldump* anonymizer, reading a dump from stdin, and producing an anonymized version to stdout.
 
