@@ -11,7 +11,7 @@ Anonymization is done through a deterministic hmac processing based on sha-256. 
 
 A configuration file is used to store the hmac secret and to select which fields need to be anonymized. Text, integer and email fields can be anonymized.
 
-This tool is in alpha stage. Please report any issue.
+This tool is in alpha stage. Please report any issue on {{site.github.issues_url}}
 
 ## Configuration notes
 
@@ -34,8 +34,8 @@ tables = {
    }
 }
 ``` 
-* `secret` - secret used for hmac encryption.
-* `stats`  - when set to 'yes', some stats are added as SQL comments at the end of anonymized dump: total processing time, anonymization spent time, number of anonymized fields.
+* `secret` - hmac secret.
+* `stats`  - when set to 'yes', some stats are added as SQL comments at the end of the anonymized dump: total processing time, anonymization spent time, number of anonymized fields.
 * `tables` - a list of table and fields to be processed.
 
 Each table and field needs to be back-quoted (same as in mysql dump file). For each field, the following options are available:
@@ -49,7 +49,7 @@ Each table and field needs to be back-quoted (same as in mysql dump file). For e
 
 Written C, Myanon is small (less than 300Kb stripped), and consumes only a few megabytes of RAM. 
 
-As processing a dump file is a sequential process, Myanon is mono-threaded, but is quite fast, because it does not rely on any external SQL parser. When reading the dump file, it looks only for 'CREATE TABLE' and 'INSERT INTO' statements on tables specified in the configuration file. Any other statements are copied from stdin to stdout without any unnecessary parsing.
+As processing a dump file is a sequential process, Myanon is single-threaded, but is quite fast, because it does not rely on any external SQL parser. When reading the dump file, it looks only for 'CREATE TABLE' and 'INSERT INTO' statements on tables specified in the configuration file. Any other statements are copied from stdin to stdout without any unnecessary parsing.
 
 
 ## Simple use case
