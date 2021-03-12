@@ -1,10 +1,4 @@
 theme: jekyll-theme-modernist
 title: Welcome to Myanon
 description: A mysqldump anonymizer
-plugins:
-  - jekyll-analytics
-
-jekyll_analytics:
-  GoogleAnalytics:
-    id: G-TEG509E3LH
-    anonymizeIp: false
+google_analytics: G-TEG509E3LH
