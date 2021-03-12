@@ -2,3 +2,4 @@ theme: jekyll-theme-modernist
 title: Welcome to Myanon
 description: A mysqldump anonymizer
 google_analytics: G-TEG509E3LH
+show_downloads: true
