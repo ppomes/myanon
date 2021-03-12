@@ -16,6 +16,21 @@ Example to create both a real crypted (sensitive) backup and an anonymized (non-
 mysqldump mydb | tee >(myanon -f myanon.cfg | gzip > mydb_anon.sql.gz) | gpg -e -r me@domain.com > mydb.sql.gz.gpg
 ```
 
+## Build Requirements 
+
+- autoconf 
+- automake 
+- autogen 
+- flex 
+- bison
+
+Exemple on a Fedora system: 
+
+```shell
+$ sudo dnf install autoconf automake autogen flex bison 
+[...]
+```
+
 ## Build (Linux)
 ```
 ./autogen.sh
