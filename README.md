@@ -20,27 +20,26 @@ mysqldump mydb | tee >(myanon -f myanon.cfg | gzip > mydb_anon.sql.gz) | gpg -e 
 
 - autoconf 
 - automake 
-- autogen 
 - flex 
 - bison
 
 Example on a Fedora system: 
 
 ```shell
-$ sudo dnf install autoconf automake autogen flex bison 
+$ sudo dnf install autoconf automake flex bison
+[...]
 ```
 Example on a Debian/Ubuntu system:
 
 ```shell
-$sudo apt-get install autoconf automake autogen flex bison
+$sudo apt-get install autoconf automake flex bison
+[...]
 ```
 Example on macOS:
 
 ```shell
-$ brew install autoconf
-$ brew install automake
-$ brew install flex
-$ brew install bison
+$ brew install autoconf automake flex bison
+[...]
 ```
 (Please ensure binaries installed by brew are in your $PATH)
 
