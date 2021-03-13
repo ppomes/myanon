@@ -62,8 +62,8 @@ void *mymalloc(size_t size)
 
 char *mystrcpy(char *dest, const char *src, size_t size)
 {
+    memset(dest,0,size);
     strncpy(dest, src, size - 1);
-    dest[size - 1] = 0;
     return dest;
 }
 
