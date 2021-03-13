@@ -2,5 +2,5 @@ theme: jekyll-theme-modernist
 title: Myanon
 tagline: A mysqldump anonymizer
 description: Myanon helps you to obfuscate sensitive data from your MySQL database backups.
-google_analytics: G-TEG509E3LH
+google_analytics: G-QZQCEXTB3D
 show_downloads: true
