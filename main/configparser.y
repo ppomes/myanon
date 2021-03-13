@@ -102,7 +102,7 @@ field:
   IDENTIFIER { 
     memset(&work,0,sizeof(work));
     work.pos =-1 ;
-    snprintf(work.key,KEY_LEN,"%s:%s",table,$1);
+    snprintf(work.key,KEY_SIZE,"%s:%s",table,$1);
     }
   EQ action {
     cur = mymalloc(sizeof(anon_st));

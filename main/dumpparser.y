@@ -90,7 +90,7 @@ fields: field
 
 field: IDENTIFIER {
      int nbytes;
-     nbytes=snprintf(key,KEY_LEN,"%s:%s",currenttable,dump_text);
+     nbytes=snprintf(key,KEY_SIZE,"%s:%s",currenttable,dump_text);
      key[nbytes]=0;
      DEBUG_MSG("LOOKING FOR  %s\n",key);
      HASH_FIND_STR(infos,key,cur);

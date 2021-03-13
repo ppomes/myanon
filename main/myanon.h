@@ -48,7 +48,7 @@
 #define ID_SIZE ID_LEN + 1
 
 /* Key len/size for anon info (format is table:field) */
-#define KEY_LEN ID_LEN + 1 + ID_LEN + 1
+#define KEY_LEN ID_LEN + 1 + ID_LEN
 #define KEY_SIZE KEY_LEN + 1
 
 /* Config file value size */
