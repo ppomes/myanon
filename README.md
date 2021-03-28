@@ -53,7 +53,7 @@ make
 
 ## Compilation/link flags
 
-flags are controlled by using CFLAGS/LDFLAGS when invoking make.
+Flags are controlled by using CFLAGS/LDFLAGS when invoking make.
 To create a debug build:
 ```
 make CFLAGS="-O0 -g"
