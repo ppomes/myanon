@@ -68,5 +68,5 @@ make LDFLAGS="-static"
 ## Run/Tests
 ```
 main/myanon -f tests/test1.conf < tests/test1.sql
-main/myanon -f tests/test2.conf < tests/test2.sql
+zcat tests/test2.sql.gz | main/myanon -f tests/test2.conf
 ```
