@@ -75,7 +75,7 @@ directive:
 
 secretline:
   SECRET EQ STRING { 
-                    mystrcpy(secret,$3,sizeof(secret));
+                    remove_quote(secret,$3,sizeof(secret));
                     secretlen=(unsigned short)strlen(secret);
                    }
 
