@@ -1,5 +1,5 @@
 ---
-title: "A mysqldump anomymizer"
+title: "A mysqldump anonymizer"
 title-heading: false
 ---
 
