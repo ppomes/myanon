@@ -1,0 +1,4 @@
+TARGET="usr/bin"
+HOMEPAGE="https://myanon.io"
+DESCRIPTION_SHORT="mysqldump anonymizer"
+DESCRIPTION_LONG="Myanon is a mysqldump anonymizer, reading a dump from stdin, and producing an anonymized version to stdout"
