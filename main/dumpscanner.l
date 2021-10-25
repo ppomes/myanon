@@ -126,6 +126,7 @@ bool is_anonymized() {
 <ST_TABLE>json.*                        { DUPOUT return TYPE; }
 <ST_TABLE>PRIMARY\ KEY.*                { DUPOUT }
 <ST_TABLE>UNIQUE\ KEY.*                 { DUPOUT }
+<ST_TABLE>FULLTEXT\ KEY.*               { DUPOUT }
 <ST_TABLE>KEY.*                         { DUPOUT }
 <ST_TABLE>CONSTRAINT.*                  { DUPOUT }
 <ST_TABLE>DELIMITER.*                   { DUPOUT }
