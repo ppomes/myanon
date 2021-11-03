@@ -118,6 +118,7 @@ DROP TABLE IF EXISTS `toto`;
 CREATE TABLE `toto` (
   `a` int DEFAULT NULL,
   `b` text,
+  `c` text,
   `name` char(30) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -128,7 +129,7 @@ CREATE TABLE `toto` (
 
 LOCK TABLES `toto` WRITE;
 /*!40000 ALTER TABLE `toto` DISABLE KEYS */;
-INSERT INTO `toto` VALUES (6128,'cpc','ppomes2'),(2,'àçê','simon'),(464,'cpc','ppomes'),(2,'àçê','brtvl');
+INSERT INTO `toto` VALUES (6128,'cpc','ppomes2','otherval1'),(2,'àçê','simon','otherval2'),(464,'cpc','ppomes'),(2,'àçê','brtvl','otherval3');
 /*!40000 ALTER TABLE `toto` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;

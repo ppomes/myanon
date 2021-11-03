@@ -55,6 +55,7 @@ fixed                   { return FIXED; }
 texthash                { return TEXTHASH; }
 emailhash               { return EMAILHASH; }
 inthash                 { return INTHASH; }
+nullvalue               { return NULLVALUE; }
 =                       { return EQ;}
 \{                      { return LEFT;}
 \}                      { return RIGHT;}
@@ -66,7 +67,7 @@ inthash                 { return INTHASH; }
                           }
                           return LENGTH;
                         }
-\'[^\']{1,64}\'         {
+\'[^\']{0,64}\'         {
                           COPYSTR
                           return STRING;
                         }

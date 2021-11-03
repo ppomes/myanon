@@ -136,16 +136,21 @@ singlefield: VALUE {
 
       if (found) {
          cur->nbhits++;
-         if (cur->type == AM_FIXED) {
-           fwrite(cur->fixedvalue,cur->fixedvaluelen,1,stdout);
-         } else { 
-           /* not nul terminated !*/
-           res_st=anonymize_token(cur,dump_text,dump_leng);
-           if (cur->type == AM_INTHASH) {
-             fwrite(res_st.data,res_st.len,1,stdout);
-           } else {
-             fprintf(stdout,"'%.*s'",res_st.len,res_st.data);
-           }
+         switch(cur->type) {
+           case AM_FIXED:
+             fwrite(cur->fixedvalue,cur->fixedvaluelen,1,stdout);
+             break;
+           case AM_NULLVALUE:
+             fwrite("NULL",strlen("NULL"),1,stdout);
+             break;
+           default:
+             /* hash values, not nul terminated !*/
+             res_st=anonymize_token(cur,dump_text,dump_leng);
+             if (cur->type == AM_INTHASH) {
+               fwrite(res_st.data,res_st.len,1,stdout);
+             } else {
+               fprintf(stdout,"'%.*s'",res_st.len,res_st.data);
+             }
          }
       } else {
         fwrite(dump_text,dump_leng,1,stdout);

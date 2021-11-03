@@ -80,6 +80,7 @@ typedef enum anon_type
     AM_TEXTHASH,
     AM_EMAILHASH,
     AM_INTHASH,
+    AM_NULLVALUE,
 } anon_type;
 
 /* Structure for anonymization infos of a single field */

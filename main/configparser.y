@@ -57,7 +57,7 @@ static anon_st work;
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXED TEXTHASH EMAILHASH INTHASH EQ LEFT RIGHT
+%token SECRET STATS TABLES YES NO FIXED TEXTHASH EMAILHASH INTHASH NULLVALUE EQ LEFT RIGHT
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -134,5 +134,8 @@ action:
   INTHASH LENGTH {
                     work.type = AM_INTHASH;
                     work.len=(unsigned short)$2;
-                 }
+                 } |
+  NULLVALUE {
+        work.type = AM_NULLVALUE;
+      }
 %%
