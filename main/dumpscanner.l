@@ -113,17 +113,17 @@ bool is_anonymized() {
 <ST_TABLE>double.*                      { DUPOUT return TYPE; }
 <ST_TABLE>decimal.*                     { DUPOUT return TYPE; }
 <ST_TABLE>float.*                       { DUPOUT return TYPE; }
-<ST_TABLE>(tiny|medium|long)?text.*     { DUPOUT return TYPE; }
-<ST_TABLE>enum.*                        { DUPOUT return TYPE; }
-<ST_TABLE>char\(.*                      { DUPOUT return TYPE; }
-<ST_TABLE>varchar\(.*                   { DUPOUT return TYPE; }
+<ST_TABLE>(tiny|medium|long)?text.*     { DUPOUT return QTYPE; }
+<ST_TABLE>enum.*                        { DUPOUT return QTYPE; }
+<ST_TABLE>char\(.*                      { DUPOUT return QTYPE; }
+<ST_TABLE>varchar\(.*                   { DUPOUT return QTYPE; }
 <ST_TABLE>binary\(.*                    { DUPOUT return TYPE; }
 <ST_TABLE>varbinary\(.*                 { DUPOUT return TYPE; }
 <ST_TABLE>(tiny|medium|long)?blob.*     { DUPOUT return TYPE; }
-<ST_TABLE>date.*                        { DUPOUT return TYPE; }
-<ST_TABLE>time.*                        { DUPOUT return TYPE; }
+<ST_TABLE>date.*                        { DUPOUT return QTYPE; }
+<ST_TABLE>time.*                        { DUPOUT return QTYPE; }
 <ST_TABLE>bit.*                         { DUPOUT return TYPE; }
-<ST_TABLE>json.*                        { DUPOUT return TYPE; }
+<ST_TABLE>json.*                        { DUPOUT return QTYPE; }
 <ST_TABLE>PRIMARY\ KEY.*                { DUPOUT }
 <ST_TABLE>UNIQUE\ KEY.*                 { DUPOUT }
 <ST_TABLE>FULLTEXT\ KEY.*               { DUPOUT }

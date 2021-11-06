@@ -80,7 +80,6 @@ typedef enum anon_type
     AM_TEXTHASH,
     AM_EMAILHASH,
     AM_INTHASH,
-    AM_NULLVALUE,
 } anon_type;
 
 /* Structure for anonymization infos of a single field */
@@ -88,6 +87,7 @@ typedef struct anon_st
 {
     char key[KEY_SIZE];           /* key is table:field */
     int pos;                      /* field position in table */
+    bool quoted;                  /* Quoted field ? */
     anon_type type;               /* anonymisation type */
     unsigned short len;           /* requested length from config file */
     char domain[CONFIG_SIZE];     /* Email only: domain */

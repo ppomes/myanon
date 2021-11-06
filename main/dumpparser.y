@@ -58,11 +58,13 @@ static anon_st *cur=NULL;
 /* True on first extended insert found for each table */
 static bool bfirstinsert;
 
+static void quoted_output_helper (char *s, unsigned short len, bool quoted);
+
 %}
 %define api.prefix {dump_}
 
 /* declare tokens */
-%token CREATE_TABLE INSERT_INTO IDENTIFIER TYPE ENGINE
+%token CREATE_TABLE INSERT_INTO IDENTIFIER TYPE QTYPE ENGINE
 %token LEFTPAR RIGHTPAR
 %token SEMICOLUMN COMA VALUE VALUES
 
@@ -98,7 +100,17 @@ field: IDENTIFIER {
          cur->pos = currentfieldpos;
      }
      currentfieldpos++;
-   } TYPE; 
+   } type
+
+type : TYPE { if (cur != NULL) {
+                cur->quoted = false;
+              }
+            }
+     | QTYPE { if (cur != NULL) {
+                cur->quoted = true;
+               }
+             }
+
 
 insert_st_list : insert_st
                | insert_st_list insert_st
@@ -138,20 +150,13 @@ singlefield: VALUE {
          cur->nbhits++;
          switch(cur->type) {
            case AM_FIXED:
-             fwrite(cur->fixedvalue,cur->fixedvaluelen,1,stdout);
-             break;
-           case AM_NULLVALUE:
-             fwrite("NULL",strlen("NULL"),1,stdout);
+             quoted_output_helper(cur->fixedvalue,cur->fixedvaluelen,cur->quoted);
              break;
            default:
-             /* hash values, not nul terminated !*/
              res_st=anonymize_token(cur,dump_text,dump_leng);
-             if (cur->type == AM_INTHASH) {
-               fwrite(res_st.data,res_st.len,1,stdout);
-             } else {
-               fprintf(stdout,"'%.*s'",res_st.len,res_st.data);
-             }
-         }
+             quoted_output_helper((char *)&res_st.data[0],res_st.len,cur->quoted);
+             break;
+          }
       } else {
         fwrite(dump_text,dump_leng,1,stdout);
       }
@@ -159,3 +164,14 @@ singlefield: VALUE {
     }
 
 %%
+
+/* Helper to output (un)quoted values
+   hash values are not nul terminated !*/
+static void quoted_output_helper (char *s, unsigned short len, bool quoted)
+{
+  if (!quoted) {
+    fwrite(s,len,1,stdout);
+  } else {
+    fprintf(stdout,"'%.*s'",len,s);
+  }
+}

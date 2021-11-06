@@ -27,7 +27,7 @@ CREATE TABLE `lottypes` (
   `int2` smallint DEFAULT NULL,
   `int3` mediumint DEFAULT NULL,
   `int4` int DEFAULT NULL,
-  `ini5` int DEFAULT NULL,
+  `int5` int DEFAULT NULL,
   `int6` bigint DEFAULT NULL,
   `dec1` decimal(5,2) DEFAULT NULL,
   `float1` float DEFAULT NULL,

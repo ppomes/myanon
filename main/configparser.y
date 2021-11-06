@@ -57,7 +57,7 @@ static anon_st work;
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXED TEXTHASH EMAILHASH INTHASH NULLVALUE EQ LEFT RIGHT
+%token SECRET STATS TABLES YES NO FIXED TEXTHASH EMAILHASH INTHASH EQ LEFT RIGHT
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -114,7 +114,7 @@ field:
 action:
   FIXED STRING {
                  work.type = AM_FIXED;
-                 mystrcpy(work.fixedvalue,$2,sizeof(work.fixedvalue));
+                 remove_quote(work.fixedvalue,$2,sizeof(work.fixedvalue));
                  work.fixedvaluelen=(unsigned short)strlen(work.fixedvalue); 
                } |
   TEXTHASH LENGTH {
@@ -134,8 +134,5 @@ action:
   INTHASH LENGTH {
                     work.type = AM_INTHASH;
                     work.len=(unsigned short)$2;
-                 } |
-  NULLVALUE {
-        work.type = AM_NULLVALUE;
-      }
+                 }
 %%
