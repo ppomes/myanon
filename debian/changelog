@@ -1,3 +1,11 @@
+myanon (0.2-1) UNRELEASED; urgency=low
+
+  * Add support for FULLTEXT keys in table statements
+  * Add support for quoted/unquoted fixed values
+  * Add support for empty strings for fixed values
+
+ -- Pierre POMES <pierre.pomes@gmail.com>  Sun, 07 Nov 2021 07:47:39 -0500
+
 myanon (0.1-1) UNRELEASED; urgency=low
 
   * Initial release
