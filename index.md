@@ -13,6 +13,10 @@ A configuration file is used to store the hmac secret and to select which fields
 
 This tool is in alpha stage. Please report any issue [here]({{site.github.issues_url}})
 
+## Compilation/Installation
+
+Please refer to [README]{{site.github.repository_url}}
+
 ## Configuration notes
 
 Here is a configuration example:
@@ -42,7 +46,7 @@ Each table and field needs to be back-quoted (same as in mysql dump file). For e
 * `texthash N` - creates a hash for text value, N chars long, up to 32 chars.  
 * `inthash N` - creates a hash for integer value, N digits long, up to 32 digits.
 * `emailmash 'domain.com' N` - creates a hash for email, ending with 'domain.com', N chars long (including domain), up to 32 chars
-* `fixed 'myvalue'` - creates a constant text value 'myvalue' 
+* `fixed 'myvalue'` - creates a constant value myvalue or 'myvalue', depending on its type.
 
 
 ## Technical notes
