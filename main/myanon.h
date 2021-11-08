@@ -76,7 +76,8 @@
 /* all types of anonymization types */
 typedef enum anon_type
 {
-    AM_FIXED = 0,
+    AM_FIXEDNULL = 0,
+    AM_FIXED,
     AM_TEXTHASH,
     AM_EMAILHASH,
     AM_INTHASH,

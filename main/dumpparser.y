@@ -149,6 +149,9 @@ singlefield: VALUE {
       if (found) {
          cur->nbhits++;
          switch(cur->type) {
+           case AM_FIXEDNULL:
+             quoted_output_helper((char *)"NULL",4,false);
+             break;
            case AM_FIXED:
              quoted_output_helper(cur->fixedvalue,cur->fixedvaluelen,cur->quoted);
              break;

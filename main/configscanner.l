@@ -51,6 +51,7 @@ stats                   { return STATS; }
 tables                  { return TABLES; }
 \'yes\'                 { return YES; }
 \'no\'                  { return NO; }
+fixed\ null             { return FIXEDNULL; }
 fixed                   { return FIXED; }
 texthash                { return TEXTHASH; }
 emailhash               { return EMAILHASH; }

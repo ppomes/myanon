@@ -57,7 +57,7 @@ static anon_st work;
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXED TEXTHASH EMAILHASH INTHASH EQ LEFT RIGHT
+%token SECRET STATS TABLES YES NO FIXEDNULL FIXED TEXTHASH EMAILHASH INTHASH EQ LEFT RIGHT
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -112,6 +112,9 @@ field:
   }
 
 action:
+  FIXEDNULL {
+              work.type = AM_FIXEDNULL;
+            } |
   FIXED STRING {
                  work.type = AM_FIXED;
                  remove_quote(work.fixedvalue,$2,sizeof(work.fixedvalue));
