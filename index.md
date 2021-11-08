@@ -46,7 +46,7 @@ Each table and field needs to be back-quoted (same as in mysql dump file). For e
 * `texthash N` - creates a hash for text value, N chars long, up to 32 chars.  
 * `inthash N` - creates a hash for integer value, N digits long, up to 32 digits.
 * `emailmash 'domain.com' N` - creates a hash for email, ending with 'domain.com', N chars long (including domain), up to 32 chars
-* `fixed 'myvalue'` - creates a constant value myvalue or 'myvalue', depending on its type.
+* `fixed 'myvalue'` - creates a constant value myvalue or 'myvalue', depending on field type.
 
 
 ## Technical notes
