@@ -1,4 +1,4 @@
-myanon (0.2-1) UNRELEASED; urgency=low
+myanon (0.2) bionic; urgency=low
 
   * Add support for FULLTEXT keys in table statements
   * Add support for quoted/unquoted fixed values
