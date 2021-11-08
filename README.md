@@ -16,7 +16,9 @@ Example to create both a real crypted (sensitive) backup and an anonymized (non-
 mysqldump mydb | tee >(myanon -f myanon.cfg | gzip > mydb_anon.sql.gz) | gpg -e -r me@domain.com > mydb.sql.gz.gpg
 ```
 
-## Build Requirements 
+## Installation from sources
+
+### Build Requirements
 
 - autoconf 
 - automake 
@@ -43,15 +45,16 @@ $ brew install autoconf automake flex bison
 ```
 (Please ensure binaries installed by brew are in your $PATH)
 
-## Build
+### Build/Install
 
 ```
 ./autogen.sh
 ./configure
 make
+make install
 ```
 
-## Compilation/link flags
+### Compilation/link flags
 
 Flags are controlled by using CFLAGS/LDFLAGS when invoking make.
 To create a debug build:
@@ -65,8 +68,12 @@ make LDFLAGS="-static"
 ```
 
 
-## Run/Tests
+### Run/Tests
 ```
 main/myanon -f tests/test1.conf < tests/test1.sql
 zcat tests/test2.sql.gz | main/myanon -f tests/test2.conf
 ```
+
+## Installation from packages (Ubuntu)
+
+A PPA is available at: https://launchpad.net/~pierrepomes/+archive/ubuntu/myanon
