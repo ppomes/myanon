@@ -15,7 +15,7 @@ This tool is in alpha stage. Please report any issue [here]({{site.github.issues
 
 ## Compilation/Installation
 
-Please refer to [README]{{site.github.repository_url}}
+Please refer to [README on GitHub]({{site.github.repository_url}})
 
 ## Configuration notes
 
