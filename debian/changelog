@@ -1,3 +1,11 @@
+myanon (0.3) bionic; urgency=low
+
+  * Add support for fixed null values
+  * Add debian/copyright file
+  * Update LICENSE.md
+
+ -- Pierre POMES <pierre.pomes@gmail.com>  Thu, 11 Nov 2021 18:22:15 -0500
+
 myanon (0.2) bionic; urgency=low
 
   * Add support for FULLTEXT keys in table statements

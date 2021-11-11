@@ -1,4 +1,4 @@
-AC_INIT([myanon], [0.2], [pierre.pomes@gmail.com])
+AC_INIT([myanon], [0.3], [pierre.pomes@gmail.com])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_SRCDIR([config.h.in])
