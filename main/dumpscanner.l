@@ -46,7 +46,7 @@ char currenttable[ID_SIZE];
 
 /* Check if current table needs to be anonymized
  * if yes, keep current table name for processing
- * my_anon_text containts "CREATE TABLE `xxxx`" or "INSERT INTO `xxxx`"
+ * my_anon_text contains "CREATE TABLE `xxxx`" or "INSERT INTO `xxxx`"
  */
 bool is_anonymized() {
 
@@ -148,7 +148,7 @@ bool is_anonymized() {
 <ST_VALUES>\)                               { DUPOUT return RIGHTPAR; }
 <ST_VALUES>;                                { DUPOUT return SEMICOLUMN; }
 <ST_VALUES>,                                { DUPOUT return COMA; }
-<ST_VALUES>NULL                             { return VALUE; }
+<ST_VALUES>NULL                             { DUPOUT return NULLVALUE; }
 <ST_VALUES>_binary\ '(\\.|[^'\\])*'         { return VALUE; }
 <ST_VALUES>'(\\.|[^'\\])*'                  { return VALUE; }
 <ST_VALUES>[0-9\-\.e]+                      { return VALUE; }
