@@ -12,9 +12,16 @@ EXTRA_DIST = $(top_srcdir)/uthash/uthash.h \
 TESTS = test1 null-example
 
 tests: all
-	@for ut in $(TESTS); do \
+	@rc=0; \
+	for ut in $(TESTS); do \
 		main/myanon -f tests/$${ut}.conf < tests/$${ut}.sql | diff tests/$${ut}_anon.sql - > /dev/null; \
-                ([ $$? -eq 0 ] && echo "Test $${ut} OK" >&2) || echo "Test $${ut} FAILED" >&2; \
-	done
+		if [ $$? -eq 0 ]; then \
+		  echo "Test $${ut} OK" >&2; \
+		else \
+	          echo "Test $${ut} FAILED" >&2; \
+		  rc=1; \
+		fi \
+	done; \
+	exit $$rc
 
 .PHONY: tests
