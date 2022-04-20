@@ -9,11 +9,11 @@ EXTRA_DIST = $(top_srcdir)/uthash/uthash.h \
              $(top_srcdir)/debian/copyright \
              $(top_srcdir)/debian/rules
 
-TESTS = test1 null-example
+TULIST = test1 null-example
 
-tests: all
+check: all
 	@rc=0; \
-	for ut in $(TESTS); do \
+	for ut in $(TULIST); do \
 		main/myanon -f tests/$${ut}.conf < tests/$${ut}.sql | diff tests/$${ut}_anon.sql - > /dev/null; \
 		if [ $$? -eq 0 ]; then \
 		  echo "Test $${ut} OK" >&2; \
@@ -24,4 +24,4 @@ tests: all
 	done; \
 	exit $$rc
 
-.PHONY: tests
+.PHONY: check
