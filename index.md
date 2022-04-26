@@ -5,7 +5,7 @@ title-heading: false
 
 ## What is Myanon?
 
-Myanon is a *mysqldump* anonymizer, reading a dump from stdin, and producing on the fly an anonymized version to stdout.
+Myanon is a *mysqldump* anonymizer, reading a dump from stdin, and producing on the fly an anonymized version to stdout. Myanon helps you to anonymize MySQL data, when creating dev and test environments from production *mysqldump* backups.
 
 Anonymization is done through a deterministic hmac processing based on sha-256. When used on fields acting as foreign keys, constraints are kept.
 
