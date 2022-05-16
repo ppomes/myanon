@@ -22,22 +22,24 @@ mysqldump mydb | tee >(myanon -f myanon.cfg | gzip > mydb_anon.sql.gz) | gpg -e 
 
 - autoconf 
 - automake 
+- make
+- a C compiler (gcc or clang)
 - flex 
 - bison
 
 Example on a Fedora system: 
 
 ```shell
-$ sudo dnf install autoconf automake flex bison
+$ sudo dnf install autoconf automake gcc make flex bison
 [...]
 ```
 Example on a Debian/Ubuntu system:
 
 ```shell
-$sudo apt-get install autoconf automake flex bison
+$sudo apt-get install autoconf automake flex bison build-essential
 [...]
 ```
-Example on macOS:
+On macOS, you need to install Xcode and homebrew, and then:
 
 ```shell
 $ brew install autoconf automake flex bison
