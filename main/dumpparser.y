@@ -66,7 +66,7 @@ static void quoted_output_helper (char *s, unsigned short len, bool quoted);
 /* declare tokens */
 %token CREATE_TABLE INSERT_INTO IDENTIFIER TYPE QTYPE ENGINE
 %token LEFTPAR RIGHTPAR
-%token SEMICOLUMN COMA VALUE NULLVALUE VALUES
+%token SEMICOLUMN COMA VALUE VALUES
 
 
 %start dump
@@ -125,8 +125,7 @@ value: LEFTPAR { currentfieldpos =0; }  fieldv RIGHTPAR { bfirstinsert=false ;}
 fieldv: singlefield
     | fieldv COMA singlefield
 
-singlefield : NULLVALUE { currentfieldpos++; }
-    | VALUE {
+singlefield : VALUE {
       anonymized_res_st res_st;
       char *s;
       bool found=false;
@@ -147,7 +146,7 @@ singlefield : NULLVALUE { currentfieldpos++; }
         }
       }
 
-      if (found) {
+      if ((found) && (strncmp(dump_text,"NULL",dump_leng))) {
          cur->nbhits++;
          switch(cur->type) {
            case AM_FIXEDNULL:
