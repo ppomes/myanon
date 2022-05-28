@@ -1,6 +1,6 @@
 theme: jekyll-theme-modernist
 title: Myanon
 tagline: A mysqldump anonymizer
-description: mysql anonymize data
+description: A mysql data anonymizer tool
 google_analytics: G-QZQCEXTB3D
 show_downloads: true
