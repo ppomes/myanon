@@ -1,0 +1,67 @@
+# C Specific
+*.dep
+
+# Object files
+*.o
+# Libraries
+*.lib
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+# Executables
+*.exe
+*.out
+*.la
+*.lo
+
+# http://www.gnu.org/software/automake
+Makefile
+Makefile.in
+Makefile.Global
+
+# http://www.gnu.org/software/autoconf
+/acinclude.m4
+/autom4te.cache
+/aclocal.m4
+/compile
+/configure
+/depcomp
+/install-sh
+/missing
+
+# configure
+/config.guess
+/config.h
+/config.h.in
+/config.h.in~
+/config.sub
+/config.nice
+/configure.in
+/config.log
+/configure.ac
+/config.status
+/config.nice.bat
+/configure.bat
+/configure.js
+
+# Other files generated in myanon
+ar-lib
+stamp-h1
+ylwrap
+hmac/
+main/.deps
+main/configparser.c
+main/configparser.h
+main/configscanner.c
+main/dumpparser.c
+main/dumpparser.h
+main/dumpscanner.c
+main/myanon
+
+# OSX stupidity
+.DS_Store
+# Thumbnails
+._*
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
