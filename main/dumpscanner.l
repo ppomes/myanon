@@ -149,6 +149,7 @@ bool is_anonymized() {
 <ST_VALUES>;                                { DUPOUT return SEMICOLUMN; }
 <ST_VALUES>,                                { DUPOUT return COMA; }
 <ST_VALUES>NULL                             { return VALUE; }
+<ST_VALUES>0x[0-9a-fA-F]+                   { return VALUE; }
 <ST_VALUES>_binary\ '(\\.|[^'\\])*'         { return VALUE; }
 <ST_VALUES>'(\\.|[^'\\])*'                  { return VALUE; }
 <ST_VALUES>[0-9\-\.e]+                      { return VALUE; }
