@@ -53,7 +53,7 @@ void *mymalloc(size_t size)
 
     if (NULL == ptr)
     {
-        fprintf(stderr, "Memory allocatiom faied, exiting\n");
+        fprintf(stderr, "Memory allocatiom failed, exiting\n");
         exit(EXIT_FAILURE);
     }
 
