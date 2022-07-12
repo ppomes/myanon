@@ -134,6 +134,21 @@ INSERT INTO `toto` VALUES (6128,'cpc','ppomes2','otherval1'),(2,'àçê','simon'
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
+DROP TABLE IF EXISTS `the_blobs`;
+CREATE TABLE `the_blobs` (
+  `blob1` blob,
+  `blob2` tinyblob,
+  `blob3` mediumblob,
+  `blog4` longblob
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO `the_blobs` VALUES (
+  0x68656c6c6f,
+  0x68656c6c6f,
+  0x68656c6c6f,
+  0x68656c6c6f
+);
+
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
