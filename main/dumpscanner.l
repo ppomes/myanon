@@ -119,7 +119,7 @@ bool is_anonymized() {
 <ST_TABLE>varchar\(.*                   { DUPOUT return QTYPE; }
 <ST_TABLE>binary\(.*                    { DUPOUT return TYPE; }
 <ST_TABLE>varbinary\(.*                 { DUPOUT return TYPE; }
-<ST_TABLE>(tiny|medium|long)?blob.*     { DUPOUT return TYPE; }
+<ST_TABLE>(tiny|medium|long)?blob.*     { DUPOUT return QTYPE; }
 <ST_TABLE>date.*                        { DUPOUT return QTYPE; }
 <ST_TABLE>time.*                        { DUPOUT return QTYPE; }
 <ST_TABLE>bit.*                         { DUPOUT return TYPE; }
