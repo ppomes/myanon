@@ -52,6 +52,8 @@ tables                  { return TABLES; }
 \'yes\'                 { return YES; }
 \'no\'                  { return NO; }
 fixed\ null             { return FIXEDNULL; }
+fixed\ quoted           { return FIXEDQUOTED; }
+fixed\ unquoted         { return FIXEDUNQUOTED; }
 fixed                   { return FIXED; }
 texthash                { return TEXTHASH; }
 emailhash               { return EMAILHASH; }

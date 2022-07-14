@@ -36,6 +36,11 @@
 #include "configparser.h"
 #include "myanon.h"
 
+#define STORE_FIXEDVALUE(X) \
+        remove_quote(work.fixedvalue,X,sizeof(work.fixedvalue)); \
+        work.fixedvaluelen=(unsigned short)strlen(work.fixedvalue);
+
+
 /* Current working table */
 static char table[ID_SIZE];
 
@@ -57,7 +62,7 @@ static anon_st work;
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXEDNULL FIXED TEXTHASH EMAILHASH INTHASH EQ LEFT RIGHT
+%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH EQ LEFT RIGHT
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -117,8 +122,15 @@ action:
             } |
   FIXED STRING {
                  work.type = AM_FIXED;
-                 remove_quote(work.fixedvalue,$2,sizeof(work.fixedvalue));
-                 work.fixedvaluelen=(unsigned short)strlen(work.fixedvalue); 
+                 STORE_FIXEDVALUE($2)
+               } |
+  FIXEDUNQUOTED STRING {
+                 work.type = AM_FIXEDUNQUOTED;
+                 STORE_FIXEDVALUE($2)
+               } |
+  FIXEDQUOTED STRING {
+                 work.type = AM_FIXEDQUOTED;
+                 STORE_FIXEDVALUE($2)
                } |
   TEXTHASH LENGTH {
                     work.type = AM_TEXTHASH;

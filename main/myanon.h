@@ -81,6 +81,8 @@ typedef enum anon_type
 {
     AM_FIXEDNULL = 0,
     AM_FIXED,
+    AM_FIXEDQUOTED,
+    AM_FIXEDUNQUOTED,
     AM_TEXTHASH,
     AM_EMAILHASH,
     AM_INTHASH,

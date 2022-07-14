@@ -155,6 +155,12 @@ singlefield : VALUE {
            case AM_FIXED:
              quoted_output_helper(cur->fixedvalue,cur->fixedvaluelen,cur->quoted);
              break;
+           case AM_FIXEDUNQUOTED:
+             quoted_output_helper(cur->fixedvalue,cur->fixedvaluelen,false);
+             break;
+           case AM_FIXEDQUOTED:
+             quoted_output_helper(cur->fixedvalue,cur->fixedvaluelen,true);
+             break;
            default:
              res_st=anonymize_token(cur,dump_text,dump_leng);
              quoted_output_helper((char *)&res_st.data[0],res_st.len,cur->quoted);
