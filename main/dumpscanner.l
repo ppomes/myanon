@@ -98,6 +98,7 @@ bool is_truncated() {
 %option prefix="dump_"
 %option outfile="lex.yy.c"
 %option noyywrap
+%option full
 %option pointer
 %option yylineno
 
@@ -124,11 +125,20 @@ bool is_truncated() {
                                   }
 .                                 { DUPOUT }
 
-<ST_TRUNCATE>^CREATE\ TABLE       {
-                                    REJECT
-                                    BEGIN(ST_VALUES);
-                                    DEBUG_MSG("\nENTERING STATE ST_INITIAL")
-                                  }
+<ST_TRUNCATE>^CREATE\ TABLE\ `[^`]+`  { DUPOUT
+                                        BEGIN(INITIAL);
+                                        DEBUG_MSG("\nENTERING STATE INITIAL")
+                                        if (is_anonymized()) {
+                                          BEGIN(ST_TABLE);
+                                          DEBUG_MSG("\nENTERING STATE ST_TABLE")
+                                          return CREATE_TABLE;
+                                        }
+                                        if (is_truncated()) {
+                                          BEGIN(ST_TRUNCATE);
+                                          DEBUG_MSG("\nENTERING STATE ST_TRUNCATE")
+                                        }
+                                      }
+
 <ST_TRUNCATE>^(INSERT|REPLACE).*  { }
 .                                 { DUPOUT }
 
