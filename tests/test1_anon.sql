@@ -86,25 +86,25 @@ INSERT INTO `notanontable` VALUES (1,'me@gmail.com');
 UNLOCK TABLES;
 
 --
--- Table structure for table `table to tuncate`
+-- Table structure for table `table to truncate`
 --
 
-DROP TABLE IF EXISTS `table to tuncate`;
+DROP TABLE IF EXISTS `table to truncate`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `table to tuncate` (
+CREATE TABLE `table to truncate` (
   `a` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `table to tuncate`
+-- Dumping data for table `table to truncate`
 --
 
-LOCK TABLES `table to tuncate` WRITE;
-/*!40000 ALTER TABLE `table to tuncate` DISABLE KEYS */;
-INSERT INTO `table to tuncate` VALUES (555),(666);
-/*!40000 ALTER TABLE `table to tuncate` ENABLE KEYS */;
+LOCK TABLES `table to truncate` WRITE;
+/*!40000 ALTER TABLE `table to truncate` DISABLE KEYS */;
+
+/*!40000 ALTER TABLE `table to truncate` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -221,4 +221,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2022-07-17 10:25:59
+-- Dump completed on 2022-07-17 16:04:55
