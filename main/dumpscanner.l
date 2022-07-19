@@ -44,15 +44,10 @@ char currenttable[ID_SIZE];
 #define YY_READ_BUF_SIZE 65536
 #define YY_BUF_SIZE 131072
 
-/* Check if current table needs to be anonymized
- * if yes, keep current table name for processing
- * my_anon_text contains "CREATE TABLE `xxxx`" or "INSERT INTO `xxxx`"
- */
-bool is_anonymized() {
-
+/* Set current working table according to flex token
+   flex_tolen contains "CREATE TABLE `xxxx`" */
+void set_working_table() {
   char *beg,*end;
-  bool found=false;
-  anon_st *cur;
 
   memset(currenttable,0,sizeof(currenttable));
   beg=strchr(dump_text,'`');
@@ -61,15 +56,22 @@ bool is_anonymized() {
 
     if (end) {
       memcpy(currenttable,beg,(end-beg+1));
- 
-      DEBUG_MSG("FOUND TABLE %s\n",currenttable);
 
-      for (cur=infos;cur!=NULL;cur=cur->hh.next) {
-        if (memcmp(cur->key,currenttable,strlen(currenttable)) == 0) {
-           found=true;
-           break;
-        }
-      }
+      DEBUG_MSG("FOUND TABLE %s\n",currenttable);
+    }
+  }
+}
+
+/* Check if current table needs to be anonymized */
+bool is_anonymized() {
+
+  bool found=false;
+  anon_st *cur;
+
+  for (cur=infos;cur!=NULL;cur=cur->hh.next) {
+    if (memcmp(cur->key,currenttable,strlen(currenttable)) == 0) {
+      found=true;
+      break;
     }
   }
 
@@ -106,6 +108,7 @@ bool is_truncated() {
 
 %%
 ^CREATE\ TABLE\ `[^`]+`           { DUPOUT
+                                    set_working_table();
                                     if (is_anonymized()) {
                                       BEGIN(ST_TABLE);
                                       DEBUG_MSG("\nENTERING STATE ST_TABLE")
@@ -128,6 +131,7 @@ bool is_truncated() {
 <ST_TRUNCATE>^CREATE\ TABLE\ `[^`]+`  { DUPOUT
                                         BEGIN(INITIAL);
                                         DEBUG_MSG("\nENTERING STATE INITIAL")
+                                        set_working_table();
                                         if (is_anonymized()) {
                                           BEGIN(ST_TABLE);
                                           DEBUG_MSG("\nENTERING STATE ST_TABLE")
@@ -139,7 +143,7 @@ bool is_truncated() {
                                         }
                                       }
 
-<ST_TRUNCATE>^(INSERT|REPLACE).*  { }
+<ST_TRUNCATE>^(INSERT|REPLACE).*  { /* In truncate mode, skip statements */}
 .                                 { DUPOUT }
 
 
