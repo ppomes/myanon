@@ -150,8 +150,8 @@ INSERT INTO `the_blobs` VALUES (
 );
 
 CREATE TABLE `test_with_column_names` (
-    `a` int(10) unsigned NOT NULL,
-    `b` int(10) unsigned NOT NULL
+    `a` int(10) unsigned,
+    `b` int(10) unsigned
 ) ENGINE=InnoDB;
 INSERT INTO `test_with_column_names` (`b`) VALUES (1);
 INSERT INTO `test_with_column_names` (`a`) VALUES (1);
