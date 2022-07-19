@@ -150,9 +150,10 @@ INSERT INTO `the_blobs` VALUES (
 );
 
 CREATE TABLE `test_with_column_names` (
-    `a` int(10) unsigned NOT NULL
+    `a` int(10) unsigned NOT NULL,
+    `b` int(10) unsigned NOT NULL
 ) ENGINE=InnoDB;
-INSERT INTO `test_with_column_names` (`a`) VALUES (96);
+INSERT INTO `test_with_column_names` (`b`) VALUES (222);
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
