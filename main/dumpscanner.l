@@ -94,7 +94,7 @@ bool is_anonymized() {
                                       return CREATE_TABLE;
                                     }
                                   }
-^(INSERT|REPLACE)\ INTO\ `[^`]+`  { DUPOUT
+^(INSERT|REPLACE)\ INTO\ `[^`]+`(?:\ \([^\)]+\))?  { DUPOUT
                                     if (is_anonymized()) {
                                       BEGIN(ST_VALUES);
                                       DEBUG_MSG("\nENTERING STATE ST_VALUES")

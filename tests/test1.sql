@@ -153,10 +153,15 @@ CREATE TABLE `test_with_column_names` (
     `a` int(10) unsigned,
     `b` int(10) unsigned
 ) ENGINE=InnoDB;
-INSERT INTO `test_with_column_names` (`b`) VALUES (1);
-INSERT INTO `test_with_column_names` (`a`) VALUES (1);
+
+-- Note: the following are not yet supported, as they are not possible from a direct `mysqldump`
+-- Specifying a reduced number of columns, e.g.:
+--   INSERT INTO `test_with_column_names` (`b`) VALUES (1);
+--   INSERT INTO `test_with_column_names` (`a`) VALUES (1);
+-- Specifying the columns in a different order, e.g.:
+--   INSERT INTO `test_with_column_names` (`b`, `a`) VALUES (1, 1);
+
 INSERT INTO `test_with_column_names` (`a`, `b`) VALUES (1, 1);
-INSERT INTO `test_with_column_names` (`b`, `a`) VALUES (1, 1);
 INSERT INTO `test_with_column_names` VALUES (1, 1);
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
