@@ -149,6 +149,11 @@ INSERT INTO `the_blobs` VALUES (
   0x68656c6c6f
 );
 
+CREATE TABLE `test_with_column_names` (
+    `a` int(10) unsigned NOT NULL
+) ENGINE=InnoDB;
+INSERT INTO `test_with_column_names` (`a`) VALUES (96);
+
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
