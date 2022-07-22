@@ -134,25 +134,47 @@ INSERT INTO `toto` VALUES (6128,'cpc','ppomes2','otherval1'),(2,'àçê','simon'
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
+--
+-- Table structure for table `the_blobs`
+--
+
 DROP TABLE IF EXISTS `the_blobs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `the_blobs` (
   `blob1` blob,
   `blob2` tinyblob,
   `blob3` mediumblob,
   `blog4` longblob
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-INSERT INTO `the_blobs` VALUES (
-  0x68656c6c6f,
-  0x68656c6c6f,
-  0x68656c6c6f,
-  0x68656c6c6f
-);
+--
+-- Dumping data for table `the_blobs`
+--
 
+LOCK TABLES `the_blobs` WRITE;
+/*!40000 ALTER TABLE `the_blobs` DISABLE KEYS */;
+INSERT INTO `the_blobs` VALUES (0x68656C6C6F,0x68656C6C6F,0x68656C6C6F,0x68656C6C6F);
+/*!40000 ALTER TABLE `the_blobs` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `test_with_column_names`
+--
+
+DROP TABLE IF EXISTS `test_with_column_names`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `test_with_column_names` (
-    `a` int(10) unsigned,
-    `b` int(10) unsigned
-) ENGINE=InnoDB;
+  `a` int unsigned DEFAULT NULL,
+  `b` int unsigned DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `test_with_column_names`
+--
 
 -- Note: the following are not yet supported, as they are not possible from a direct `mysqldump`
 -- Specifying a reduced number of columns, e.g.:
@@ -161,8 +183,13 @@ CREATE TABLE `test_with_column_names` (
 -- Specifying the columns in a different order, e.g.:
 --   INSERT INTO `test_with_column_names` (`b`, `a`) VALUES (1, 1);
 
+LOCK TABLES `test_with_column_names` WRITE;
+/*!40000 ALTER TABLE `test_with_column_names` DISABLE KEYS */;
 INSERT INTO `test_with_column_names` (`a`, `b`) VALUES (1, 1);
 INSERT INTO `test_with_column_names` VALUES (1, 1);
+/*!40000 ALTER TABLE `test_with_column_names` ENABLE KEYS */;
+UNLOCK TABLES;
+
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
