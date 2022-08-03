@@ -144,7 +144,7 @@ bool is_truncated() {
                                       }
 
 <ST_TRUNCATE>^(INSERT|REPLACE).*  { /* In truncate mode, skip statements */}
-.                                 { DUPOUT }
+<ST_TRUNCATE>.                    { DUPOUT }
 
 
 <ST_TABLE>`[^`]+`                       { DUPOUT return IDENTIFIER ;}
