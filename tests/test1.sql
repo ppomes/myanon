@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.0.27, for Linux (aarch64)
+-- MySQL dump 10.13  Distrib 8.0.29, for Linux (aarch64)
 --
 -- Host: localhost    Database: test1
 -- ------------------------------------------------------
--- Server version	8.0.27-0ubuntu0.21.10.1
+-- Server version	8.0.29-0ubuntu0.22.04.2
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -86,6 +86,28 @@ INSERT INTO `notanontable` VALUES (1,'me@gmail.com');
 UNLOCK TABLES;
 
 --
+-- Table structure for table `table to truncate`
+--
+
+DROP TABLE IF EXISTS `table to truncate`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `table to truncate` (
+  `a` int DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `table to truncate`
+--
+
+LOCK TABLES `table to truncate` WRITE;
+/*!40000 ALTER TABLE `table to truncate` DISABLE KEYS */;
+INSERT INTO `table to truncate` VALUES (555),(666);
+/*!40000 ALTER TABLE `table to truncate` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `tata`
 --
 
@@ -106,6 +128,31 @@ LOCK TABLES `tata` WRITE;
 /*!40000 ALTER TABLE `tata` DISABLE KEYS */;
 INSERT INTO `tata` VALUES (-1,'pp@mydomain.com');
 /*!40000 ALTER TABLE `tata` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `the_blobs`
+--
+
+DROP TABLE IF EXISTS `the_blobs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `the_blobs` (
+  `blob1` blob,
+  `blob2` tinyblob,
+  `blob3` mediumblob,
+  `blog4` longblob
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `the_blobs`
+--
+
+LOCK TABLES `the_blobs` WRITE;
+/*!40000 ALTER TABLE `the_blobs` DISABLE KEYS */;
+INSERT INTO `the_blobs` VALUES (_binary 'hello',_binary 'hello',_binary 'hello',_binary 'hello'),(_binary 'a',_binary 'b',_binary 'c',_binary 'd');
+/*!40000 ALTER TABLE `the_blobs` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -133,31 +180,6 @@ INSERT INTO `toto` VALUES (6128,'cpc','ppomes2','otherval1'),(2,'àçê','simon'
 /*!40000 ALTER TABLE `toto` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
-
---
--- Table structure for table `the_blobs`
---
-
-DROP TABLE IF EXISTS `the_blobs`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `the_blobs` (
-  `blob1` blob,
-  `blob2` tinyblob,
-  `blob3` mediumblob,
-  `blog4` longblob
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `the_blobs`
---
-
-LOCK TABLES `the_blobs` WRITE;
-/*!40000 ALTER TABLE `the_blobs` DISABLE KEYS */;
-INSERT INTO `the_blobs` VALUES (0x68656C6C6F,0x68656C6C6F,0x68656C6C6F,0x68656C6C6F);
-/*!40000 ALTER TABLE `the_blobs` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `test_with_column_names`
@@ -199,4 +221,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-11-06  9:46:54
+-- Dump completed on 2022-07-17 16:04:55

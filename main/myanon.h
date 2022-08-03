@@ -104,6 +104,13 @@ typedef struct anon_st
     UT_hash_handle hh;            /* uthash handle */
 } anon_st;
 
+/* Structure for truncation */
+typedef struct truncate_st {
+    char key[ID_SIZE];            /* key if table name */
+    UT_hash_handle hh;            /* uthash handle */
+} truncate_st;
+
+
 /* Structure for anonymization result
    (shared between Bison and C) */
 typedef struct anonymized_res_st
@@ -117,6 +124,10 @@ typedef struct anonymized_res_st
  */
 /* uthash list for all anonymization fields - contains all anonymization configs */
 EXTERN anon_st *infos;
+
+/* uthash list for truncated tables */
+EXTERN truncate_st *truncate_infos;
+
 
 /* Hmac secret */
 EXTERN char secret[CONFIG_SIZE];

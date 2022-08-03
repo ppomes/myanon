@@ -44,15 +44,10 @@ char currenttable[ID_SIZE];
 #define YY_READ_BUF_SIZE 65536
 #define YY_BUF_SIZE 131072
 
-/* Check if current table needs to be anonymized
- * if yes, keep current table name for processing
- * my_anon_text contains "CREATE TABLE `xxxx`" or "INSERT INTO `xxxx`"
- */
-bool is_anonymized() {
-
+/* Set current working table according to flex token
+   flex_tolen contains "CREATE TABLE `xxxx`" */
+void set_working_table() {
   char *beg,*end;
-  bool found=false;
-  anon_st *cur;
 
   memset(currenttable,0,sizeof(currenttable));
   beg=strchr(dump_text,'`');
@@ -61,20 +56,45 @@ bool is_anonymized() {
 
     if (end) {
       memcpy(currenttable,beg,(end-beg+1));
- 
-      DEBUG_MSG("FOUND TABLE %s\n",currenttable);
 
-      for (cur=infos;cur!=NULL;cur=cur->hh.next) {
-        if (memcmp(cur->key,currenttable,strlen(currenttable)) == 0) {
-           found=true;
-           break;
-        }
-      }
+      DEBUG_MSG("FOUND TABLE %s\n",currenttable);
+    }
+  }
+}
+
+/* Check if current table needs to be anonymized */
+bool is_anonymized() {
+
+  bool found=false;
+  anon_st *cur;
+
+  for (cur=infos;cur!=NULL;cur=cur->hh.next) {
+    if (memcmp(cur->key,currenttable,strlen(currenttable)) == 0) {
+      found=true;
+      break;
     }
   }
 
   return found;
 }
+
+/* Check if current table needs to be truncated */
+bool is_truncated() {
+
+  bool found=false;
+  truncate_st *trcur;
+
+  for (trcur=truncate_infos;trcur!=NULL;trcur=trcur->hh.next) {
+    if (strncmp(trcur->key,currenttable,strlen(currenttable)) == 0) {
+      found=true;
+      break;
+    }
+  }
+
+  return found;
+}
+ 
+
     
 %}
 %option prefix="dump_"
@@ -84,14 +104,19 @@ bool is_anonymized() {
 %option pointer
 %option yylineno
 
-%x ST_TABLE ST_VALUES
+%x ST_TABLE ST_TRUNCATE ST_VALUES
 
 %%
 ^CREATE\ TABLE\ `[^`]+`           { DUPOUT
+                                    set_working_table();
                                     if (is_anonymized()) {
                                       BEGIN(ST_TABLE);
                                       DEBUG_MSG("\nENTERING STATE ST_TABLE")
                                       return CREATE_TABLE;
+                                    }
+                                    if (is_truncated()) {
+                                      BEGIN(ST_TRUNCATE);
+                                      DEBUG_MSG("\nENTERING STATE ST_TRUNCATE")
                                     }
                                   }
 ^(INSERT|REPLACE)\ INTO\ `[^`]+`(?:\ \([^\)]+\))?  { DUPOUT
@@ -102,6 +127,25 @@ bool is_anonymized() {
                                     }
                                   }
 .                                 { DUPOUT }
+
+<ST_TRUNCATE>^CREATE\ TABLE\ `[^`]+`  { DUPOUT
+                                        BEGIN(INITIAL);
+                                        DEBUG_MSG("\nENTERING STATE INITIAL")
+                                        set_working_table();
+                                        if (is_anonymized()) {
+                                          BEGIN(ST_TABLE);
+                                          DEBUG_MSG("\nENTERING STATE ST_TABLE")
+                                          return CREATE_TABLE;
+                                        }
+                                        if (is_truncated()) {
+                                          BEGIN(ST_TRUNCATE);
+                                          DEBUG_MSG("\nENTERING STATE ST_TRUNCATE")
+                                        }
+                                      }
+
+<ST_TRUNCATE>^(INSERT|REPLACE).*  { /* In truncate mode, skip statements */}
+.                                 { DUPOUT }
+
 
 <ST_TABLE>`[^`]+`                       { DUPOUT return IDENTIFIER ;}
 <ST_TABLE>VALUES                        { DUPOUT return VALUES ;}
@@ -154,7 +198,7 @@ bool is_anonymized() {
 <ST_VALUES>'(\\.|[^'\\])*'                  { return VALUE; }
 <ST_VALUES>[0-9\-\.e]+                      { return VALUE; }
 <ST_VALUES>[ \n]                            { DUPOUT }
-<ST_VALUES>^(INSERT|REPLACE)\ INTO\ `[^`]+` { DUPOUT
+<ST_VALUES>^(INSERT|REPLACE)\ INTO\ `[^`]+`(?:\ \([^\)]+\))? { DUPOUT
                                               if (is_anonymized()) {
                                                 return INSERT_INTO;
                                               }

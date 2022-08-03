@@ -47,6 +47,9 @@ static char table[ID_SIZE];
 /* Walker on anon config */
 static anon_st *cur = NULL;
 
+/* Walker on truncate config */
+static truncate_st *trcur = NULL;
+
 /* Current working anon config element */
 static anon_st work;
 
@@ -62,7 +65,7 @@ static anon_st work;
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH EQ LEFT RIGHT
+%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE EQ LEFT RIGHT
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -97,7 +100,14 @@ tableslist: singletable |
 singletable:
   IDENTIFIER EQ {
                   mystrcpy(table,$1,sizeof(table));
-                } LEFT fieldlist RIGHT
+                } tableaction
+tableaction: TRUNCATE {
+                  trcur=mymalloc(sizeof(truncate_st));
+                  memset(trcur,0,sizeof(truncate_st));
+                  mystrcpy(&trcur->key[0],table,ID_SIZE);
+                  HASH_ADD_STR(truncate_infos, key, trcur);
+               } |
+             LEFT fieldlist RIGHT
 
 fieldlist:
   field |
@@ -109,14 +119,14 @@ field:
     work.pos =-1 ;
     snprintf(work.key,KEY_SIZE,"%s:%s",table,$1);
     }
-  EQ action {
+  EQ fieldaction {
     cur = mymalloc(sizeof(anon_st));
     memset(cur,0,sizeof(anon_st));
     memcpy(cur,&work,sizeof(anon_st));
     HASH_ADD_STR(infos, key, cur);
   }
 
-action:
+fieldaction:
   FIXEDNULL {
               work.type = AM_FIXEDNULL;
             } |

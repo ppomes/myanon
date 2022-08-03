@@ -58,6 +58,7 @@ fixed                   { return FIXED; }
 texthash                { return TEXTHASH; }
 emailhash               { return EMAILHASH; }
 inthash                 { return INTHASH; }
+truncate                { return TRUNCATE; }
 =                       { return EQ;}
 \{                      { return LEFT;}
 \}                      { return RIGHT;}
