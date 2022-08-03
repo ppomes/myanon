@@ -1,3 +1,13 @@
+myanon (0.4-ppa-jammy) jammy; urgency=medium
+
+  * Fix quoting for blob type
+  * Add option to control quoting for fixed values
+  * Add support for '--complete-insert' mysqldump option
+  * Add support for '--hex-blob' mysqldump option
+  * Add option to truncate tables
+
+ -- Pierre POMES <pierre.pomes@gmail.com>  Tue, 02 Aug 2022 21:37:01 -0400
+
 myanon (0.3.1-ppa-jammy) jammy; urgency=low
 
   * NULL values should not be anonymized
