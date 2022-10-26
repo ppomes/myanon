@@ -168,6 +168,7 @@ bool is_truncated() {
 <ST_TABLE>time.*                        { DUPOUT return QTYPE; }
 <ST_TABLE>bit.*                         { DUPOUT return TYPE; }
 <ST_TABLE>json.*                        { DUPOUT return QTYPE; }
+<ST_TABLE>set.*                         { DUPOUT return QTYPE; }
 <ST_TABLE>PRIMARY\ KEY.*                { DUPOUT }
 <ST_TABLE>UNIQUE\ KEY.*                 { DUPOUT }
 <ST_TABLE>FULLTEXT\ KEY.*               { DUPOUT }

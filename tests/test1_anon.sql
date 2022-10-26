@@ -48,7 +48,8 @@ CREATE TABLE `lottypes` (
   `text3` mediumtext,
   `text4` longtext,
   `enum1` enum('small','meduim','large') DEFAULT NULL,
-  `json1` json DEFAULT NULL
+  `json1` json DEFAULT NULL,
+  `set1` set('C','Rust','Haskell') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -58,7 +59,7 @@ CREATE TABLE `lottypes` (
 
 LOCK TABLES `lottypes` WRITE;
 /*!40000 ALTER TABLE `lottypes` DISABLE KEYS */;
-INSERT INTO `lottypes` VALUES (96,9,3,4,5,6,5.20,1e17,2e16,'1970-01-01 12:00:00','2021-01-20','2021-02-14 15:41:45','a','b',_binary '\0\0\0xœ3\0\02\02\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0',_binary '\0\0\0xœ3\0\03\03','hello','migez','hi',_binary '\0\0\0xœ3\0\07\07','pgcvq',NULL,'text3','text4','small','{\"key\": \"value\"}');
+INSERT INTO `lottypes` VALUES (96,9,3,4,5,6,5.20,1e17,2e16,'1970-01-01 12:00:00','2021-01-20','2021-02-14 15:41:45','a','b',_binary '\0\0\0xœ3\0\02\02\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0',_binary '\0\0\0xœ3\0\03\03','hello','migez','hi',_binary '\0\0\0xœ3\0\07\07','pgcvq',NULL,'text3','text4','small','{\"key\": \"value\"}','C,Haskell');
 /*!40000 ALTER TABLE `lottypes` ENABLE KEYS */;
 UNLOCK TABLES;
 
