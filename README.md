@@ -79,3 +79,66 @@ zcat tests/test2.sql.gz | main/myanon -f tests/test2.conf
 ## Installation from packages (Ubuntu)
 
 A PPA is available at: https://launchpad.net/~pierrepomes/+archive/ubuntu/myanon
+
+## Docker Build / Run
+
+### tl;dr: 
+
+```shell
+docker build --tag myanon .
+docker run -it --rm -v ${PWD}:/app myanon sh -c '/bin/myanon -f /app/myanon.conf < /app/dump.sql | gzip > /app/dump-anon.sql.gz'
+```
+
+### Why Docker?
+An alternative to the above build or run options is to use the provided Dockerfile to build inside an isolated environment, and run `myanon` from a container. 
+
+It's useful when:
+
+* you can't or don't want to install a full C development environment on your host
+* you want to quickly build for or run on a different architecture (e.g.: `amd64` or `arm64`)
+* you want to easily distribute a self-contained `myanon` (e.g.: for remote execution & processing on a Kubernetes cluster)
+
+The provided multistage build `Dockerfile` is using the official [`gcc` Docker image](https://hub.docker.com/_/gcc) for the *build* phase and the [`alpine` Docker image](https://hub.docker.com/_/alpine/) for runtime (some `myanon` use-cases need a shell, so a *distroless* base image would not work here). 
+
+### Build using Docker
+
+Build a static binary using the provided `Dockerfile`: 
+
+```shell
+# recommended, to start from a clean state 
+make clean
+# build using your default architecture
+docker build --tag myanon .
+```
+
+For Apple Silicon users who want to build for `amd64`:
+
+```shell
+# recommended, to start from a clean state 
+make clean
+# build using the amd64 architecture
+docker build --tag myanon --platform=linux/amd64 .
+```
+
+### Run using Docker
+
+In this example we will:
+
+* use a `myanon` configuration file (`myanon.conf`)
+* use a MySQL dump (`dump.sql`)
+* generate an anonymized dump (`dump-anon.sql`) based on the configuration and the full dump.
+
+Sharing the local folder as `/app` on the Docker host: 
+
+```shell
+docker run -it --rm -v ${PWD}:/app myanon sh -c '/bin/myanon -f /app/myanon.conf < /app/dump.sql > /app/dump-anon.sql'
+```
+
+For Apple Silicon users who want to run as `amd64`: 
+
+```shell
+docker run -it --rm --platform linux/amd64 -v ${PWD}:/app myanon sh -c '/bin/myanon -f /app/myanon.conf < /app/dump.sql > /app/dump-anon.sql' 
+```
+
+Refer to the different options from [the documentation above](https://github.com/ppomes/myanon#simple-use-case) for detailed usage options.
+
