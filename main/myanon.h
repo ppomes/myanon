@@ -52,7 +52,7 @@
 #define KEY_SIZE KEY_LEN + 1
 
 /* Config file value size */
-#define CONFIG_LEN 64
+#define CONFIG_LEN 66               /* May contain 64-char string with begining and ending quote */
 #define CONFIG_SIZE CONFIG_LEN + 1
 
 /* Max length from config file */
