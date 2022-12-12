@@ -117,10 +117,18 @@ field:
   IDENTIFIER { 
     memset(&work,0,sizeof(work));
     work.pos =-1 ;
+#ifdef __GNUC__
+#ifndef __clang__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
+#endif
     snprintf(work.key,KEY_SIZE,"%s:%s",table,$1);
+#ifdef __GNUC__
+#ifndef __clang__
 #pragma GCC diagnostic pop
+#endif
+#endif
     }
   EQ fieldaction {
     cur = mymalloc(sizeof(anon_st));

@@ -70,7 +70,7 @@ truncate                { return TRUNCATE; }
                           }
                           return LENGTH;
                         }
-\'[^\']{0,64}\'         {
+\'[^\']{0,1024}\'       {
                           COPYSTR
                           return STRING;
                         }
