@@ -249,6 +249,15 @@ int main(int argc, char **argv)
         goto failure;
     }
 
+    /* Report a warnig on stderr for fields not found */
+    for (cur = infos; cur != NULL; cur = cur->hh.next)
+    {
+        if(0 == cur->nbhits)
+        {
+            fprintf(stderr, "WARNING! Field %s from config file has not been found in dump. Maybe a config file error?\n",cur->key);
+        }
+    }
+
     /* Include stats if requested in config file */
     if (stats)
     {
