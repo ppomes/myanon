@@ -52,6 +52,9 @@ static char key[KEY_SIZE];
 /* Current field position on table */
 static int currentfieldpos;
 
+/* Current kept key field */
+static char tablekey[ID_SIZE];
+
 /* Worker on anonymisation info */
 static anon_st *cur=NULL;
 
@@ -115,12 +118,20 @@ type : TYPE { if (cur != NULL) {
 insert_st_list : insert_st
                | insert_st_list insert_st
 
-insert_st : INSERT_INTO VALUES { bfirstinsert=true ; memset(fieldconfig,0,sizeof(fieldconfig));} valueline SEMICOLUMN
+insert_st : INSERT_INTO VALUES {
+                                 bfirstinsert=true ;
+                                 memset(fieldconfig,0,sizeof(fieldconfig));
+                               } valueline SEMICOLUMN
 
 valueline: value
            | valueline COMA value
 
-value: LEFTPAR { currentfieldpos =0; }  fieldv RIGHTPAR { bfirstinsert=false ;}
+value: LEFTPAR {
+                 currentfieldpos =0;
+                 memset(tablekey,0,sizeof(tablekey));
+               }  fieldv RIGHTPAR {
+                                    bfirstinsert=false;
+                                  }
 
 fieldv: singlefield
     | fieldv COMA singlefield
@@ -128,6 +139,9 @@ fieldv: singlefield
 singlefield : VALUE {
       anonymized_res_st res_st;
       char *s;
+      int nbcopied;
+      char concatvalue[ID_SIZE];
+
       bool found=false;
       if (bfirstinsert) {
         for (cur=infos;cur!=NULL;cur=cur->hh.next) {
@@ -166,6 +180,14 @@ singlefield : VALUE {
              break;
            case AM_FIXEDQUOTED:
              quoted_output_helper(cur->fixedvalue,cur->fixedvaluelen,true);
+             break;
+           case AM_KEY:
+             mystrcpy(tablekey,dump_text,sizeof(tablekey));
+             quoted_output_helper(dump_text,dump_leng,cur->quoted);
+             break;
+           case AM_CONCATKEY:
+             nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",cur->fixedvalue,tablekey);
+             quoted_output_helper(concatvalue,nbcopied,true);
              break;
            default:
              res_st=anonymize_token(cur,dump_text,dump_leng);

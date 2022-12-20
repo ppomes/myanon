@@ -9,7 +9,7 @@ EXTRA_DIST = $(top_srcdir)/uthash/uthash.h \
              $(top_srcdir)/debian/copyright \
              $(top_srcdir)/debian/rules
 
-TULIST = test1 null-example
+TULIST = test1 null-example concat
 
 check: all
 	@rc=0; \
