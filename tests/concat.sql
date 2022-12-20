@@ -35,7 +35,7 @@ CREATE TABLE `players` (
 
 LOCK TABLES `players` WRITE;
 /*!40000 ALTER TABLE `players` DISABLE KEYS */;
-INSERT INTO `players` VALUES (1,'Roger'),(2,'Rafael'),(3,'Novak'),(4,'Andy');
+INSERT INTO `players` VALUES (10,'Roger'),(20,'Rafael'),(30,'Novak'),(40,'Andy');
 /*!40000 ALTER TABLE `players` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
