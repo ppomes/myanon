@@ -182,7 +182,7 @@ singlefield : VALUE {
              quoted_output_helper(cur->fixedvalue,cur->fixedvaluelen,true);
              break;
            case AM_KEY:
-             mystrcpy(tablekey,dump_text,sizeof(tablekey));
+             remove_quote(tablekey,dump_text,sizeof(tablekey));
              quoted_output_helper(dump_text,dump_leng,cur->quoted);
              break;
            case AM_CONCATKEY:
