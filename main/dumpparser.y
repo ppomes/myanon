@@ -185,8 +185,12 @@ singlefield : VALUE {
              remove_quote(tablekey,dump_text,sizeof(tablekey));
              quoted_output_helper(dump_text,dump_leng,cur->quoted);
              break;
-           case AM_CONCATKEY:
+           case AM_APPENDKEY:
              nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",cur->fixedvalue,tablekey);
+             quoted_output_helper(concatvalue,nbcopied,true);
+             break;
+           case AM_PREPENDKEY:
+             nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",tablekey,cur->fixedvalue);
              quoted_output_helper(concatvalue,nbcopied,true);
              break;
            default:

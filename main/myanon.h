@@ -87,7 +87,8 @@ typedef enum anon_type
     AM_EMAILHASH,
     AM_INTHASH,
     AM_KEY,
-    AM_CONCATKEY,
+    AM_APPENDKEY,
+    AM_PREPENDKEY,
 } anon_type;
 
 /* Structure for anonymization infos of a single field */

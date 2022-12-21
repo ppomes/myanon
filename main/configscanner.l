@@ -60,7 +60,8 @@ emailhash               { return EMAILHASH; }
 inthash                 { return INTHASH; }
 truncate                { return TRUNCATE; }
 key                     { return KEY; }
-concatkey               { return CONCATKEY; }
+appendkey               { return APPENDKEY; }
+prependkey              { return PREPENDKEY; }
 =                       { return EQ;}
 \{                      { return LEFT;}
 \}                      { return RIGHT;}

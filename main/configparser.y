@@ -65,7 +65,7 @@ static anon_st work;
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY CONCATKEY EQ LEFT RIGHT
+%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY EQ LEFT RIGHT
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -163,8 +163,12 @@ fieldaction:
   KEY {
         work.type = AM_KEY;
       } |
-  CONCATKEY STRING {
-                     work.type = AM_CONCATKEY;
+  APPENDKEY STRING {
+                     work.type = AM_APPENDKEY;
+                     STORE_FIXEDVALUE($2)
+                   } |
+  PREPENDKEY STRING {
+                     work.type = AM_PREPENDKEY;
                      STORE_FIXEDVALUE($2)
                    }
 %%
