@@ -146,6 +146,12 @@ singlefield : VALUE {
         }
       }
 
+      if (found) {
+        cur->nbhits++;
+      }
+
+      /* NULL values should remains NULL
+         Skip anonymisation on NULL values */
       if ((found) && (strncmp(dump_text,"NULL",dump_leng))) {
          cur->nbhits++;
          switch(cur->type) {
