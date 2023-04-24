@@ -59,6 +59,9 @@ texthash                { return TEXTHASH; }
 emailhash               { return EMAILHASH; }
 inthash                 { return INTHASH; }
 truncate                { return TRUNCATE; }
+key                     { return KEY; }
+appendkey               { return APPENDKEY; }
+prependkey              { return PREPENDKEY; }
 =                       { return EQ;}
 \{                      { return LEFT;}
 \}                      { return RIGHT;}

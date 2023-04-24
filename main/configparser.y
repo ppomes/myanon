@@ -65,7 +65,7 @@ static anon_st work;
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE EQ LEFT RIGHT
+%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY EQ LEFT RIGHT
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -159,5 +159,16 @@ fieldaction:
   INTHASH LENGTH {
                     work.type = AM_INTHASH;
                     work.len=(unsigned short)$2;
-                 }
+                 } |
+  KEY {
+        work.type = AM_KEY;
+      } |
+  APPENDKEY STRING {
+                     work.type = AM_APPENDKEY;
+                     STORE_FIXEDVALUE($2)
+                   } |
+  PREPENDKEY STRING {
+                     work.type = AM_PREPENDKEY;
+                     STORE_FIXEDVALUE($2)
+                   }
 %%
