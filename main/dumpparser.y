@@ -188,10 +188,16 @@ singlefield : VALUE {
            case AM_APPENDKEY:
              nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",cur->fixedvalue,tablekey);
              quoted_output_helper(concatvalue,nbcopied,true);
+             if (0 == tablekey[0] && bfirstinsert) {
+               fprintf(stderr, "WARNING! Table %s fields order: for appendkey mode, the key must be defined before the field to anomymize\n",currenttable);
+             }
              break;
            case AM_PREPENDKEY:
              nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",tablekey,cur->fixedvalue);
              quoted_output_helper(concatvalue,nbcopied,true);
+             if (0 == tablekey[0] && bfirstinsert) {
+               fprintf(stderr, "WARNING! Table %s fields order: for prependkey mode, the key must be defined before the field to anomymize\n",currenttable);
+             }
              break;
            default:
              res_st=anonymize_token(cur,dump_text,dump_leng);
