@@ -30,6 +30,22 @@ AC_CHECK_HEADERS(errno.h, ,[AC_MSG_ERROR([Cannot find errno.h header])])
 AC_CHECK_HEADERS(getopt.h, ,[AC_MSG_ERROR([Cannot find getopt.h header])])
 AC_CHECK_HEADERS(sys/time.h, ,[AC_MSG_ERROR([Cannot find sys/time.h header])])
 
+# Check for python
+AM_PATH_PYTHON([3])
+AC_ARG_VAR([PYTHON_INCLUDE], [Include flags for python, bypassing python-config])
+AC_ARG_VAR([PYTHON_LIBS], [ldflags flags for python, bypassing python-config])
+AC_PATH_PROGS([PYTHON_CONFIG],
+              [python$PYTHON_VERSION-config python-config],
+              [no],
+              [`dirname $PYTHON`])
+AS_IF([test "$PYTHON_CONFIG" = no], [AC_MSG_ERROR([cannot find python-config for $PYTHON.])])
+AC_MSG_CHECKING([python include flags])
+PYTHON_INCLUDE=`$PYTHON_CONFIG --includes`
+AC_MSG_RESULT([$PYTHON_INCLUDE])
+AC_MSG_CHECKING([python ldflags flags])
+PYTHON_LIBS=`$PYTHON_CONFIG --embed --ldflags`
+AC_MSG_RESULT([$PYTHON_LIBS])
+
 AC_CONFIG_FILES([Makefile
                  hmac/Makefile
                  main/Makefile])
