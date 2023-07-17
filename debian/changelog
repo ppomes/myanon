@@ -1,3 +1,14 @@
+myanon (0.5-ppa-jammy) jammy; urgency=medium
+
+  * Add parsing for some missing types (set, point, geometry)
+  * Fixed values may be up to 1024 chars
+  * Report a warning on stderr for fields not found in dump file
+  * Add 'prependkey'/'appendkey' options
+  * Add Docker support
+  * Minor fixes
+
+ -- Pierre POMES <pierre.pomes@gmail.com>  Sun, 16 Jul 2023 21:17:35 -0400
+
 myanon (0.4-ppa-jammy) jammy; urgency=medium
 
   * Fix quoting for blob type
