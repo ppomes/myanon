@@ -119,7 +119,7 @@ bool is_truncated() {
                                       DEBUG_MSG("\nENTERING STATE ST_TRUNCATE")
                                     }
                                   }
-^(INSERT|REPLACE)\ INTO\ `[^`]+`(?:\ \([^\)]+\))?  { DUPOUT
+^(INSERT|REPLACE)\ (\ IGNORE\ )?\INTO\ `[^`]+`(?:\ \([^\)]+\))?  { DUPOUT
                                     if (is_anonymized()) {
                                       BEGIN(ST_VALUES);
                                       DEBUG_MSG("\nENTERING STATE ST_VALUES")
@@ -201,7 +201,7 @@ bool is_truncated() {
 <ST_VALUES>'(\\.|[^'\\])*'                  { return VALUE; }
 <ST_VALUES>[0-9\-\.e]+                      { return VALUE; }
 <ST_VALUES>[ \n]                            { DUPOUT }
-<ST_VALUES>^(INSERT|REPLACE)\ INTO\ `[^`]+`(?:\ \([^\)]+\))? { DUPOUT
+<ST_VALUES>^(INSERT|REPLACE)\ (\ IGNORE\ )?\INTO\ `[^`]+`(?:\ \([^\)]+\))? { DUPOUT
                                               if (is_anonymized()) {
                                                 return INSERT_INTO;
                                               }
