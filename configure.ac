@@ -12,6 +12,13 @@ AC_PROG_INSTALL
 AM_PROG_AR
 AC_PROG_RANLIB
 
+# Arguments
+AC_ARG_ENABLE([python],
+              [AS_HELP_STRING([--enable-python],
+                              [enable @<:@default=no@:>@ Python support @<:@default=no@:>@])],
+              [enable_python=$enableval],
+              [enable_python="no"])
+
 # Checks flex/bison version
 AC_PATH_PROG([FLEX],[flex])
 AX_PROG_FLEX_VERSION([2.6.0],,AC_MSG_ERROR([GNU flex 2.6+ is required]))
@@ -30,21 +37,31 @@ AC_CHECK_HEADERS(errno.h, ,[AC_MSG_ERROR([Cannot find errno.h header])])
 AC_CHECK_HEADERS(getopt.h, ,[AC_MSG_ERROR([Cannot find getopt.h header])])
 AC_CHECK_HEADERS(sys/time.h, ,[AC_MSG_ERROR([Cannot find sys/time.h header])])
 
-# Check for python
-AM_PATH_PYTHON([3])
-AC_ARG_VAR([PYTHON_INCLUDE], [Include flags for python, bypassing python-config])
-AC_ARG_VAR([PYTHON_LIBS], [ldflags flags for python, bypassing python-config])
-AC_PATH_PROGS([PYTHON_CONFIG],
-              [python$PYTHON_VERSION-config python-config],
-              [no],
-              [`dirname $PYTHON`])
-AS_IF([test "$PYTHON_CONFIG" = no], [AC_MSG_ERROR([cannot find python-config for $PYTHON.])])
-AC_MSG_CHECKING([python include flags])
-PYTHON_INCLUDE=`$PYTHON_CONFIG --includes`
-AC_MSG_RESULT([$PYTHON_INCLUDE])
-AC_MSG_CHECKING([python ldflags flags])
-PYTHON_LIBS=`$PYTHON_CONFIG --embed --ldflags`
-AC_MSG_RESULT([$PYTHON_LIBS])
+# Check python dependencies
+if test "$enable_python" = "yes"; then
+    AM_PATH_PYTHON([3])
+    AC_ARG_VAR([PYTHON_INCLUDE], [Include flags for python, bypassing python-config])
+    AC_ARG_VAR([PYTHON_LIBS], [ldflags flags for python, bypassing python-config])
+    AC_PATH_PROGS([PYTHON_CONFIG],
+                   [python$PYTHON_VERSION-config python-config],
+                   [no],
+                   [`dirname $PYTHON`])
+    AS_IF([test "$PYTHON_CONFIG" = no], [AC_MSG_ERROR([cannot find python-config for $PYTHON.])])
+    AC_MSG_CHECKING([python include flags])
+    PYTHON_INCLUDE=`$PYTHON_CONFIG --includes`
+    AC_MSG_RESULT([$PYTHON_INCLUDE])
+    AC_MSG_CHECKING([python ldflags flags])
+    PYTHON_LIBS=`$PYTHON_CONFIG --embed --ldflags`
+    AC_MSG_RESULT([$PYTHON_LIBS])
+
+    AC_SUBST([PYTHON_LIBS])
+
+    CPPFLAGS="$CPPFLAGS $PYTHON_INCLUDE"
+    LDFLAGS="$LDFLAGS $PYTHON_LIBS"
+
+    AC_DEFINE_UNQUOTED([HAVE_PYTHON], [1], [Define to 1 if Python support is enabled.])
+fi
+
 
 AC_CONFIG_FILES([Makefile
                  hmac/Makefile
