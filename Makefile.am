@@ -9,10 +9,11 @@ EXTRA_DIST = $(top_srcdir)/uthash/uthash.h \
              $(top_srcdir)/debian/copyright \
              $(top_srcdir)/debian/rules
 
-TULIST = test1 test1-insert-ignore null-example appendkey prependkey
+TULIST = test1 test1-insert-ignore null-example appendkey prependkey test_python
 
 check: all
 	@rc=0; \
+        export PYTHONPATH="$(PWD)/tests:$$PYTHONPATH"; \
 	for ut in $(TULIST); do \
 		main/myanon -f tests/$${ut}.conf < tests/$${ut}.sql | diff tests/$${ut}_anon.sql - > /dev/null; \
 		if [ $$? -eq 0 ]; then \

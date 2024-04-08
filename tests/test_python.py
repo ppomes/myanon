@@ -1,0 +1,2 @@
+def pytest():
+    return "pythontest"
