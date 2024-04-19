@@ -177,7 +177,7 @@ int config_lex_destroy();         /* Config Lexer 'destructor' */
 void config_error(const char *s); /* Config parser error function */
 extern int config_lineno;         /* Config Line number */
 extern char *config_text;         /* Config last token found */
-extern int config_leng;           /* Config last token length */
+extern unsigned long config_leng;           /* Config last token length */
 extern FILE *config_in;           /* Config Lexer input */
 
 /*
@@ -189,6 +189,6 @@ int dump_lex_destroy();         /* Dump Lexer 'destructor' */
 void dump_error(const char *s); /* Dump parser error function */
 extern int dump_lineno;         /* Dump line numner */
 extern char *dump_text;         /* Dump last token found */
-extern int dump_leng;           /* Dump last token length */
+extern unsigned long dump_leng;           /* Dump last token length */
 
 #endif
