@@ -62,9 +62,12 @@ truncate                { return TRUNCATE; }
 key                     { return KEY; }
 appendkey               { return APPENDKEY; }
 prependkey              { return PREPENDKEY; }
+jsonarray               { return JSONARRAY; }
+jsonobject              { return JSONOBJECT; }
 =                       { return EQ;}
 \{                      { return LEFT;}
 \}                      { return RIGHT;}
+,                       { return COMMA;}
 [0-9]{1,2}              {
                           COPYINT
                           if (config_lval.shortval > MAX_LEN) {

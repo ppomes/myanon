@@ -161,39 +161,39 @@ singlefield : VALUE {
       }
 
       if (found) {
-        cur->nbhits++;
+        cur->infos.nbhits++;
       }
 
       /* NULL values should remains NULL
          Skip anonymisation on NULL values */
       if ((found) && (strncmp(dump_text,"NULL",dump_leng))) {
-         cur->nbhits++;
-         switch(cur->type) {
+         cur->infos.nbhits++;
+         switch(cur->infos.type) {
            case AM_FIXEDNULL:
              quoted_output_helper((char *)"NULL",4,false);
              break;
            case AM_FIXED:
-             quoted_output_helper(cur->fixedvalue,cur->fixedvaluelen,cur->quoted);
+             quoted_output_helper(cur->infos.fixedvalue,cur->infos.fixedvaluelen,cur->quoted);
              break;
            case AM_FIXEDUNQUOTED:
-             quoted_output_helper(cur->fixedvalue,cur->fixedvaluelen,false);
+             quoted_output_helper(cur->infos.fixedvalue,cur->infos.fixedvaluelen,false);
              break;
            case AM_FIXEDQUOTED:
-             quoted_output_helper(cur->fixedvalue,cur->fixedvaluelen,true);
+             quoted_output_helper(cur->infos.fixedvalue,cur->infos.fixedvaluelen,true);
              break;
            case AM_KEY:
              remove_quote(tablekey,dump_text,sizeof(tablekey));
              quoted_output_helper(dump_text,dump_leng,cur->quoted);
              break;
            case AM_APPENDKEY:
-             nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",cur->fixedvalue,tablekey);
+             nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",cur->infos.fixedvalue,tablekey);
              quoted_output_helper(concatvalue,nbcopied,true);
              if (0 == tablekey[0] && bfirstinsert) {
                fprintf(stderr, "WARNING! Table %s fields order: for appendkey mode, the key must be defined before the field to anomymize\n",currenttable);
              }
              break;
            case AM_PREPENDKEY:
-             nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",tablekey,cur->fixedvalue);
+             nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",tablekey,cur->infos.fixedvalue);
              quoted_output_helper(concatvalue,nbcopied,true);
              if (0 == tablekey[0] && bfirstinsert) {
                fprintf(stderr, "WARNING! Table %s fields order: for prependkey mode, the key must be defined before the field to anomymize\n",currenttable);

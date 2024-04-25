@@ -89,14 +89,13 @@ typedef enum anon_type
     AM_KEY,
     AM_APPENDKEY,
     AM_PREPENDKEY,
+    AM_JSONOBJECT,
+    AM_JSONARRAY,
 } anon_type;
 
-/* Structure for anonymization infos of a single field */
-typedef struct anon_st
+/* Structure for anonymization info */
+typedef struct anon_base_st
 {
-    char key[KEY_SIZE];           /* key is table:field */
-    int pos;                      /* field position in table */
-    bool quoted;                  /* Quoted field ? */
     anon_type type;               /* anonymisation type */
     unsigned short len;           /* requested length from config file */
     char domain[CONFIG_SIZE];     /* Email only: domain */
@@ -104,6 +103,24 @@ typedef struct anon_st
     unsigned long nbhits;         /* Number of times this field has been anonymized */
     char fixedvalue[CONFIG_SIZE]; /* Fixed value */
     unsigned short fixedvaluelen; /* Length of fixed value */
+} anon_base_st;
+
+/* Structure for anonymization infos for a json field */
+typedef struct anon_json_st
+{
+    char path[KEY_SIZE];          /* json path */
+    anon_base_st infos;           /* Anon infos */
+    UT_hash_handle hh;            /* uthash handle */
+} anon_json_st;
+
+/* Structure for anonymization infos of a single flat field */
+typedef struct anon_st
+{
+    char key[KEY_SIZE];           /* key is table:field */
+    int pos;                      /* field position in table */
+    bool quoted;                  /* Quoted field ? */
+    anon_base_st infos;           /* Anon infos */
+    anon_json_st *json;           /* Json anon infos */     
     UT_hash_handle hh;            /* uthash handle */
 } anon_st;
 

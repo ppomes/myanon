@@ -137,22 +137,22 @@ anonymized_res_st anonymize_token(anon_st *config, char *token, int tokenlen)
         ts_beg = get_ts_in_ms();
     }
 
-    switch (config->type)
+    switch (config->infos.type)
     {
     case AM_TEXTHASH:
-        res_st.len = MIN(SHA256_DIGEST_SIZE, config->len);
+        res_st.len = MIN(SHA256_DIGEST_SIZE, config->infos.len);
         make_readable_hash((unsigned char *)token, tokenlen, &res_st, 'a', 'z');
         break;
 
     case AM_EMAILHASH:
-        res_st.len = config->len + 1 + config->domainlen; // anon part + '@' + domain
+        res_st.len = config->infos.len + 1 + config->infos.domainlen; // anon part + '@' + domain
         make_readable_hash((unsigned char *)token, tokenlen, &res_st, 'a', 'z');
-        res_st.data[config->len] = '@';
-        memcpy(&res_st.data[config->len + 1], config->domain, config->domainlen);
+        res_st.data[config->infos.len] = '@';
+        memcpy(&res_st.data[config->infos.len + 1], config->infos.domain, config->infos.domainlen);
         break;
 
     case AM_INTHASH:
-        res_st.len = MIN(SHA256_DIGEST_SIZE, config->len);
+        res_st.len = MIN(SHA256_DIGEST_SIZE, config->infos.len);
         make_readable_hash((unsigned char *)token, tokenlen, &res_st, '1', '9');
         break;
 
@@ -194,6 +194,7 @@ int main(int argc, char **argv)
     int c;
     char *fvalue = NULL;
     anon_st *cur, *tmp = NULL;
+    anon_json_st *jscur = NULL;
     unsigned long ts_beg;
     unsigned long ts_end;
 
@@ -252,7 +253,14 @@ int main(int argc, char **argv)
     /* Report a warnig on stderr for fields not found */
     for (cur = infos; cur != NULL; cur = cur->hh.next)
     {
-        if(0 == cur->nbhits)
+	if(cur->json) {
+	    for (jscur = cur->json; jscur != NULL; jscur = jscur->hh.next) {
+		if (0 == jscur->infos.nbhits) {
+		     fprintf(stderr, "WARNING! Field %s - JSON %s from config file has not been found in dump. Maybe a config file error?\n",cur->key, jscur->path);
+		} 
+	    }
+	}
+        if(0 == cur->infos.nbhits)
         {
             fprintf(stderr, "WARNING! Field %s from config file has not been found in dump. Maybe a config file error?\n",cur->key);
         }
@@ -268,8 +276,8 @@ int main(int argc, char **argv)
         for (cur = infos; cur != NULL; cur = cur->hh.next)
         {
             fprintf(stdout, "-- Field %s anonymized %lu time(s)\n",
-                    cur->key, cur->nbhits);
-            total_anon += cur->nbhits;
+                    cur->key, cur->infos.nbhits);
+            total_anon += cur->infos.nbhits;
         }
         fprintf(stdout, "-- TOTAL Number of anonymization(s): %lu\n", total_anon);
     }
