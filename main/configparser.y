@@ -37,8 +37,8 @@
 #include "myanon.h"
 
 #define STORE_FIXEDVALUE(X) \
-        remove_quote(work.fixedvalue,X,sizeof(work.fixedvalue)); \
-        work.fixedvaluelen=(unsigned short)strlen(work.fixedvalue);
+        remove_quote(workinfos.fixedvalue,X,sizeof(workinfos.fixedvalue)); \
+        workinfos.fixedvaluelen=(unsigned short)strlen(workinfos.fixedvalue);
 
 
 /* Current working table */
@@ -47,11 +47,23 @@ static char table[ID_SIZE];
 /* Walker on anon config */
 static anon_st *cur = NULL;
 
+/* Walker on json config */
+static anon_json_st *jscur = NULL;
+
 /* Walker on truncate config */
 static truncate_st *trcur = NULL;
 
-/* Current working anon config element */
+/* Current working DB flat field anon config element */
 static anon_st work;
+
+/* Current working anon info */
+static anon_base_st workinfos;
+
+/* Current json anon working list */
+static anon_json_st *jslist=NULL;
+
+/* Current working json anon config element */
+static anon_json_st jsonwork;
 
 
 %}
@@ -65,7 +77,7 @@ static anon_st work;
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY EQ LEFT RIGHT
+%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY EQ LEFT RIGHT JSONARRAY JSON COMMA
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -116,59 +128,81 @@ fieldlist:
 field:
   IDENTIFIER { 
     memset(&work,0,sizeof(work));
+    memset(&workinfos,0,sizeof(workinfos));
     work.pos =-1 ;
+    jslist=NULL;
     snprintf(work.key,KEY_SIZE,"%s:%.*s",table,ID_LEN,$1);
     }
   EQ fieldaction {
     cur = mymalloc(sizeof(anon_st));
     memset(cur,0,sizeof(anon_st));
     memcpy(cur,&work,sizeof(anon_st));
+    memcpy(&cur->infos,&workinfos,sizeof(anon_base_st));
+    cur->json=jslist;
     HASH_ADD_STR(infos, key, cur);
   }
 
 fieldaction:
   FIXEDNULL {
-              work.type = AM_FIXEDNULL;
+              workinfos.type = AM_FIXEDNULL;
             } |
   FIXED STRING {
-                 work.type = AM_FIXED;
+                 workinfos.type = AM_FIXED;
                  STORE_FIXEDVALUE($2)
                } |
   FIXEDUNQUOTED STRING {
-                 work.type = AM_FIXEDUNQUOTED;
+                 workinfos.type = AM_FIXEDUNQUOTED;
                  STORE_FIXEDVALUE($2)
                } |
   FIXEDQUOTED STRING {
-                 work.type = AM_FIXEDQUOTED;
+                 workinfos.type = AM_FIXEDQUOTED;
                  STORE_FIXEDVALUE($2)
                } |
   TEXTHASH LENGTH {
-                    work.type = AM_TEXTHASH;
-                    work.len=(unsigned short)$2;
+                    workinfos.type = AM_TEXTHASH;
+                    workinfos.len=(unsigned short)$2;
                   } |
   EMAILHASH STRING LENGTH {
-                            work.type = AM_EMAILHASH;
-                            work.len = (unsigned short)$3;
-                            remove_quote(work.domain,$2,sizeof(work.domain));
-                            work.domainlen=(unsigned short)strlen(work.domain);
-                            if (work.len + work.domainlen + 1 > MAX_LEN) {
+                            workinfos.type = AM_EMAILHASH;
+                            workinfos.len = (unsigned short)$3;
+                            remove_quote(workinfos.domain,$2,sizeof(workinfos.domain));
+                            workinfos.domainlen=(unsigned short)strlen(workinfos.domain);
+                            if (workinfos.len + workinfos.domainlen + 1 > MAX_LEN) {
                               config_error("Requested length is too long");
                               exit(EXIT_FAILURE);
                             }
                           } |
   INTHASH LENGTH {
-                    work.type = AM_INTHASH;
-                    work.len=(unsigned short)$2;
+                    workinfos.type = AM_INTHASH;
+                    workinfos.len=(unsigned short)$2;
                  } |
   KEY {
-        work.type = AM_KEY;
+        workinfos.type = AM_KEY;
       } |
   APPENDKEY STRING {
-                     work.type = AM_APPENDKEY;
+                     workinfos.type = AM_APPENDKEY;
                      STORE_FIXEDVALUE($2)
                    } |
   PREPENDKEY STRING {
-                     work.type = AM_PREPENDKEY;
+                     workinfos.type = AM_PREPENDKEY;
                      STORE_FIXEDVALUE($2)
-                   }
+                    } |
+  JSON LEFT jsonlines RIGHT {
+                     workinfos.type = AM_JSON;
+                    }
+
+jsonlines:
+  jsonline |
+  jsonline jsonlines
+
+jsonline:
+  STRING EQ fieldaction {
+    jscur = mymalloc(sizeof(anon_json_st));
+    memset(jscur,0,sizeof(anon_json_st));
+    memcpy(&jscur->infos,&workinfos,sizeof(anon_base_st));
+    remove_quote(jscur->key,$1,CONFIG_SIZE);
+    HASH_ADD_STR(jslist, key, jscur);
+  }
+
+  
 %%

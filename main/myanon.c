@@ -127,7 +127,7 @@ void make_readable_hash(const unsigned char *token, unsigned int tokenlen,
     }
 }
 
-anonymized_res_st anonymize_token(anon_st *config, char *token, int tokenlen)
+anonymized_res_st anonymize_token(anon_base_st *config, char *token, int tokenlen)
 {
     anonymized_res_st res_st;
     unsigned long ts_beg, ts_end;
@@ -194,6 +194,7 @@ int main(int argc, char **argv)
     int c;
     char *fvalue = NULL;
     anon_st *cur, *tmp = NULL;
+    anon_json_st *jscur, *jstmp = NULL;
     unsigned long ts_beg;
     unsigned long ts_end;
 
@@ -252,9 +253,19 @@ int main(int argc, char **argv)
     /* Report a warnig on stderr for fields not found */
     for (cur = infos; cur != NULL; cur = cur->hh.next)
     {
-        if(0 == cur->nbhits)
+        if (cur->json)
         {
-            fprintf(stderr, "WARNING! Field %s from config file has not been found in dump. Maybe a config file error?\n",cur->key);
+            for (jscur = cur->json; jscur != NULL; jscur = jscur->hh.next)
+            {
+                if (0 == jscur->infos.nbhits)
+                {
+                    fprintf(stderr, "WARNING! Field %s - JSON %s from config file has not been found in dump. Maybe a config file error?\n", cur->key, jscur->key);
+                }
+            }
+        }
+        if (0 == cur->infos.nbhits)
+        {
+            fprintf(stderr, "WARNING! Field %s from config file has not been found in dump. Maybe a config file error?\n", cur->key);
         }
     }
 
@@ -268,8 +279,8 @@ int main(int argc, char **argv)
         for (cur = infos; cur != NULL; cur = cur->hh.next)
         {
             fprintf(stdout, "-- Field %s anonymized %lu time(s)\n",
-                    cur->key, cur->nbhits);
-            total_anon += cur->nbhits;
+                    cur->key, cur->infos.nbhits);
+            total_anon += cur->infos.nbhits;
         }
         fprintf(stdout, "-- TOTAL Number of anonymization(s): %lu\n", total_anon);
     }
@@ -280,6 +291,11 @@ int main(int argc, char **argv)
     /* Free config memory (clean Valgrind report) */
     HASH_ITER(hh, infos, cur, tmp)
     {
+        HASH_ITER(hh,infos->json,jscur,jstmp)
+        {
+            HASH_DEL(infos->json, jscur);
+            free(jscur);
+        }
         HASH_DEL(infos, cur);
         free(cur);
     }

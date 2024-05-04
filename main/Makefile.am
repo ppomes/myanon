@@ -16,7 +16,7 @@ AM_YFLAGS = -d -Wno-yacc
 AM_LFLAGS = -8
 
 # include flags
-myanon_CFLAGS = -I$(top_srcdir)/uthash -I$(top_srcdir)/hmac
+myanon_CFLAGS = -I$(top_srcdir)/uthash -I$(top_srcdir)/hmac $(JSONC_CFLAGS)
 
 # link with flex
-myanon_LDADD = $(LIBLEX) $(top_builddir)/hmac/libhmac.a
+myanon_LDADD = $(LIBLEX) $(top_builddir)/hmac/libhmac.a $(JSONC_LIBS)
