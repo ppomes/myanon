@@ -247,6 +247,9 @@ singlefield : VALUE {
                free(unbackslash_json_str);
                free(newjsonbackslash_str);
                json_object_put(jobj);
+             } else {
+               fprintf(stderr, "WARNING! Table/field %s: Unable to parse json field, skip anonimyzation",cur->key);
+               quoted_output_helper(dump_text,dump_leng,true);
              }
              break;
              
