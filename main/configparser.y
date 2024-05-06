@@ -143,25 +143,49 @@ field:
   }
 
 fieldaction:
+  fixednull |
+  fixedstring |
+  fixedunquotedstring |
+  fixedquotedstring |
+  texthash |
+  emailhash |
+  inthash |
+  key |
+  appendkey |
+  prependkey |
+  json
+
+
+fixednull :
   FIXEDNULL {
               workinfos.type = AM_FIXEDNULL;
-            } |
+            }
+
+fixedstring :
   FIXED STRING {
                  workinfos.type = AM_FIXED;
                  STORE_FIXEDVALUE($2)
-               } |
+               }
+
+fixedunquotedstring:
   FIXEDUNQUOTED STRING {
                  workinfos.type = AM_FIXEDUNQUOTED;
                  STORE_FIXEDVALUE($2)
-               } |
+               }
+
+fixedquotedstring:
   FIXEDQUOTED STRING {
                  workinfos.type = AM_FIXEDQUOTED;
                  STORE_FIXEDVALUE($2)
-               } |
+               }
+
+texthash:
   TEXTHASH LENGTH {
                     workinfos.type = AM_TEXTHASH;
                     workinfos.len=(unsigned short)$2;
-                  } |
+                  }
+
+emailhash:
   EMAILHASH STRING LENGTH {
                             workinfos.type = AM_EMAILHASH;
                             workinfos.len = (unsigned short)$3;
@@ -171,22 +195,30 @@ fieldaction:
                               config_error("Requested length is too long");
                               exit(EXIT_FAILURE);
                             }
-                          } |
+                          }
+
+inthash:
   INTHASH LENGTH {
                     workinfos.type = AM_INTHASH;
                     workinfos.len=(unsigned short)$2;
                  } |
+key:
   KEY {
         workinfos.type = AM_KEY;
-      } |
+      }
+
+appendkey:
   APPENDKEY STRING {
                      workinfos.type = AM_APPENDKEY;
                      STORE_FIXEDVALUE($2)
-                   } |
+                   }
+prependkey:
   PREPENDKEY STRING {
                      workinfos.type = AM_PREPENDKEY;
                      STORE_FIXEDVALUE($2)
-                    } |
+                    }
+
+json:
   JSON LEFT jsonlines RIGHT {
                      workinfos.type = AM_JSON;
                     }
@@ -196,7 +228,7 @@ jsonlines:
   jsonline jsonlines
 
 jsonline:
-  STRING EQ fieldaction {
+  STRING EQ jsonaction {
     jscur = mymalloc(sizeof(anon_json_st));
     memset(jscur,0,sizeof(anon_json_st));
     memcpy(&jscur->infos,&workinfos,sizeof(anon_base_st));
@@ -204,5 +236,10 @@ jsonline:
     HASH_ADD_STR(jslist, key, jscur);
   }
 
+jsonaction:
+  fixedstring |
+  inthash |
+  texthash |
+  emailhash
   
 %%
