@@ -58,6 +58,10 @@
 /* Max length from config file */
 #define MAX_LEN 32
 
+/* Separator (single char)*/
+#define SEPARATOR_LEN 1
+#define SEPARATOR_SIZE SEPARATOR_LEN + 1
+
 /* Nice MIN macro */
 #define MIN(a, b)                   \
     (                               \
@@ -96,13 +100,14 @@ typedef enum anon_type
 /* Structure for anonymization info */
 typedef struct anon_base_st
 {
-    anon_type type;               /* anonymisation type */
-    unsigned short len;           /* requested length from config file */
-    char domain[CONFIG_SIZE];     /* Email only: domain */
-    unsigned short domainlen;     /* Email only: domain length */
-    unsigned long nbhits;         /* Number of times this field has been anonymized */
-    char fixedvalue[CONFIG_SIZE]; /* Fixed value */
-    unsigned short fixedvaluelen; /* Length of fixed value */
+    anon_type type;                /* anonymisation type */
+    unsigned short len;            /* requested length from config file */
+    char domain[CONFIG_SIZE];      /* Email only: domain */
+    unsigned short domainlen;      /* Email only: domain length */
+    unsigned long nbhits;          /* Number of times this field has been anonymized */
+    char separator[SEPARATOR_SIZE];/* Separator character for multiple separated values */
+    char fixedvalue[CONFIG_SIZE];  /* Fixed value */
+    unsigned short fixedvaluelen;  /* Length of fixed value */
 } anon_base_st;
 
 /* Structure for anonymization infos for a json field */

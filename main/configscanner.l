@@ -67,7 +67,7 @@ jsonarray               { return JSONARRAY; }
 =                       { return EQ;}
 \{                      { return LEFT;}
 \}                      { return RIGHT;}
-,                       { return COMMA;}
+separated\ by           { return SEPARATEDBY;}
 [0-9]{1,2}              {
                           COPYINT
                           if (config_lval.shortval > MAX_LEN) {

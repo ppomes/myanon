@@ -77,7 +77,7 @@ static anon_json_st jsonwork;
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY EQ LEFT RIGHT JSONARRAY JSON COMMA
+%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY EQ LEFT RIGHT JSONARRAY JSON COMMA SEPARATEDBY
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -144,17 +144,23 @@ field:
 
 fieldaction:
   fixednull |
+  fixednull separated |
   fixedstring |
+  fixedstring separated |
   fixedunquotedstring |
+  fixedunquotedstring separated |
   fixedquotedstring |
+  fixedquotedstring separated |
   texthash |
+  texthash separated |
   emailhash |
+  emailhash separated |
   inthash |
+  inthash separated |
   key |
   appendkey |
   prependkey |
   json
-
 
 fixednull :
   FIXEDNULL {
@@ -222,6 +228,15 @@ json:
   JSON LEFT jsonlines RIGHT {
                      workinfos.type = AM_JSON;
                     }
+
+separated:
+  SEPARATEDBY STRING {
+                       /* The separator must be a single character, surrounded by quotes */
+                       if (strlen($2) > 3) {
+                         fprintf(stderr, "Warning: separator is only one char, keeping first char\n");
+                       }
+                       workinfos.separator[0]=($2)[1];
+                     }
 
 jsonlines:
   jsonline |

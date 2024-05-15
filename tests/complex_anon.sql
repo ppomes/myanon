@@ -40,7 +40,7 @@ CREATE TABLE `points` (
 
 LOCK TABLES `points` WRITE;
 /*!40000 ALTER TABLE `points` DISABLE KEYS */;
-INSERT INTO `points` VALUES (1,'dkyib','[\"person1@shop1.com\", \"person2@shop1.com\", \"person3@shop1.com\"]','{ \"email\": \"piskgwdrsq@example.com\", \"last_name\": \"itrai\", \"first_name\": \"lbnvq\" }','person1@shop1.com,person2@shop1.com,person3@shop1.com,owner@shop1.com','2024-04-09 17:58:27.502417','2024-04-09 17:58:27.502417'),(2,'xeepf','[\"person1@shop2.com\", \"person2@shop2.com\", \"person3@shop2.com\"]','{ \"email\": \"qukrgrahjl@example.com\", \"last_name\": \"yzbhe\", \"first_name\": \"lcxlg\" }','person1@shop2.com,person2@shop2.com,person3@shop2.com,owner@shop2.com','2024-04-09 17:58:58.337830','2024-04-09 17:58:58.337830');
+INSERT INTO `points` VALUES (1,'dkyib','[\"person1@shop1.com\", \"person2@shop1.com\", \"person3@shop1.com\"]','{ \"email\": \"piskgwdrsq@example.com\", \"last_name\": \"itrai\", \"first_name\": \"lbnvq\" }','zuvwxysdqg@example.com,dvebwkpsdh@example.com,ygvwvtrhph@example.com','2024-04-09 17:58:27.502417','2024-04-09 17:58:27.502417'),(2,'xeepf','[\"person1@shop2.com\", \"person2@shop2.com\", \"person3@shop2.com\"]','{ \"email\": \"qukrgrahjl@example.com\", \"last_name\": \"yzbhe\", \"first_name\": \"lcxlg\" }','njbhceeshg@example.com,nqnryhqtqe@example.com,lvjktzvxtj@example.com','2024-04-09 17:58:58.337830','2024-04-09 17:58:58.337830');
 /*!40000 ALTER TABLE `points` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
