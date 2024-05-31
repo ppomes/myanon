@@ -50,7 +50,7 @@ $ brew install autoconf automake flex bison m4
 
 (Please ensure binaries installed by brew are in your $PATH)
 
-If you using zsh, you may need to add the following to your .zshrc file:
+If your using zsh, you may need to add the following to your .zshrc file:
 
 ```shell
 export PATH="/usr/local/opt/m4/bin:$PATH"
