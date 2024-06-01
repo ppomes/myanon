@@ -40,12 +40,20 @@ $sudo apt-get install autoconf automake flex bison build-essential
 [...]
 ```
 On macOS, you need to install Xcode and homebrew, and then:
-
 ```shell
-$ brew install autoconf automake flex bison
+$ brew install autoconf automake flex bison m4
 [...]
 ```
+
 (Please ensure binaries installed by brew are in your $PATH)
+
+If your using zsh, you may need to add the following to your .zshrc file:
+
+```shell
+export PATH="/usr/local/opt/m4/bin:$PATH"
+export PATH="/usr/local/opt/flex/bin:$PATH"
+export PATH="/usr/local/opt/bison/bin:$PATH"
+```
 
 ### Build/Install
 
