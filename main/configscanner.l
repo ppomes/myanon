@@ -62,9 +62,12 @@ truncate                { return TRUNCATE; }
 key                     { return KEY; }
 appendkey               { return APPENDKEY; }
 prependkey              { return PREPENDKEY; }
+json                    { return JSON; }
+path                    { return PATH; }
 =                       { return EQ;}
 \{                      { return LEFT;}
 \}                      { return RIGHT;}
+separated\ by           { return SEPARATEDBY;}
 [0-9]{1,2}              {
                           COPYINT
                           if (config_lval.shortval > MAX_LEN) {

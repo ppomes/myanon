@@ -1,4 +1,4 @@
-AC_INIT([myanon], [0.3], [pierre.pomes@gmail.com])
+AC_INIT([myanon], [0.6], [pierre.pomes@gmail.com])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_SRCDIR([config.h.in])
@@ -29,6 +29,9 @@ AC_CHECK_HEADERS(strings.h, ,[AC_MSG_ERROR([Cannot find string.h header])])
 AC_CHECK_HEADERS(errno.h, ,[AC_MSG_ERROR([Cannot find errno.h header])])
 AC_CHECK_HEADERS(getopt.h, ,[AC_MSG_ERROR([Cannot find getopt.h header])])
 AC_CHECK_HEADERS(sys/time.h, ,[AC_MSG_ERROR([Cannot find sys/time.h header])])
+
+# Check for libjq
+AC_CHECK_LIB([jq], [jq_init], [], [AC_MSG_ERROR([libjq not found])])
 
 AC_CONFIG_FILES([Makefile
                  hmac/Makefile
