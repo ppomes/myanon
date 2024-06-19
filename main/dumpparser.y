@@ -58,10 +58,22 @@ static char tablekey[ID_SIZE];
 /* Worker on anonymisation info */
 static anon_st *cur=NULL;
 
+/* Worker on json infos */
+static anon_json_st *jscur=NULL;
+
 /* True on first extended insert found for each table */
 static bool bfirstinsert;
 
 static void quoted_output_helper (char *s, unsigned short len, bool quoted);
+
+static void remove_json_backslash(char *dst, const char *src, size_t size);
+
+static void add_json_backslash(char *dst, const char *src, size_t size);
+
+void json_replace_values(jv *value, const char *key, char *newvalue);
+
+
+
 
 %}
 %define api.prefix {dump_}
@@ -142,6 +154,8 @@ singlefield : VALUE {
       int nbcopied;
       char concatvalue[ID_SIZE];
 
+      char *newjsonbackslash_str=NULL;
+
       bool found=false;
       if (bfirstinsert) {
         for (cur=infos;cur!=NULL;cur=cur->hh.next) {
@@ -161,49 +175,149 @@ singlefield : VALUE {
       }
 
       if (found) {
-        cur->nbhits++;
+        cur->infos.nbhits++;
       }
 
       /* NULL values should remains NULL
          Skip anonymisation on NULL values */
       if ((found) && (strncmp(dump_text,"NULL",dump_leng))) {
-         cur->nbhits++;
-         switch(cur->type) {
-           case AM_FIXEDNULL:
-             quoted_output_helper((char *)"NULL",4,false);
-             break;
-           case AM_FIXED:
-             quoted_output_helper(cur->fixedvalue,cur->fixedvaluelen,cur->quoted);
-             break;
-           case AM_FIXEDUNQUOTED:
-             quoted_output_helper(cur->fixedvalue,cur->fixedvaluelen,false);
-             break;
-           case AM_FIXEDQUOTED:
-             quoted_output_helper(cur->fixedvalue,cur->fixedvaluelen,true);
-             break;
-           case AM_KEY:
-             remove_quote(tablekey,dump_text,sizeof(tablekey));
-             quoted_output_helper(dump_text,dump_leng,cur->quoted);
-             break;
-           case AM_APPENDKEY:
-             nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",cur->fixedvalue,tablekey);
-             quoted_output_helper(concatvalue,nbcopied,true);
-             if (0 == tablekey[0] && bfirstinsert) {
-               fprintf(stderr, "WARNING! Table %s fields order: for appendkey mode, the key must be defined before the field to anomymize\n",currenttable);
-             }
-             break;
-           case AM_PREPENDKEY:
-             nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",tablekey,cur->fixedvalue);
-             quoted_output_helper(concatvalue,nbcopied,true);
-             if (0 == tablekey[0] && bfirstinsert) {
-               fprintf(stderr, "WARNING! Table %s fields order: for prependkey mode, the key must be defined before the field to anomymize\n",currenttable);
-             }
-             break;
-           default:
-             res_st=anonymize_token(cur,dump_text,dump_leng);
-             quoted_output_helper((char *)&res_st.data[0],res_st.len,cur->quoted);
-             break;
+        bool bDone=false;
+        bool bFirstSeperatedValue= false;
+
+        cur->infos.nbhits++;
+        char *curfield;
+        int curleng;
+        bool curquoted=false;
+
+        /* Separated mode? */
+        if (cur->infos.separator[0]) {
+          curfield=strtok(dump_text,cur->infos.separator);
+          if (curfield) {
+            curleng=strlen(curfield);
+            bFirstSeperatedValue=true;
+            if (cur->quoted) {
+              fprintf(stdout, "'"); /* Opening quote for field value */
+            }
+          } else {
+            fprintf(stderr, "WARNING! Table/field %s: Unable to parse seperated field, skip anonimyzation",cur->key);
+            quoted_output_helper(dump_text,dump_leng,true);
+            bDone=true;
           }
+        } else {
+          curfield=dump_text;
+          curleng=dump_leng;
+          curquoted=cur->quoted;
+        }
+
+        /* We may loop  on separated valued */
+        while(!bDone) {
+          if (!cur->infos.separator[0]) {
+            bDone=true; /* Single anon */
+          } else {
+            curfield=strtok(NULL,cur->infos.separator);
+            if (curfield) {
+              curleng=dump_leng;
+              if (!bFirstSeperatedValue) {
+                fprintf(stdout, "%s", cur->infos.separator);
+              }
+              bFirstSeperatedValue=false;
+            } else {
+              bDone=true;
+              if (cur->quoted) {
+                fprintf(stdout, "'"); /* Ending quote for field value */
+              }
+              continue;
+            }
+          }
+
+          switch(cur->infos.type) {
+            case AM_FIXEDNULL:
+              quoted_output_helper((char *)"NULL",4,false);
+              break;
+            case AM_FIXED:
+              quoted_output_helper(cur->infos.fixedvalue,cur->infos.fixedvaluelen,curquoted);
+              break;
+            case AM_FIXEDUNQUOTED:
+              quoted_output_helper(cur->infos.fixedvalue,cur->infos.fixedvaluelen,false);
+              break;
+            case AM_FIXEDQUOTED:
+               quoted_output_helper(cur->infos.fixedvalue,cur->infos.fixedvaluelen,true);
+               break;
+             case AM_KEY:
+               remove_quote(tablekey,curfield,sizeof(tablekey));
+               quoted_output_helper(curfield,curleng,curquoted);
+               break;
+             case AM_APPENDKEY:
+               nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",cur->infos.fixedvalue,tablekey);
+               quoted_output_helper(concatvalue,nbcopied,true);
+               if (0 == tablekey[0] && bfirstinsert) {
+                 fprintf(stderr, "WARNING! Table %s fields order: for appendkey mode, the key must be defined before the field to anomymize\n",currenttable);
+               }
+               break;
+             case AM_PREPENDKEY:
+               nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",tablekey,cur->infos.fixedvalue);
+               quoted_output_helper(concatvalue,nbcopied,true);
+               if (0 == tablekey[0] && bfirstinsert) {
+                 fprintf(stderr, "WARNING! Table %s fields order: for prependkey mode, the key must be defined before the field to anomymize\n",currenttable);
+               }
+               break;
+             case AM_JSON:
+               jv value;
+               jv result;
+               char *newvalue;
+               char *unquoted_json_str = mymalloc(curleng + 1);
+               char *resultstr;
+               remove_quote(unquoted_json_str,curfield,curleng + 1);
+               char *unbackslash_json_str = mymalloc(curleng + 1);
+               remove_json_backslash(unbackslash_json_str,unquoted_json_str,curleng + 1);
+
+               jv input_json = jv_parse(unbackslash_json_str);
+               if (jv_is_valid(input_json)) {
+                 result = jv_copy(input_json);
+
+                 /* Loop over json rules and replace */
+                 for (jscur = cur->json; jscur != NULL; jscur = jscur->hh.next) {
+                   char *strvalue;
+
+                   jq_start(jscur->jq_state, jv_copy(input_json), 0);
+
+                   while (jv_is_valid((value = jq_next(jscur->jq_state)))) {
+                     if (jv_get_kind(value) == JV_KIND_STRING) {
+                       jscur->infos.nbhits++;
+                       switch (jscur->infos.type) {
+                         case AM_FIXED:
+                           newvalue = &(jscur->infos.fixedvalue[0]);
+                           break;
+                         default:
+                           strvalue = (char *)jv_string_value(value);
+                           res_st=anonymize_token(false,&jscur->infos,strvalue,strlen(strvalue));
+                           newvalue = &res_st.data[0];
+                           break;
+                       }
+                     }
+                     json_replace_values(&result, jv_string_value(value),newvalue);
+                   }
+                 }
+
+                 resultstr = (char *)jv_string_value(jv_dump_string(result, 0));
+                 newjsonbackslash_str = mymalloc(strlen(resultstr)*2+1);
+                 add_json_backslash(newjsonbackslash_str,resultstr,strlen(resultstr)*2+1);
+                 quoted_output_helper(newjsonbackslash_str,strlen(newjsonbackslash_str),true);
+
+                 jv_free(input_json);
+
+               } else {
+                 fprintf(stderr, "WARNING! Table/field %s: Unable to parse json field, skip anonimyzation\n",cur->key);
+                 quoted_output_helper(curfield,curleng,true);
+               }
+               break;
+
+             default:
+               res_st=anonymize_token(cur->quoted,&cur->infos,curfield,curleng);
+               quoted_output_helper((char *)&res_st.data[0],res_st.len,curquoted);
+               break;
+            }
+         }
       } else {
         fwrite(dump_text,dump_leng,1,stdout);
       }
@@ -222,3 +336,59 @@ static void quoted_output_helper (char *s, unsigned short len, bool quoted)
     fprintf(stdout,"'%.*s'",len,s);
   }
 }
+
+static void remove_json_backslash(char *dst, const char *src, size_t size) {
+    memset(dst, 0, size);
+    size_t len = strlen(src);
+    for (size_t i = 0, j = 0; i < len; i++) {
+        if (src[i] != '\\') {
+            dst[j++] = src[i];
+        }
+    }
+}
+
+static void add_json_backslash(char *dst, const char *src, size_t size) {
+    memset(dst, 0, size);
+    size_t len = strlen(src);
+    for (size_t i = 0, j = 0; i < len; i++) {
+        if (src[i] == '\"') {
+            dst[j++] = '\\';
+        }
+        dst[j++] = src[i];
+    }
+}
+
+
+void json_replace_values(jv *value, const char *key, char *newvalue) {
+    switch (jv_get_kind(*value)) {
+        case JV_KIND_OBJECT: {
+            jv_object_foreach(*value, k, v) {
+                json_replace_values(&v, key, newvalue);
+                *value = jv_object_set(jv_copy(*value), jv_copy(k), jv_copy(v));
+                jv_free(k);
+                jv_free(v);
+            }
+            break;
+        }
+        case JV_KIND_ARRAY: {
+            int len = jv_array_length(jv_copy(*value));
+            for (int i = 0; i < len; i++) {
+                jv element = jv_array_get(jv_copy(*value), i);
+                json_replace_values(&element, key, newvalue);
+                *value = jv_array_set(jv_copy(*value), i, jv_copy(element));
+                jv_free(element);
+            }
+            break;
+        }
+        case JV_KIND_STRING: {
+            if (strcmp(jv_string_value(*value), key) == 0) {
+                jv_free(*value);
+                *value = jv_string(newvalue);
+            }
+            break;
+        }
+        default:
+            break;
+    }
+}
+

@@ -16,7 +16,7 @@ AM_YFLAGS = -d -Wno-yacc
 AM_LFLAGS = -8
 
 # include flags
-myanon_CFLAGS = -I$(top_srcdir)/uthash -I$(top_srcdir)/hmac $(PYTHON_INCLUDE)
+myanon_CFLAGS = -I$(top_srcdir)/uthash -I$(top_srcdir)/hmac $(JQ_CFLAGS) $(PYTHON_INCLUDE)
 
-# link with flex
-myanon_LDADD = $(LIBLEX) $(top_builddir)/hmac/libhmac.a $(PYTHON_LIBS)
+# link with flex and other libs
+myanon_LDADD = $(LIBLEX) $(top_builddir)/hmac/libhmac.a $(JQ_LIBS) $(PYTHON_LIBS)

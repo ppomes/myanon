@@ -9,7 +9,7 @@ EXTRA_DIST = $(top_srcdir)/uthash/uthash.h \
              $(top_srcdir)/debian/copyright \
              $(top_srcdir)/debian/rules
 
-TULIST = test1 test1-insert-ignore null-example appendkey prependkey
+TULIST = test1 test1-insert-ignore null-example appendkey prependkey complex
 PYTHON_SUPPORT = @PYTHON_SUPPORT@
 
 check: all

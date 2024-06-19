@@ -63,6 +63,7 @@ if test "$enable_python" = "yes"; then
     AC_SUBST([PYTHON_SUPPORT], [$enable_python])
 fi
 
+AC_CHECK_LIB([jq], [jq_init], [], [AC_MSG_ERROR([libjq not found])])
 
 AC_CONFIG_FILES([Makefile
                  hmac/Makefile

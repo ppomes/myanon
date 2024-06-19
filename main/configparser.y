@@ -31,6 +31,9 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <jv.h>
+#include <jq.h>
+
 
 #include "config.h"
 #include "myanon.h"
@@ -38,8 +41,8 @@
 #include "myanon.h"
 
 #define STORE_FIXEDVALUE(X) \
-        remove_quote(work.fixedvalue,X,sizeof(work.fixedvalue)); \
-        work.fixedvaluelen=(unsigned short)strlen(work.fixedvalue);
+        remove_quote(workinfos.fixedvalue,X,sizeof(workinfos.fixedvalue)); \
+        workinfos.fixedvaluelen=(unsigned short)strlen(workinfos.fixedvalue);
 
 
 /* Current working table */
@@ -48,11 +51,23 @@ static char table[ID_SIZE];
 /* Walker on anon config */
 static anon_st *cur = NULL;
 
+/* Walker on json config */
+static anon_json_st *jscur = NULL;
+
 /* Walker on truncate config */
 static truncate_st *trcur = NULL;
 
-/* Current working anon config element */
+/* Current working DB flat field anon config element */
 static anon_st work;
+
+/* Current working anon info */
+static anon_base_st workinfos;
+
+/* Current json anon working list */
+static anon_json_st *jslist=NULL;
+
+/* Current working json anon config element */
+static anon_json_st jsonwork;
 
 
 %}
@@ -66,7 +81,7 @@ static anon_st work;
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY EQ LEFT RIGHT PYPATH PYDEF
+%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY EQ LEFT RIGHT PYPATH PYDEF JSON PATH SEPARATEDBY
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -125,71 +140,151 @@ fieldlist:
   field fieldlist
 
 field:
-  IDENTIFIER { 
+  IDENTIFIER {
     memset(&work,0,sizeof(work));
+    memset(&workinfos,0,sizeof(workinfos));
     work.pos =-1 ;
+    jslist=NULL;
     snprintf(work.key,KEY_SIZE,"%s:%.*s",table,ID_LEN,$1);
     }
   EQ fieldaction {
     cur = mymalloc(sizeof(anon_st));
     memset(cur,0,sizeof(anon_st));
     memcpy(cur,&work,sizeof(anon_st));
+    memcpy(&cur->infos,&workinfos,sizeof(anon_base_st));
+    cur->json=jslist;
     HASH_ADD_STR(infos, key, cur);
   }
 
 fieldaction:
+  fixednull |
+  fixednull separated |
+  fixedstring |
+  fixedstring separated |
+  fixedunquotedstring |
+  fixedunquotedstring separated |
+  fixedquotedstring |
+  fixedquotedstring separated |
+  texthash |
+  texthash separated |
+  emailhash |
+  emailhash separated |
+  inthash |
+  inthash separated |
+  key |
+  appendkey |
+  prependkey |
+  pydef |
+  json |
+
+fixednull :
   FIXEDNULL {
-              work.type = AM_FIXEDNULL;
-            } |
+              workinfos.type = AM_FIXEDNULL;
+            }
+
+fixedstring :
   FIXED STRING {
-                 work.type = AM_FIXED;
+                 workinfos.type = AM_FIXED;
                  STORE_FIXEDVALUE($2)
-               } |
+               }
+
+fixedunquotedstring:
   FIXEDUNQUOTED STRING {
-                 work.type = AM_FIXEDUNQUOTED;
+                 workinfos.type = AM_FIXEDUNQUOTED;
                  STORE_FIXEDVALUE($2)
-               } |
+               }
+
+fixedquotedstring:
   FIXEDQUOTED STRING {
-                 work.type = AM_FIXEDQUOTED;
+                 workinfos.type = AM_FIXEDQUOTED;
                  STORE_FIXEDVALUE($2)
-               } |
+               }
+
+texthash:
   TEXTHASH LENGTH {
-                    work.type = AM_TEXTHASH;
-                    work.len=(unsigned short)$2;
-                  } |
+                    workinfos.type = AM_TEXTHASH;
+                    workinfos.len=(unsigned short)$2;
+                  }
+
+emailhash:
   EMAILHASH STRING LENGTH {
-                            work.type = AM_EMAILHASH;
-                            work.len = (unsigned short)$3;
-                            remove_quote(work.domain,$2,sizeof(work.domain));
-                            work.domainlen=(unsigned short)strlen(work.domain);
-                            if (work.len + work.domainlen + 1 > MAX_LEN) {
+                            workinfos.type = AM_EMAILHASH;
+                            workinfos.len = (unsigned short)$3;
+                            remove_quote(workinfos.domain,$2,sizeof(workinfos.domain));
+                            workinfos.domainlen=(unsigned short)strlen(workinfos.domain);
+                            if (workinfos.len + workinfos.domainlen + 1 > MAX_LEN) {
                               config_error("Requested length is too long");
                               exit(EXIT_FAILURE);
                             }
-                          } |
+                          }
+
+inthash:
   INTHASH LENGTH {
-                    work.type = AM_INTHASH;
-                    work.len=(unsigned short)$2;
+                    workinfos.type = AM_INTHASH;
+                    workinfos.len=(unsigned short)$2;
                  } |
+key:
   KEY {
-        work.type = AM_KEY;
-      } |
+        workinfos.type = AM_KEY;
+      }
+
+appendkey:
   APPENDKEY STRING {
-                     work.type = AM_APPENDKEY;
+                     workinfos.type = AM_APPENDKEY;
                      STORE_FIXEDVALUE($2)
-                   } |
+                   }
+prependkey:
   PREPENDKEY STRING {
-                     work.type = AM_PREPENDKEY;
+                     workinfos.type = AM_PREPENDKEY;
                      STORE_FIXEDVALUE($2)
-                   } |
+                    }
+pydef:
   PYDEF STRING {
                  #ifdef HAVE_PYTHON
-                 work.type = AM_PY;
-                 remove_quote(work.pydef,$2,sizeof(work.pydef));
+                 workinfos.type = AM_PY;
+                 remove_quote(workinfos.pydef,$2,sizeof(workinfos.pydef));
                  #else
                  fprintf(stderr, "Python support disabled, ignoring pydef directive at line %d\n",config_lineno);
                  #endif
                }
 
+json:
+  JSON LEFT jsonlines RIGHT {
+                     workinfos.type = AM_JSON;
+                    }
 
+separated:
+  SEPARATEDBY STRING {
+                       /* The separator must be a single character, surrounded by quotes */
+                       if (strlen($2) > 3) {
+                         fprintf(stderr, "Warning: separator is only one char, keeping first char\n");
+                       }
+                       workinfos.separator[0]=($2)[1];
+                     }
+
+jsonlines:
+  jsonline |
+  jsonline jsonlines
+
+jsonline:
+  PATH STRING EQ jsonaction {
+    jscur = mymalloc(sizeof(anon_json_st));
+    memset(jscur,0,sizeof(anon_json_st));
+    memcpy(&jscur->infos,&workinfos,sizeof(anon_base_st));
+    jscur->filter[0]='.';
+    remove_quote(&(jscur->filter[1]),$2,CONFIG_SIZE-1);
+    jscur->jq_state=jq_init();
+    if (jq_compile(jscur->jq_state,jscur->filter) == 0) {
+      fprintf(stderr, "Warning cannot compile jq filter '%s', ignoring it\n",jscur->filter);
+      jq_teardown(&jscur->jq_state);
+    } else {
+      HASH_ADD_STR(jslist, filter, jscur);
+    }
+  }
+
+jsonaction:
+  fixedstring |
+  inthash |
+  texthash |
+  emailhash
 %%
