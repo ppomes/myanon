@@ -169,37 +169,42 @@ anonymized_res_st anonymize_token(anon_st *config, char *token, int tokenlen)
 
 #ifdef HAVE_PYTHON
     case AM_PY:
-	Py_Initialize();
+        Py_Initialize();
         PyObject *pModule = PyImport_ImportModule(pypath);
 
-	res_st.len=0;
-	if (pModule != NULL) {
-          PyObject *pFunc = PyObject_GetAttrString(pModule, config->pydef);
-          if (pFunc && PyCallable_Check(pFunc))
-          {
-            PyObject *pResult = PyObject_CallObject(pFunc, NULL);
-            if (pResult != NULL)
+        res_st.len = 0;
+        if (pModule != NULL)
+        {
+            PyObject *pFunc = PyObject_GetAttrString(pModule, config->pydef);
+            if (pFunc && PyCallable_Check(pFunc))
             {
-                const char *result = PyUnicode_AsUTF8(pResult);
-                res_st.len=strlen(result);
-                mystrcpy(&(res_st.data[0]), result, sizeof(res_st.data));
-                Py_DECREF(pResult);
+                PyObject *pArgs = Py_BuildValue("(s)", token);
+                PyObject *pResult = PyObject_CallObject(pFunc, pArgs);
+                Py_DECREF(pArgs);
+
+                if (pResult != NULL)
+                {
+                    const char *result = PyUnicode_AsUTF8(pResult);
+                    res_st.len = strlen(result);
+                    mystrcpy(&(res_st.data[0]), result, sizeof(res_st.data));
+                    Py_DECREF(pResult);
+                }
+                else
+                {
+                    PyErr_Print();
+                }
             }
             else
             {
                 PyErr_Print();
             }
-          }
-          else
-          {
+            Py_XDECREF(pFunc);
+            Py_DECREF(pModule);
+        }
+        else
+        {
             PyErr_Print();
-          }
-          Py_XDECREF(pFunc);
-	}
-	else
-	{
-	  PyErr_Print();
-	}
+        }
         break;
 
 #endif

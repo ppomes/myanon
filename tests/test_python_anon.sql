@@ -35,7 +35,7 @@ CREATE TABLE `players` (
 
 LOCK TABLES `players` WRITE;
 /*!40000 ALTER TABLE `players` DISABLE KEYS */;
-INSERT INTO `players` VALUES (10,'pythontest'),(20,'pythontest'),(30,'pythontest'),(40,'pythontest');
+INSERT INTO `players` VALUES (10,''regoR''),(20,''leafaR''),(30,''kavoN''),(40,''ydnA'');
 /*!40000 ALTER TABLE `players` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
