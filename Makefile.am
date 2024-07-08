@@ -9,11 +9,11 @@ EXTRA_DIST = $(top_srcdir)/uthash/uthash.h \
              $(top_srcdir)/debian/copyright \
              $(top_srcdir)/debian/rules
 
-TULIST = test1 test1-insert-ignore null-example appendkey prependkey test_python
+TULIST = test1 test1-insert-ignore null-example appendkey prependkey
+PYTHON_SUPPORT = @PYTHON_SUPPORT@
 
 check: all
 	@rc=0; \
-        export PYTHONPATH="$(PWD)/tests:$$PYTHONPATH"; \
 	for ut in $(TULIST); do \
 		main/myanon -f tests/$${ut}.conf < tests/$${ut}.sql | diff tests/$${ut}_anon.sql - > /dev/null; \
 		if [ $$? -eq 0 ]; then \
@@ -23,6 +23,16 @@ check: all
 		  rc=1; \
 		fi \
 	done; \
+	if test "x$(PYTHON_SUPPORT)" = "xyes"; then \
+		export PYTHONPATH="$(PWD)/tests:$$PYTHONPATH"; \
+		main/myanon -f tests/test_python.conf < tests/test_python.sql | diff tests/test_python_anon.sql - > /dev/null; \
+		if [ $$? -eq 0 ]; then \
+		  echo "Test test_python OK" >&2; \
+		else \
+		  echo "Test test_python FAILED" >&2; \
+		  rc=1; \
+		fi \
+	fi; \
 	exit $$rc
 
 .PHONY: check

@@ -59,7 +59,8 @@ if test "$enable_python" = "yes"; then
     CPPFLAGS="$CPPFLAGS $PYTHON_INCLUDE"
     LDFLAGS="$LDFLAGS $PYTHON_LIBS"
 
-    AC_DEFINE_UNQUOTED([HAVE_PYTHON], [1], [Define to 1 if Python support is enabled.])
+    AC_DEFINE([HAVE_PYTHON], ["yes"], [Define to "yes" if Python support is enabled.])
+    AC_SUBST([PYTHON_SUPPORT], [$enable_python])
 fi
 
 
