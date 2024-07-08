@@ -148,6 +148,12 @@ anonymized_res_st anonymize_token(anon_st *config, char *token, int tokenlen)
         ts_beg = get_ts_in_ms();
     }
 
+    if (config->quoted) {
+        token++;
+	tokenlen -= 2;
+	token[tokenlen] = 0;
+    }
+
     switch (config->type)
     {
     case AM_TEXTHASH:

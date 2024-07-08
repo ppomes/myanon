@@ -61,7 +61,7 @@ CREATE TABLE `lottypes` (
 
 LOCK TABLES `lottypes` WRITE;
 /*!40000 ALTER TABLE `lottypes` DISABLE KEYS */;
-INSERT INTO `lottypes` VALUES (96,9,3,4,5,6,5.20,1e17,2e16,'1970-01-01 12:00:00','2021-01-20','2021-02-14 15:41:45','a','b',_binary '\0\0\0xœ3\0\02\02\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0',_binary '\0\0\0xœ3\0\03\03','hello','migez','53b5d7742e226ac82b347f885730f86135dd42622ad158855af509c6ffaed6d6c2ba76a4d1749da23f618f86ba921220',_binary '\0\0\0xœ3\0\07\07','pgcvq',NULL,'text3','text4','small','{\"key\": \"value\"}','C,Haskell',_binary '\0\0\0\0\0\0\0\0\0\0\0\0\0\ð?\0\0\0\0\0\0\ð?',_binary '\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0@\0\0\0\0\0\0\0@\0\0\0\0\0\0@\0\0\0\0\0\0\0@\0\0\0\0\0\0@\0\0\0\0\0\0\0\0\0\0\0\0\0\0@\0\0\0\0\0\0\0\0\0\0\0\0\0\0@');
+INSERT INTO `lottypes` VALUES (96,9,3,4,5,6,5.20,1e17,2e16,'1970-01-01 12:00:00','2021-01-20','2021-02-14 15:41:45','a','b',_binary '\0\0\0xœ3\0\02\02\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0',_binary '\0\0\0xœ3\0\03\03','hello','hsrmv','53b5d7742e226ac82b347f885730f86135dd42622ad158855af509c6ffaed6d6c2ba76a4d1749da23f618f86ba921220',_binary '\0\0\0xœ3\0\07\07','rfbqb',NULL,'text3','text4','small','{\"key\": \"value\"}','C,Haskell',_binary '\0\0\0\0\0\0\0\0\0\0\0\0\0\ð?\0\0\0\0\0\0\ð?',_binary '\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0@\0\0\0\0\0\0\0@\0\0\0\0\0\0@\0\0\0\0\0\0\0@\0\0\0\0\0\0@\0\0\0\0\0\0\0\0\0\0\0\0\0\0@\0\0\0\0\0\0\0\0\0\0\0\0\0\0@');
 /*!40000 ALTER TABLE `lottypes` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -129,7 +129,7 @@ CREATE TABLE `tata` (
 
 LOCK TABLES `tata` WRITE;
 /*!40000 ALTER TABLE `tata` DISABLE KEYS */;
-INSERT INTO `tata` VALUES (63,'ywokfrsggb@example.com');
+INSERT INTO `tata` VALUES (63,'vmiepiyrlo@example.com');
 /*!40000 ALTER TABLE `tata` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -202,7 +202,7 @@ CREATE TABLE `toto` (
 
 LOCK TABLES `toto` WRITE;
 /*!40000 ALTER TABLE `toto` DISABLE KEYS */;
-INSERT INTO `toto` VALUES (61812,'fixedvalue','','fkejpntemp'),(64672,'fixedvalue','','blldhlflsf'),(23936,'fixedvalue','','bcwbelnfbt'),(64672,'fixedvalue','','wgelhyizno');
+INSERT INTO `toto` VALUES (61812,'fixedvalue','','hxcwpnhaxd'),(64672,'fixedvalue','','cukokjpkco'),(23936,'fixedvalue','','fhgbqdyhhu'),(64672,'fixedvalue','','sgjurykwxk');
 /*!40000 ALTER TABLE `toto` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
