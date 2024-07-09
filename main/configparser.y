@@ -32,6 +32,7 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "config.h"
 #include "myanon.h"
 #include "configparser.h"
 #include "myanon.h"
@@ -65,7 +66,7 @@ static anon_st work;
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY EQ LEFT RIGHT
+%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY EQ LEFT RIGHT PYPATH PYDEF
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -79,12 +80,22 @@ directives: directive |
 directive:
   secretline |
   statsline |
+  pyline |
   tableline
 
 secretline:
   SECRET EQ STRING { 
                     remove_quote(secret,$3,sizeof(secret));
                     secretlen=(unsigned short)strlen(secret);
+                   }
+
+pyline:
+  PYPATH EQ STRING {
+                    #ifdef HAVE_PYTHON
+                    remove_quote(pypath,$3,sizeof(secret));
+                    #else
+                    fprintf(stderr, "Python support disabled, ignoring pypath directive at line %d\n",config_lineno);
+                    #endif 
                    }
 
 statsline:
@@ -170,5 +181,15 @@ fieldaction:
   PREPENDKEY STRING {
                      work.type = AM_PREPENDKEY;
                      STORE_FIXEDVALUE($2)
-                   }
+                   } |
+  PYDEF STRING {
+                 #ifdef HAVE_PYTHON
+                 work.type = AM_PY;
+                 remove_quote(work.pydef,$2,sizeof(work.pydef));
+                 #else
+                 fprintf(stderr, "Python support disabled, ignoring pydef directive at line %d\n",config_lineno);
+                 #endif
+               }
+
+
 %%

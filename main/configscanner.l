@@ -47,6 +47,7 @@
 
 %%
 secret                  { return SECRET; }
+pypath                  { return PYPATH; }
 stats                   { return STATS; }
 tables                  { return TABLES; }
 \'yes\'                 { return YES; }
@@ -62,6 +63,7 @@ truncate                { return TRUNCATE; }
 key                     { return KEY; }
 appendkey               { return APPENDKEY; }
 prependkey              { return PREPENDKEY; }
+pydef                   { return PYDEF; }
 =                       { return EQ;}
 \{                      { return LEFT;}
 \}                      { return RIGHT;}

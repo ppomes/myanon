@@ -36,14 +36,25 @@
 #include <getopt.h>
 #include <sys/time.h>
 
+#include "config.h"
 #include "uthash.h"
 #include "sha2.h"
 #include "hmac_sha2.h"
 #include "myanon.h"
 
+#ifdef HAVE_PYTHON
+#include "Python.h"
+#endif
+
 /* stdout buffering */
 #define STDOUT_BUFFER_SIZE 1048576
 static char buffer[STDOUT_BUFFER_SIZE];
+
+#ifdef HAVE_PYTHON
+PyObject *pName, *pModule, *pFunc;
+int pRet;
+FILE *fp;
+#endif
 
 void *mymalloc(size_t size)
 {
@@ -137,6 +148,12 @@ anonymized_res_st anonymize_token(anon_st *config, char *token, int tokenlen)
         ts_beg = get_ts_in_ms();
     }
 
+    if (config->quoted) {
+        token++;
+	tokenlen -= 2;
+	token[tokenlen] = 0;
+    }
+
     switch (config->type)
     {
     case AM_TEXTHASH:
@@ -155,6 +172,48 @@ anonymized_res_st anonymize_token(anon_st *config, char *token, int tokenlen)
         res_st.len = MIN(SHA256_DIGEST_SIZE, config->len);
         make_readable_hash((unsigned char *)token, tokenlen, &res_st, '1', '9');
         break;
+
+#ifdef HAVE_PYTHON
+    case AM_PY:
+        Py_Initialize();
+        PyObject *pModule = PyImport_ImportModule(pypath);
+
+        res_st.len = 0;
+        if (pModule != NULL)
+        {
+            PyObject *pFunc = PyObject_GetAttrString(pModule, config->pydef);
+            if (pFunc && PyCallable_Check(pFunc))
+            {
+                PyObject *pArgs = Py_BuildValue("(s)", token);
+                PyObject *pResult = PyObject_CallObject(pFunc, pArgs);
+                Py_DECREF(pArgs);
+
+                if (pResult != NULL)
+                {
+                    const char *result = PyUnicode_AsUTF8(pResult);
+                    res_st.len = strlen(result);
+                    mystrcpy(&(res_st.data[0]), result, sizeof(res_st.data));
+                    Py_DECREF(pResult);
+                }
+                else
+                {
+                    PyErr_Print();
+                }
+            }
+            else
+            {
+                PyErr_Print();
+            }
+            Py_XDECREF(pFunc);
+            Py_DECREF(pModule);
+        }
+        else
+        {
+            PyErr_Print();
+        }
+        break;
+
+#endif
 
     default:
         break;
@@ -252,9 +311,9 @@ int main(int argc, char **argv)
     /* Report a warnig on stderr for fields not found */
     for (cur = infos; cur != NULL; cur = cur->hh.next)
     {
-        if(0 == cur->nbhits)
+        if (0 == cur->nbhits)
         {
-            fprintf(stderr, "WARNING! Field %s from config file has not been found in dump. Maybe a config file error?\n",cur->key);
+            fprintf(stderr, "WARNING! Field %s from config file has not been found in dump. Maybe a config file error?\n", cur->key);
         }
     }
 

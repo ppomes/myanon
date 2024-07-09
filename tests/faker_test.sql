@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.0.31, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.36, for Linux (aarch64)
 --
--- Host: localhost    Database: test
+-- Host: localhost    Database: faker_test
 -- ------------------------------------------------------
--- Server version	8.0.31-0ubuntu2
+-- Server version	8.0.36-0ubuntu0.23.10.1
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -16,29 +16,28 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `testing`
+-- Table structure for table `contacts`
 --
 
-DROP TABLE IF EXISTS `testing`;
+DROP TABLE IF EXISTS `contacts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `testing` (
-  `colA` int unsigned NOT NULL AUTO_INCREMENT,
-  `colB` varchar(254) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci DEFAULT NULL,
-  `colC` varchar(254) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
-  `colD` varchar(254) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci DEFAULT NULL,
-  PRIMARY KEY (`colA`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=latin1;
+CREATE TABLE `contacts` (
+  `id` int DEFAULT NULL,
+  `lastname` char(50) DEFAULT NULL,
+  `firstname` char(50) DEFAULT NULL,
+  `email` char(50) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `testing`
+-- Dumping data for table `contacts`
 --
 
-LOCK TABLES `testing` WRITE;
-/*!40000 ALTER TABLE `testing` DISABLE KEYS */;
-INSERT INTO `testing` VALUES (1,'icndvzvmicsvfjhrmbjvitgkpwfzsgxw','plprovplypnruvjfxxibuhvyjxsyacvu',NULL),(2,'bxbfqbemeaxbxkbbwyxmgfrjjdxshfyy','xvxfmyhgpmfdtbpcmawodixmtsbqgfmg','1234'),(3,NULL,'etgfhonwiufhsgublwwgkhqxkekkldfu','1234'),(4,'usbbuavfxgmbmukirkpcuaugycdcooan','whhygrrtkghgzvorkqouwgjojtdpdyuk','1234'),(5,NULL,'qjgdfumjnmasmvetlrlstqpkfircbgmd','1234'),(6,'ggiadeeljtieoqjwgusaqfwovmhjocyf','iduzybsbmxbickhctlshhedelvuegqbw',NULL);
-/*!40000 ALTER TABLE `testing` ENABLE KEYS */;
+LOCK TABLES `contacts` WRITE;
+/*!40000 ALTER TABLE `contacts` DISABLE KEYS */;
+INSERT INTO `contacts` VALUES (1,'McFly','Marty','marty.mcfly@pomes.pro'),(2,'McClane','John','john.mcclane@pomes.pro'),(3,'Beaumont','Joss','joss.beaumont@pomes.pro');
+/*!40000 ALTER TABLE `contacts` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -50,4 +49,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-01-11 14:41:57
+-- Dump completed on 2024-04-07 21:57:03

@@ -35,6 +35,8 @@
 #include "uthash.h"
 #include "sha2.h"
 
+#include "config.h"
+
 #ifndef EXTERN
 #define EXTERN extern
 #endif
@@ -89,6 +91,9 @@ typedef enum anon_type
     AM_KEY,
     AM_APPENDKEY,
     AM_PREPENDKEY,
+#ifdef HAVE_PYTHON
+    AM_PY,
+#endif
 } anon_type;
 
 /* Structure for anonymization infos of a single field */
@@ -104,6 +109,9 @@ typedef struct anon_st
     unsigned long nbhits;         /* Number of times this field has been anonymized */
     char fixedvalue[CONFIG_SIZE]; /* Fixed value */
     unsigned short fixedvaluelen; /* Length of fixed value */
+#ifdef HAVE_PYTHON
+    char pydef[CONFIG_SIZE];      /* Python function name used to anonymize */
+#endif
     UT_hash_handle hh;            /* uthash handle */
 } anon_st;
 
@@ -135,6 +143,11 @@ EXTERN truncate_st *truncate_infos;
 /* Hmac secret */
 EXTERN char secret[CONFIG_SIZE];
 EXTERN unsigned short secretlen;
+
+#ifdef HAVE_PYTHON
+/* Python script path */
+EXTERN char pypath[CONFIG_SIZE];
+#endif
 
 /* Generate stats ? */
 EXTERN bool stats;

@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.0.31, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.30, for Linux (x86_64)
 --
--- Host: localhost    Database: test
+-- Host: localhost    Database: concat
 -- ------------------------------------------------------
--- Server version	8.0.31-0ubuntu2
+-- Server version	8.0.30-0ubuntu0.22.04.1
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -16,29 +16,27 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `testing`
+-- Table structure for table `players`
 --
 
-DROP TABLE IF EXISTS `testing`;
+DROP TABLE IF EXISTS `players`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `testing` (
-  `colA` int unsigned NOT NULL AUTO_INCREMENT,
-  `colB` varchar(254) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci DEFAULT NULL,
-  `colC` varchar(254) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci NOT NULL,
-  `colD` varchar(254) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci DEFAULT NULL,
-  PRIMARY KEY (`colA`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=latin1;
+CREATE TABLE `players` (
+  `id` int NOT NULL,
+  `name` char(20) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `testing`
+-- Dumping data for table `players`
 --
 
-LOCK TABLES `testing` WRITE;
-/*!40000 ALTER TABLE `testing` DISABLE KEYS */;
-INSERT INTO `testing` VALUES (1,'icndvzvmicsvfjhrmbjvitgkpwfzsgxw','plprovplypnruvjfxxibuhvyjxsyacvu',NULL),(2,'bxbfqbemeaxbxkbbwyxmgfrjjdxshfyy','xvxfmyhgpmfdtbpcmawodixmtsbqgfmg','1234'),(3,NULL,'etgfhonwiufhsgublwwgkhqxkekkldfu','1234'),(4,'usbbuavfxgmbmukirkpcuaugycdcooan','whhygrrtkghgzvorkqouwgjojtdpdyuk','1234'),(5,NULL,'qjgdfumjnmasmvetlrlstqpkfircbgmd','1234'),(6,'ggiadeeljtieoqjwgusaqfwovmhjocyf','iduzybsbmxbickhctlshhedelvuegqbw',NULL);
-/*!40000 ALTER TABLE `testing` ENABLE KEYS */;
+LOCK TABLES `players` WRITE;
+/*!40000 ALTER TABLE `players` DISABLE KEYS */;
+INSERT INTO `players` VALUES (10,'Roger'),(20,'Rafael'),(30,'Novak'),(40,'Andy');
+/*!40000 ALTER TABLE `players` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -50,4 +48,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-01-11 14:41:57
+-- Dump completed on 2022-08-04 21:32:09

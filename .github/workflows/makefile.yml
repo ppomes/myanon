@@ -18,7 +18,7 @@ jobs:
       run: ./autogen.sh
     
     - name: configure
-      run: ./configure
+      run: ./configure --enable-python
       
     - name: Install dependencies
       run: make
