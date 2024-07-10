@@ -13,6 +13,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
+    - name: install dependencies
+      run: apt-get install -y python3-dev libjq-dev jq
     
     - name: autogen
       run: ./autogen.sh
@@ -20,7 +23,7 @@ jobs:
     - name: configure
       run: ./configure --enable-python --enable-jq
       
-    - name: Install dependencies
+    - name: build
       run: make
       
     - name: Run tests
