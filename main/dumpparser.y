@@ -58,19 +58,23 @@ static char tablekey[ID_SIZE];
 /* Worker on anonymisation info */
 static anon_st *cur=NULL;
 
+#ifdef HAVE_JQ
 /* Worker on json infos */
 static anon_json_st *jscur=NULL;
+#endif
 
 /* True on first extended insert found for each table */
 static bool bfirstinsert;
 
 static void quoted_output_helper (char *s, unsigned short len, bool quoted);
 
+#ifdef HAVE_JQ
 static void remove_json_backslash(char *dst, const char *src, size_t size);
 
 static void add_json_backslash(char *dst, const char *src, size_t size);
 
 void json_replace_values(jv *value, const char *key, char *newvalue);
+#endif
 
 
 
@@ -261,6 +265,7 @@ singlefield : VALUE {
                  fprintf(stderr, "WARNING! Table %s fields order: for prependkey mode, the key must be defined before the field to anomymize\n",currenttable);
                }
                break;
+#ifdef HAVE_JQ
              case AM_JSON:
                jv value;
                jv result;
@@ -311,6 +316,7 @@ singlefield : VALUE {
                  quoted_output_helper(curfield,curleng,true);
                }
                break;
+#endif
 
              default:
                res_st=anonymize_token(cur->quoted,&cur->infos,curfield,curleng);
@@ -337,6 +343,7 @@ static void quoted_output_helper (char *s, unsigned short len, bool quoted)
   }
 }
 
+#ifdef HAVE_JQ
 static void remove_json_backslash(char *dst, const char *src, size_t size) {
     memset(dst, 0, size);
     size_t len = strlen(src);
@@ -391,4 +398,5 @@ void json_replace_values(jv *value, const char *key, char *newvalue) {
             break;
     }
 }
+#endif
 

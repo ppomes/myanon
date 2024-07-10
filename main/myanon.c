@@ -263,7 +263,9 @@ int main(int argc, char **argv)
     int c;
     char *fvalue = NULL;
     anon_st *cur, *tmp = NULL;
+#ifdef HAVE_JQ
     anon_json_st *jscur, *jstmp = NULL;
+#endif
     unsigned long ts_beg;
     unsigned long ts_end;
 
@@ -322,6 +324,7 @@ int main(int argc, char **argv)
     /* Report a warnig on stderr for fields not found */
     for (cur = infos; cur != NULL; cur = cur->hh.next)
     {
+#ifdef HAVE_JQ
         if (cur->json)
         {
             for (jscur = cur->json; jscur != NULL; jscur = jscur->hh.next)
@@ -332,6 +335,7 @@ int main(int argc, char **argv)
                 }
             }
         }
+#endif
         if (0 == cur->infos.nbhits)
         {
             fprintf(stderr, "WARNING! Field %s from config file has not been found in dump. Maybe a config file error?\n", cur->key);
@@ -360,12 +364,14 @@ int main(int argc, char **argv)
     /* Free config memory (clean Valgrind report) */
     HASH_ITER(hh, infos, cur, tmp)
     {
+#ifdef HAVE_JQ
         HASH_ITER(hh,infos->json,jscur,jstmp)
         {
 	    jq_teardown(&(jscur->jq_state));
             HASH_DEL(infos->json, jscur);
             free(jscur);
         }
+#endif
         HASH_DEL(infos, cur);
         free(cur);
     }

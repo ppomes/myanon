@@ -31,8 +31,10 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#ifdef HAVE_JQ
 #include <jv.h>
 #include <jq.h>
+#endif
 
 
 #include "config.h"
@@ -51,8 +53,10 @@ static char table[ID_SIZE];
 /* Walker on anon config */
 static anon_st *cur = NULL;
 
+#ifdef HAVE_JQ
 /* Walker on json config */
 static anon_json_st *jscur = NULL;
+#endif
 
 /* Walker on truncate config */
 static truncate_st *trcur = NULL;
@@ -63,11 +67,15 @@ static anon_st work;
 /* Current working anon info */
 static anon_base_st workinfos;
 
+#ifdef HAVE_JQ
 /* Current json anon working list */
 static anon_json_st *jslist=NULL;
+#endif
 
+#ifdef HAVE_JQ
 /* Current working json anon config element */
 static anon_json_st jsonwork;
+#endif
 
 
 %}
@@ -144,7 +152,9 @@ field:
     memset(&work,0,sizeof(work));
     memset(&workinfos,0,sizeof(workinfos));
     work.pos =-1 ;
+    #ifdef HAVE_JQ
     jslist=NULL;
+    #endif
     snprintf(work.key,KEY_SIZE,"%s:%.*s",table,ID_LEN,$1);
     }
   EQ fieldaction {
@@ -152,7 +162,9 @@ field:
     memset(cur,0,sizeof(anon_st));
     memcpy(cur,&work,sizeof(anon_st));
     memcpy(&cur->infos,&workinfos,sizeof(anon_base_st));
+    #ifdef HAVE_JQ
     cur->json=jslist;
+    #endif
     HASH_ADD_STR(infos, key, cur);
   }
 
@@ -250,7 +262,11 @@ pydef:
 
 json:
   JSON LEFT jsonlines RIGHT {
+                     #ifdef HAVE_JQ
                      workinfos.type = AM_JSON;
+                     #else
+                     fprintf(stderr, "JQ support disabled, ignoring json directive at line %d\n",config_lineno);
+                     #endif
                     }
 
 separated:
@@ -268,6 +284,7 @@ jsonlines:
 
 jsonline:
   PATH STRING EQ jsonaction {
+    #ifdef HAVE_JQ
     jscur = mymalloc(sizeof(anon_json_st));
     memset(jscur,0,sizeof(anon_json_st));
     memcpy(&jscur->infos,&workinfos,sizeof(anon_base_st));
@@ -280,6 +297,7 @@ jsonline:
     } else {
       HASH_ADD_STR(jslist, filter, jscur);
     }
+    #endif
   }
 
 jsonaction:

@@ -31,14 +31,18 @@
 #define MYANON_H
 
 #include <stdbool.h>
-#include <jv.h>
-#include <jq.h>
-
 
 #include "uthash.h"
 #include "sha2.h"
 
 #include "config.h"
+
+#ifdef HAVE_JQ
+#include <jv.h>
+#include <jq.h>
+#endif
+
+
 
 #ifndef EXTERN
 #define EXTERN extern
@@ -120,6 +124,7 @@ typedef struct anon_base_st
 #endif
 } anon_base_st;
 
+#ifdef HAVE_JQ
 /* Structure for anonymization infos for a json field */
 typedef struct anon_json_st
 {
@@ -128,6 +133,8 @@ typedef struct anon_json_st
     anon_base_st infos;       /* Anon infos */
     UT_hash_handle hh;        /* uthash handle */
 } anon_json_st;
+#endif
+
 
 /* Structure for anonymization infos of a single flat field */
 typedef struct anon_st
@@ -136,7 +143,9 @@ typedef struct anon_st
     int pos;            /* field position in table */
     bool quoted;        /* Quoted field ? */
     anon_base_st infos; /* Anon infos */
+#ifdef HAVE_JQ
     anon_json_st *json; /* Json anon infos */
+#endif
     UT_hash_handle hh;  /* uthash handle */
 } anon_st;
 
