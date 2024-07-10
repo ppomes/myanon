@@ -6,7 +6,8 @@ RUN apk update && apk add --no-cache \
     autoconf \
     automake \
     libtool \
-    python3-dev
+    python3-dev \
+    jq-dev
 WORKDIR /app
 COPY . .
 RUN ./autogen.sh && \
@@ -17,6 +18,7 @@ FROM alpine:latest
 COPY --from=builder /app/main/myanon /bin/myanon
 RUN apk update && apk add --no-cache \
     python3 \
+    jq \
     py3-pip \
     py3-faker
 CMD ["/bin/sh"]
