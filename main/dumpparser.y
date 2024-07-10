@@ -157,8 +157,15 @@ singlefield : VALUE {
       char *s;
       int nbcopied;
       char concatvalue[ID_SIZE];
-
+#ifdef HAVE_JQ
       char *newjsonbackslash_str=NULL;
+      jv value;
+      jv result;
+      char *newvalue;
+      char *unquoted_json_str;
+      char *resultstr;
+      char *unbackslash_json_str;
+#endif
 
       bool found=false;
       if (bfirstinsert) {
@@ -267,13 +274,9 @@ singlefield : VALUE {
                break;
 #ifdef HAVE_JQ
              case AM_JSON:
-               jv value;
-               jv result;
-               char *newvalue;
-               char *unquoted_json_str = mymalloc(curleng + 1);
-               char *resultstr;
+               unquoted_json_str = mymalloc(curleng + 1);
                remove_quote(unquoted_json_str,curfield,curleng + 1);
-               char *unbackslash_json_str = mymalloc(curleng + 1);
+               unbackslash_json_str = mymalloc(curleng + 1);
                remove_json_backslash(unbackslash_json_str,unquoted_json_str,curleng + 1);
 
                jv input_json = jv_parse(unbackslash_json_str);
@@ -296,7 +299,7 @@ singlefield : VALUE {
                          default:
                            strvalue = (char *)jv_string_value(value);
                            res_st=anonymize_token(false,&jscur->infos,strvalue,strlen(strvalue));
-                           newvalue = &res_st.data[0];
+                           newvalue = (char *)&res_st.data[0];
                            break;
                        }
                      }

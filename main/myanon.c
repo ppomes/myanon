@@ -202,7 +202,7 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
                 {
                     const char *result = PyUnicode_AsUTF8(pResult);
                     res_st.len = strlen(result);
-                    mystrcpy(&(res_st.data[0]), result, sizeof(res_st.data));
+                    mystrcpy((char *)&(res_st.data[0]), result, sizeof(res_st.data));
                     Py_DECREF(pResult);
                 }
                 else
