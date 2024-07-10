@@ -37,6 +37,13 @@
 
 #include "config.h"
 
+#ifdef HAVE_JQ
+#include <jv.h>
+#include <jq.h>
+#endif
+
+
+
 #ifndef EXTERN
 #define EXTERN extern
 #endif
@@ -54,11 +61,15 @@
 #define KEY_SIZE KEY_LEN + 1
 
 /* Config file value size */
-#define CONFIG_LEN 1026             /* contains up to 1024-char string with begining and ending quote */
+#define CONFIG_LEN 1026 /* contains up to 1024-char string with begining and ending quote */
 #define CONFIG_SIZE CONFIG_LEN + 1
 
 /* Max length from config file */
 #define MAX_LEN 32
+
+/* Separator (single char)*/
+#define SEPARATOR_LEN 1
+#define SEPARATOR_SIZE SEPARATOR_LEN + 1
 
 /* Nice MIN macro */
 #define MIN(a, b)                   \
@@ -91,36 +102,59 @@ typedef enum anon_type
     AM_KEY,
     AM_APPENDKEY,
     AM_PREPENDKEY,
+    AM_JSON,
 #ifdef HAVE_PYTHON
     AM_PY,
 #endif
 } anon_type;
 
-/* Structure for anonymization infos of a single field */
+/* Structure for anonymization info */
+typedef struct anon_base_st
+{
+    anon_type type;                /* anonymisation type */
+    unsigned short len;            /* requested length from config file */
+    char domain[CONFIG_SIZE];      /* Email only: domain */
+    unsigned short domainlen;      /* Email only: domain length */
+    unsigned long nbhits;          /* Number of times this field has been anonymized */
+    char separator[SEPARATOR_SIZE];/* Separator character for multiple separated values */
+    char fixedvalue[CONFIG_SIZE];  /* Fixed value */
+    unsigned short fixedvaluelen;  /* Length of fixed value */
+#ifdef HAVE_PYTHON
+    char pydef[CONFIG_SIZE];       /* Python function name used to anonymize */
+#endif
+} anon_base_st;
+
+#ifdef HAVE_JQ
+/* Structure for anonymization infos for a json field */
+typedef struct anon_json_st
+{
+    char filter[CONFIG_SIZE]; /* jq filter */
+    jq_state *jq_state;       /* jq state */
+    anon_base_st infos;       /* Anon infos */
+    UT_hash_handle hh;        /* uthash handle */
+} anon_json_st;
+#endif
+
+
+/* Structure for anonymization infos of a single flat field */
 typedef struct anon_st
 {
-    char key[KEY_SIZE];           /* key is table:field */
-    int pos;                      /* field position in table */
-    bool quoted;                  /* Quoted field ? */
-    anon_type type;               /* anonymisation type */
-    unsigned short len;           /* requested length from config file */
-    char domain[CONFIG_SIZE];     /* Email only: domain */
-    unsigned short domainlen;     /* Email only: domain length */
-    unsigned long nbhits;         /* Number of times this field has been anonymized */
-    char fixedvalue[CONFIG_SIZE]; /* Fixed value */
-    unsigned short fixedvaluelen; /* Length of fixed value */
-#ifdef HAVE_PYTHON
-    char pydef[CONFIG_SIZE];      /* Python function name used to anonymize */
+    char key[KEY_SIZE]; /* key is table:field */
+    int pos;            /* field position in table */
+    bool quoted;        /* Quoted field ? */
+    anon_base_st infos; /* Anon infos */
+#ifdef HAVE_JQ
+    anon_json_st *json; /* Json anon infos */
 #endif
-    UT_hash_handle hh;            /* uthash handle */
+    UT_hash_handle hh;  /* uthash handle */
 } anon_st;
 
 /* Structure for truncation */
-typedef struct truncate_st {
-    char key[ID_SIZE];            /* key if table name */
-    UT_hash_handle hh;            /* uthash handle */
+typedef struct truncate_st
+{
+    char key[ID_SIZE]; /* key if table name */
+    UT_hash_handle hh; /* uthash handle */
 } truncate_st;
-
 
 /* Structure for anonymization result
    (shared between Bison and C) */
@@ -138,7 +172,6 @@ EXTERN anon_st *infos;
 
 /* uthash list for truncated tables */
 EXTERN truncate_st *truncate_infos;
-
 
 /* Hmac secret */
 EXTERN char secret[CONFIG_SIZE];
@@ -168,7 +201,7 @@ char *mystrcpy(char *dest, const char *src, size_t size);
 
 /* function to anonymize a single field 'token' which length is 'tokenlen'
  * anonymizaton config for this field is *config */
-anonymized_res_st anonymize_token(anon_st *config, char *token, int tokenlen);
+anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token, int tokenlen);
 
 /* Function to get a timestamp is ms */
 unsigned long get_ts_in_ms();

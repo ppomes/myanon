@@ -87,22 +87,27 @@ unsigned long get_ts_in_ms()
 
 void remove_quote(char *dst, char *src, size_t size)
 {
-    char *psrc;
-    char *pdst;
-
-    psrc = src;
-    pdst = dst;
-
+    const char *psrc = src;
+    char *pdst = dst;
+    size_t src_len = strlen(src);
+    
     memset(dst, 0, size);
 
-    while ((*psrc != 0) && (pdst - dst < size))
-    {
-        if (*psrc != '\'')
-        {
-            *pdst = *psrc;
-            pdst++;
-        }
+    /* Check for leading quote */
+    if (src_len > 0 && psrc[0] == '\'') {
         psrc++;
+        src_len--;
+    }
+
+    /* Check for trailing quote */
+    if (src_len > 0 && psrc[src_len - 1] == '\'') {
+        src_len--;
+    }
+
+    /* Copy the string without the edge quotes */
+    while (src_len > 0 && (pdst - dst < size - 1)) {
+        *pdst++ = *psrc++;
+        src_len--;
     }
 }
 
@@ -138,39 +143,44 @@ void make_readable_hash(const unsigned char *token, unsigned int tokenlen,
     }
 }
 
-anonymized_res_st anonymize_token(anon_st *config, char *token, int tokenlen)
+anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token, int tokenlen)
 {
     anonymized_res_st res_st;
     unsigned long ts_beg, ts_end;
+    char *worktoken;
+    int worktokenlen;
 
     if (stats)
     {
         ts_beg = get_ts_in_ms();
     }
 
-    if (config->quoted) {
-        token++;
-	tokenlen -= 2;
-	token[tokenlen] = 0;
+    if (quoted) {
+	worktokenlen=tokenlen-2;
+	worktoken=mymalloc(worktokenlen+1);
+	remove_quote(worktoken,token,worktokenlen+1);
+    } else {
+	worktoken=token;
+	worktokenlen=tokenlen;
     }
 
     switch (config->type)
     {
     case AM_TEXTHASH:
         res_st.len = MIN(SHA256_DIGEST_SIZE, config->len);
-        make_readable_hash((unsigned char *)token, tokenlen, &res_st, 'a', 'z');
+        make_readable_hash((unsigned char *)worktoken, worktokenlen, &res_st, 'a', 'z');
         break;
 
     case AM_EMAILHASH:
         res_st.len = config->len + 1 + config->domainlen; // anon part + '@' + domain
-        make_readable_hash((unsigned char *)token, tokenlen, &res_st, 'a', 'z');
+        make_readable_hash((unsigned char *)worktoken, worktokenlen, &res_st, 'a', 'z');
         res_st.data[config->len] = '@';
         memcpy(&res_st.data[config->len + 1], config->domain, config->domainlen);
         break;
 
     case AM_INTHASH:
         res_st.len = MIN(SHA256_DIGEST_SIZE, config->len);
-        make_readable_hash((unsigned char *)token, tokenlen, &res_st, '1', '9');
+        make_readable_hash((unsigned char *)worktoken, worktokenlen, &res_st, '1', '9');
         break;
 
 #ifdef HAVE_PYTHON
@@ -184,7 +194,7 @@ anonymized_res_st anonymize_token(anon_st *config, char *token, int tokenlen)
             PyObject *pFunc = PyObject_GetAttrString(pModule, config->pydef);
             if (pFunc && PyCallable_Check(pFunc))
             {
-                PyObject *pArgs = Py_BuildValue("(s)", token);
+                PyObject *pArgs = Py_BuildValue("(s)", worktoken);
                 PyObject *pResult = PyObject_CallObject(pFunc, pArgs);
                 Py_DECREF(pArgs);
 
@@ -253,6 +263,9 @@ int main(int argc, char **argv)
     int c;
     char *fvalue = NULL;
     anon_st *cur, *tmp = NULL;
+#ifdef HAVE_JQ
+    anon_json_st *jscur, *jstmp = NULL;
+#endif
     unsigned long ts_beg;
     unsigned long ts_end;
 
@@ -311,7 +324,19 @@ int main(int argc, char **argv)
     /* Report a warnig on stderr for fields not found */
     for (cur = infos; cur != NULL; cur = cur->hh.next)
     {
-        if (0 == cur->nbhits)
+#ifdef HAVE_JQ
+        if (cur->json)
+        {
+            for (jscur = cur->json; jscur != NULL; jscur = jscur->hh.next)
+            {
+                if (0 == jscur->infos.nbhits)
+                {
+                    fprintf(stderr, "WARNING! Field %s - JQ filter '%s' from config file has not been found in dump. Maybe a config file error?\n", cur->key, jscur->filter);
+                }
+            }
+        }
+#endif
+        if (0 == cur->infos.nbhits)
         {
             fprintf(stderr, "WARNING! Field %s from config file has not been found in dump. Maybe a config file error?\n", cur->key);
         }
@@ -327,8 +352,8 @@ int main(int argc, char **argv)
         for (cur = infos; cur != NULL; cur = cur->hh.next)
         {
             fprintf(stdout, "-- Field %s anonymized %lu time(s)\n",
-                    cur->key, cur->nbhits);
-            total_anon += cur->nbhits;
+                    cur->key, cur->infos.nbhits);
+            total_anon += cur->infos.nbhits;
         }
         fprintf(stdout, "-- TOTAL Number of anonymization(s): %lu\n", total_anon);
     }
@@ -339,6 +364,14 @@ int main(int argc, char **argv)
     /* Free config memory (clean Valgrind report) */
     HASH_ITER(hh, infos, cur, tmp)
     {
+#ifdef HAVE_JQ
+        HASH_ITER(hh,infos->json,jscur,jstmp)
+        {
+	    jq_teardown(&(jscur->jq_state));
+            HASH_DEL(infos->json, jscur);
+            free(jscur);
+        }
+#endif
         HASH_DEL(infos, cur);
         free(cur);
     }

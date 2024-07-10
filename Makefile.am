@@ -11,6 +11,7 @@ EXTRA_DIST = $(top_srcdir)/uthash/uthash.h \
 
 TULIST = test1 test1-insert-ignore null-example appendkey prependkey
 PYTHON_SUPPORT = @PYTHON_SUPPORT@
+JQ_SUPPORT = @JQ@
 
 check: all
 	@rc=0; \
@@ -33,6 +34,16 @@ check: all
 		  rc=1; \
 		fi \
 	fi; \
+        if test "x$(JQ)" = "xyes"; then \
+                export PYTHONPATH="$(PWD)/tests:$$PYTHONPATH"; \
+                main/myanon -f tests/complex.conf < tests/complex.sql | diff tests/complex_anon.sql - > /dev/null; \
+                if [ $$? -eq 0 ]; then \
+                  echo "Test JQ OK" >&2; \
+                else \
+                  echo "Test JQ FAILED" >&2; \
+                  rc=1; \
+                fi \
+        fi; \
 	exit $$rc
 
 .PHONY: check
