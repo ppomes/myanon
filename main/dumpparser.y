@@ -292,18 +292,18 @@ singlefield : VALUE {
                    while (jv_is_valid((value = jq_next(jscur->jq_state)))) {
                      if (jv_get_kind(value) == JV_KIND_STRING) {
                        jscur->infos.nbhits++;
+                       strvalue = (char *)jv_string_value(value);
                        switch (jscur->infos.type) {
                          case AM_FIXED:
                            newvalue = &(jscur->infos.fixedvalue[0]);
                            break;
                          default:
-                           strvalue = (char *)jv_string_value(value);
                            res_st=anonymize_token(false,&jscur->infos,strvalue,strlen(strvalue));
                            newvalue = (char *)&res_st.data[0];
                            break;
                        }
+                       json_replace_values(&result, strvalue, newvalue);
                      }
-                     json_replace_values(&result, jv_string_value(value),newvalue);
                    }
                  }
 
