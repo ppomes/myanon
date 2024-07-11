@@ -90,22 +90,25 @@ void remove_quote(char *dst, char *src, size_t size)
     const char *psrc = src;
     char *pdst = dst;
     size_t src_len = strlen(src);
-    
+
     memset(dst, 0, size);
 
     /* Check for leading quote */
-    if (src_len > 0 && psrc[0] == '\'') {
+    if (src_len > 0 && psrc[0] == '\'')
+    {
         psrc++;
         src_len--;
     }
 
     /* Check for trailing quote */
-    if (src_len > 0 && psrc[src_len - 1] == '\'') {
+    if (src_len > 0 && psrc[src_len - 1] == '\'')
+    {
         src_len--;
     }
 
     /* Copy the string without the edge quotes */
-    while (src_len > 0 && (pdst - dst < size - 1)) {
+    while (src_len > 0 && (pdst - dst < size - 1))
+    {
         *pdst++ = *psrc++;
         src_len--;
     }
@@ -149,19 +152,24 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
     unsigned long ts_beg, ts_end;
     char *worktoken;
     int worktokenlen;
+    bool needfree = false;
 
     if (stats)
     {
         ts_beg = get_ts_in_ms();
     }
 
-    if (quoted) {
-	worktokenlen=tokenlen-2;
-	worktoken=mymalloc(worktokenlen+1);
-	remove_quote(worktoken,token,worktokenlen+1);
-    } else {
-	worktoken=token;
-	worktokenlen=tokenlen;
+    if (quoted)
+    {
+        worktokenlen = tokenlen - 2;
+        worktoken = mymalloc(worktokenlen + 1);
+        remove_quote(worktoken, token, worktokenlen + 1);
+        needfree = true;
+    }
+    else
+    {
+        worktoken = token;
+        worktokenlen = tokenlen;
     }
 
     switch (config->type)
@@ -238,6 +246,11 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
         anon_time += (ts_end - ts_beg);
     }
 
+    if (needfree)
+    {
+        free(worktoken);
+    }
+
     return res_st;
 }
 
@@ -263,6 +276,7 @@ int main(int argc, char **argv)
     int c;
     char *fvalue = NULL;
     anon_st *cur, *tmp = NULL;
+    truncate_st *trcur, *trtmp = NULL;
 #ifdef HAVE_JQ
     anon_json_st *jscur, *jstmp = NULL;
 #endif
@@ -365,9 +379,9 @@ int main(int argc, char **argv)
     HASH_ITER(hh, infos, cur, tmp)
     {
 #ifdef HAVE_JQ
-        HASH_ITER(hh,infos->json,jscur,jstmp)
+        HASH_ITER(hh, infos->json, jscur, jstmp)
         {
-	    jq_teardown(&(jscur->jq_state));
+            jq_teardown(&(jscur->jq_state));
             HASH_DEL(infos->json, jscur);
             free(jscur);
         }
@@ -375,6 +389,13 @@ int main(int argc, char **argv)
         HASH_DEL(infos, cur);
         free(cur);
     }
+
+    HASH_ITER(hh, truncate_infos, trcur, trtmp)
+    {
+        HASH_DEL(truncate_infos, trcur);
+        free(trcur);
+    }
+
 
     exit(EXIT_SUCCESS);
 
