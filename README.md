@@ -161,5 +161,3 @@ For Apple Silicon users who want to run as `amd64`:
 docker run -it --rm --platform linux/amd64 -v ${PWD}:/app myanon sh -c '/bin/myanon -f /app/myanon.conf < /app/dump.sql > /app/dump-anon.sql' 
 ```
 
-Refer to the different options from [the documentation above](https://github.com/ppomes/myanon#simple-use-case) for detailed usage options.
-
