@@ -2,9 +2,11 @@
 
 Myanon is a MySQL dump anonymizer, reading a dump from stdin, and producing an anonymized version to stdout.
 
-Anonymization is done through a deterministic hmac processing based on sha-256. When used on fields acting as foreign keys, constraints are kept. Howver, an optional python support can be used to have custom anonymization rules (faker for example)
+Anonymization is done through a deterministic hmac processing based on sha-256. When used on fields acting as foreign keys, constraints are kept.
 
-Myanon works by default on text and integer fields. An optional json module is available for json fields.
+However, an optional python support can be used to define custom anonymization rules (python faker for example)
+
+Myanon works by default on flat (numeric and text) fields. An optional json module is available for json fields.
 
 A configuration file is used to store the hmac secret and to select which fields need to be anonymized. A self-commented sample is provided (main/myanon-sample.conf)
 
@@ -34,18 +36,21 @@ mysqldump mydb | tee >(myanon -f myanon.cfg | gzip > mydb_anon.sql.gz) | gpg -e 
 Example on a Fedora system: 
 
 ```shell
-$ sudo dnf install autoconf automake gcc make flex bison python3 jq
+$ sudo dnf install autoconf automake gcc make flex bison
+$ sudo dnf install python3 jq # For optional python and json support
 [...]
 ```
 Example on a Debian/Ubuntu system:
 
 ```shell
-$sudo apt-get install autoconf automake flex bison build-essential python3-dev jq
+$ sudo apt-get install autoconf automake flex bison build-essential
+$ sudo apt-get install python3-dev jq # For optional python and json support
 [...]
 ```
 On macOS, you need to install Xcode and homebrew, and then:
 ```shell
-$ brew install autoconf automake flex bison m4 python3 jq
+$ brew install autoconf automake flex bison m4
+$ brew install python3 jq # For optional python and json support
 [...]
 ```
 
@@ -63,7 +68,7 @@ export PATH="/usr/local/opt/bison/bin:$PATH"
 
 ```
 ./autogen.sh
-./configure                             # Minimalist build
+./configure                             # Minimal build
 ./configure --enable-python             # Optional python support
 ./configure --enable-jq                 # Optional json support
 ./configure --enable-python --enable-jq # Both
@@ -79,7 +84,7 @@ To create a debug build:
 make CFLAGS="-O0 -g"
 ```
 
-To create a static executable file on Linux and mimimalist build only  
+To create a static executable file on Linux and mimimal build only  
 ```
 make LDFLAGS="-static"
 ```
@@ -90,6 +95,7 @@ make LDFLAGS="-static"
 main/myanon -f tests/test1.conf < tests/test1.sql
 zcat tests/test2.sql.gz | main/myanon -f tests/test2.conf
 ```
+The tests directory contains examples with basic hmac anonymization, and with python rules (faker). 
 
 ## Installation from packages (Ubuntu)
 
