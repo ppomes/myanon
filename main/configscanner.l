@@ -47,6 +47,7 @@
 
 %%
 secret                  { return SECRET; }
+pyscript                { return PYSCRIPT; }
 pypath                  { return PYPATH; }
 stats                   { return STATS; }
 tables                  { return TABLES; }

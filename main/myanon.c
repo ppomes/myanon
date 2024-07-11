@@ -194,7 +194,15 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
 #ifdef HAVE_PYTHON
     case AM_PY:
         Py_Initialize();
-        PyObject *pModule = PyImport_ImportModule(pypath);
+        PyObject *sys_path = PySys_GetObject("path");
+        PyObject *path = PyUnicode_DecodeFSDefault(pypath);
+        if (PyList_Append(sys_path, path) != 0)
+        {
+            PyErr_Print();
+            fprintf(stderr, "Failed to add %s to sys.path\n", pypath);
+            Py_DECREF(path);
+        }
+        PyObject *pModule = PyImport_ImportModule(pyscript);
 
         res_st.len = 0;
         if (pModule != NULL)
@@ -283,10 +291,20 @@ int main(int argc, char **argv)
     unsigned long ts_beg;
     unsigned long ts_end;
 
+    /* Variable init */
+    infos = NULL;
+    truncate_infos = NULL;
+    memset(secret, 0, sizeof(secret));
+    secretlen = 0;
+#ifdef HAVE_PYTHON
+    memset(pypath, 0, sizeof(pypath));
+    memset(pyscript, 0, sizeof(pyscript));
+#endif
+    stats = false;
     debug = false;
+    anon_time = 0;
 
     /* For stats */
-    anon_time = 0;
     ts_beg = get_ts_in_ms();
 
     /* Read command line options */
@@ -395,7 +413,6 @@ int main(int argc, char **argv)
         HASH_DEL(truncate_infos, trcur);
         free(trcur);
     }
-
 
     exit(EXIT_SUCCESS);
 

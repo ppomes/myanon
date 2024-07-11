@@ -89,7 +89,7 @@ static anon_json_st jsonwork;
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY EQ LEFT RIGHT PYPATH PYDEF JSON PATH SEPARATEDBY
+%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY EQ LEFT RIGHT PYPATH PYSCRIPT PYDEF JSON PATH SEPARATEDBY
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -101,9 +101,10 @@ directives: directive |
             directive directives
 
 directive:
-  secretline |
-  statsline |
-  pyline |
+  secretline   |
+  statsline    |
+  pypathline   |
+  pyscriptline |
   tableline
 
 secretline:
@@ -112,14 +113,32 @@ secretline:
                     secretlen=(unsigned short)strlen(secret);
                    }
 
-pyline:
+pypathline:
   PYPATH EQ STRING {
                     #ifdef HAVE_PYTHON
+                    char absolutepath[PATH_MAX];
+                    memset(absolutepath,0,sizeof(absolutepath));
                     remove_quote(pypath,$3,sizeof(secret));
+                    if (pypath[0] != '/') {
+                       if (realpath(pypath,absolutepath) == NULL) {
+                          fprintf(stderr, "Unable to get absolute Python path for %s\n",pypath);
+                       } else {
+                          mystrcpy(pypath,absolutepath,sizeof(pypath));
+                       }
+                    }
                     #else
                     fprintf(stderr, "Python support disabled, ignoring pypath directive at line %d\n",config_lineno);
                     #endif 
                    }
+
+pyscriptline:
+  PYSCRIPT EQ STRING {
+                      #ifdef HAVE_PYTHON
+                      remove_quote(pyscript,$3,sizeof(secret));
+                      #else
+                      fprintf(stderr, "Python support disabled, ignoring pyscript directive at line %d\n",config_lineno);
+                      #endif
+                    }
 
 statsline:
   STATS EQ YES { stats=true; } |

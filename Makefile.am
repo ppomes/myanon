@@ -25,7 +25,6 @@ check: all
 		fi \
 	done; \
 	if test "x$(PYTHON_SUPPORT)" = "xyes"; then \
-		export PYTHONPATH="$(PWD)/tests:$$PYTHONPATH"; \
 		main/myanon -f tests/test_python.conf < tests/test_python.sql | diff tests/test_python_anon.sql - > /dev/null; \
 		if [ $$? -eq 0 ]; then \
 		  echo "Test test_python OK" >&2; \

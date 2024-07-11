@@ -31,6 +31,7 @@
 #define MYANON_H
 
 #include <stdbool.h>
+#include <limits.h>
 
 #include "uthash.h"
 #include "sha2.h"
@@ -179,7 +180,9 @@ EXTERN unsigned short secretlen;
 
 #ifdef HAVE_PYTHON
 /* Python script path */
-EXTERN char pypath[CONFIG_SIZE];
+EXTERN char pypath[PATH_MAX];
+/* Python script */
+EXTERN char pyscript[CONFIG_SIZE];
 #endif
 
 /* Generate stats ? */
