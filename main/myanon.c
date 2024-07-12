@@ -51,9 +51,8 @@
 static char buffer[STDOUT_BUFFER_SIZE];
 
 #ifdef HAVE_PYTHON
-PyObject *pName, *pModule, *pFunc;
-int pRet;
-FILE *fp;
+static bool pyinitialized = false;
+static PyObject *pModule;
 #endif
 
 void *mymalloc(size_t size)
@@ -153,6 +152,14 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
     char *worktoken;
     int worktokenlen;
     bool needfree = false;
+#ifdef HAVE_PYTHON
+    PyObject *pName;
+    PyObject *sys_path;
+    PyObject *path;
+    PyObject *pArgs;
+    PyObject *pResult;
+    PyObject *pFunc;
+#endif
 
     if (stats)
     {
@@ -193,25 +200,34 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
 
 #ifdef HAVE_PYTHON
     case AM_PY:
-        Py_Initialize();
-        PyObject *sys_path = PySys_GetObject("path");
-        PyObject *path = PyUnicode_DecodeFSDefault(pypath);
-        if (PyList_Append(sys_path, path) != 0)
+        if (!pyinitialized)
         {
-            PyErr_Print();
-            fprintf(stderr, "Failed to add %s to sys.path\n", pypath);
-            Py_DECREF(path);
+            Py_Initialize();
+            sys_path = PySys_GetObject("path");
+            path = PyUnicode_DecodeFSDefault(pypath);
+            if (PyList_Append(sys_path, path) != 0)
+            {
+                PyErr_Print();
+                fprintf(stderr, "Failed to add %s to sys.path\n", pypath);
+                Py_DECREF(path);
+                Py_DECREF(sys_path);
+            }
+            pModule = PyImport_ImportModule(pyscript);
+            if (pModule == NULL)
+            {
+                PyErr_Print();
+            }
+            pyinitialized = true;
         }
-        PyObject *pModule = PyImport_ImportModule(pyscript);
 
         res_st.len = 0;
         if (pModule != NULL)
         {
-            PyObject *pFunc = PyObject_GetAttrString(pModule, config->pydef);
+            pFunc = PyObject_GetAttrString(pModule, config->pydef);
             if (pFunc && PyCallable_Check(pFunc))
             {
-                PyObject *pArgs = Py_BuildValue("(s)", worktoken);
-                PyObject *pResult = PyObject_CallObject(pFunc, pArgs);
+                pArgs = Py_BuildValue("(s)", worktoken);
+                pResult = PyObject_CallObject(pFunc, pArgs);
                 Py_DECREF(pArgs);
 
                 if (pResult != NULL)
@@ -231,11 +247,6 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
                 PyErr_Print();
             }
             Py_XDECREF(pFunc);
-            Py_DECREF(pModule);
-        }
-        else
-        {
-            PyErr_Print();
         }
         break;
 
@@ -413,6 +424,15 @@ int main(int argc, char **argv)
         HASH_DEL(truncate_infos, trcur);
         free(trcur);
     }
+
+#ifdef HAVE_PYTHON
+    if (pyinitialized)
+    {
+        Py_DECREF(pModule);
+        Py_Finalize();
+    }
+
+#endif
 
     exit(EXIT_SUCCESS);
 
