@@ -119,7 +119,7 @@ It's useful when:
 * you want to quickly build for or run on a different architecture (e.g.: `amd64` or `arm64`)
 * you want to easily distribute a self-contained `myanon` (e.g.: for remote execution & processing on a Kubernetes cluster)
 
-The provided multistage build `Dockerfile` is using the official [`gcc` Docker image](https://hub.docker.com/_/gcc) for the *build* phase and the [`alpine` Docker image](https://hub.docker.com/_/alpine/) for runtime (some `myanon` use-cases need a shell, so a *distroless* base image would not work here). 
+The provided multistage build `Dockerfile` is using the [`alpine` Docker image](https://hub.docker.com/_/alpine/).
 
 ### Build using Docker
 
