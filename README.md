@@ -44,7 +44,7 @@ Example on a Debian/Ubuntu system:
 
 ```shell
 $ sudo apt-get install autoconf automake flex bison build-essential
-$ sudo apt-get install python3-dev jq # For optional python and json support
+$ sudo apt-get install python3-dev libjq-dev # For optional python and json support
 [...]
 ```
 On macOS, you need to install Xcode and homebrew, and then:
