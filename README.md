@@ -37,7 +37,7 @@ Example on a Fedora system:
 
 ```shell
 $ sudo dnf install autoconf automake gcc make flex bison
-$ sudo dnf install python3 jq # For optional python and json support
+$ sudo dnf install python3-devel jq-devel # For optional python and json support
 [...]
 ```
 Example on a Debian/Ubuntu system:
