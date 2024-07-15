@@ -14,6 +14,9 @@
 *.la
 *.lo
 
+# Python cache
+__pycache__
+
 # http://www.gnu.org/software/automake
 Makefile
 Makefile.in
