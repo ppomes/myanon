@@ -1,3 +1,10 @@
+myanon (0.6-ppa-noble) noble; urgency=medium
+
+  * Add support for anonymization based on python
+  * Add parsing of json fields
+
+ -- Pierre POMES <pierre.pomes@gmail.com>  Mon, 15 Jul 2024 16:35:05 -0400
+
 myanon (0.5-ppa-jammy) jammy; urgency=medium
 
   * Add parsing for some missing types (set, point, geometry)
