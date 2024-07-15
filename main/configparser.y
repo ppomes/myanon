@@ -323,5 +323,6 @@ jsonaction:
   fixedstring |
   inthash |
   texthash |
-  emailhash
+  emailhash |
+  pydef
 %%
