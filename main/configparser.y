@@ -253,7 +253,7 @@ inthash:
   INTHASH LENGTH {
                     workinfos.type = AM_INTHASH;
                     workinfos.len=(unsigned short)$2;
-                 } |
+                 }
 key:
   KEY {
         workinfos.type = AM_KEY;
