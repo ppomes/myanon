@@ -180,6 +180,7 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
         worktoken = token;
         worktokenlen = tokenlen;
     }
+    DEBUG_MSG("--WORKTOKEN %s - %d\n", worktoken, worktokenlen);
 
     switch (config->type)
     {

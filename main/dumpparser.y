@@ -193,28 +193,27 @@ singlefield : VALUE {
          Skip anonymisation on NULL values */
       if ((found) && (strncmp(dump_text,"NULL",dump_leng))) {
         bool bDone=false;
-        bool bFirstSeperatedValue= false;
+        bool bFirstSeperatedValue=true;
 
         cur->infos.nbhits++;
         char *curfield;
         int curleng;
         bool curquoted=false;
 
+        char *noquotetext=NULL;
+
         /* Separated mode? */
         if (cur->infos.separator[0]) {
-          curfield=strtok(dump_text,cur->infos.separator);
-          if (curfield) {
-            curleng=strlen(curfield);
-            bFirstSeperatedValue=true;
-            if (cur->quoted) {
-              fprintf(stdout, "'"); /* Opening quote for field value */
-            }
-          } else {
-            fprintf(stderr, "WARNING! Table/field %s: Unable to parse seperated field, skip anonimyzation",cur->key);
-            quoted_output_helper(dump_text,dump_leng,true);
-            bDone=true;
+          /* Handle quoting if present */
+          if (cur->quoted) {
+            /* Remove quoting for working text before split */
+            noquotetext = mymalloc(dump_leng+1);
+            remove_quote(noquotetext,dump_text,dump_leng+1);
+            curfield=noquotetext;
+            curquoted=false;
           }
         } else {
+          /* Single value */
           curfield=dump_text;
           curleng=dump_leng;
           curquoted=cur->quoted;
@@ -224,20 +223,51 @@ singlefield : VALUE {
         while(!bDone) {
           if (!cur->infos.separator[0]) {
             bDone=true; /* Single anon */
-          } else {
-            curfield=strtok(NULL,cur->infos.separator);
-            if (curfield) {
-              curleng=dump_leng;
-              if (!bFirstSeperatedValue) {
-                fprintf(stdout, "%s", cur->infos.separator);
-              }
+          }
+          else
+          {
+            if (bFirstSeperatedValue) {
               bFirstSeperatedValue=false;
-            } else {
-              bDone=true;
-              if (cur->quoted) {
-                fprintf(stdout, "'"); /* Ending quote for field value */
+              /* First extraction on separated values */
+              if (noquotetext != NULL) {
+                 curfield = strtok(noquotetext,cur->infos.separator);
+              } else {
+                 curfield = strtok(dump_text,cur->infos.separator);
               }
-              continue;
+              if (curfield) {
+                curleng=strlen(curfield);
+                if (cur->quoted) {
+                  fprintf(stdout, "'"); /* Opening quote for field value */
+                }
+              }
+              else
+              {
+                fprintf(stderr, "WARNING! Table/field %s: Unable to parse seperated field, skip anonimyzation",cur->key);
+                fwrite(dump_text,dump_leng,1,stdout);
+                bDone=true;
+                continue;
+              }
+            }
+            else
+            {
+              /* Other extractions on separated values */
+              curfield = strtok(NULL,cur->infos.separator);
+
+              if (curfield) {
+                curleng=strlen(curfield);
+                if (!bFirstSeperatedValue) {
+                  fprintf(stdout, "%s", cur->infos.separator);
+                }
+                bFirstSeperatedValue=false;
+              }
+              else
+              {
+                bDone=true;
+                if (cur->quoted) {
+                  fprintf(stdout, "'"); /* Ending quote for field value */
+                }
+                continue;
+              }
             }
           }
 
@@ -322,7 +352,7 @@ singlefield : VALUE {
 #endif
 
              default:
-               res_st=anonymize_token(cur->quoted,&cur->infos,curfield,curleng);
+               res_st=anonymize_token(curquoted,&cur->infos,curfield,curleng);
                quoted_output_helper((char *)&res_st.data[0],res_st.len,curquoted);
                break;
             }
