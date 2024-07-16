@@ -161,6 +161,8 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
     PyObject *pFunc;
 #endif
 
+    DEBUG_MSG("ANON_TOKEN for %s - %d - %d\n", token, tokenlen, quoted);
+
     if (stats)
     {
         ts_beg = get_ts_in_ms();
