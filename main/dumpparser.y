@@ -236,9 +236,7 @@ singlefield : VALUE {
               }
               if (curfield) {
                 curleng=strlen(curfield);
-                if (cur->quoted) {
-                  fprintf(stdout, "'"); /* Opening quote for field value */
-                }
+                fprintf(stdout, "'"); /* Opening quote for field value */
               }
               else
               {
@@ -263,9 +261,7 @@ singlefield : VALUE {
               else
               {
                 bDone=true;
-                if (cur->quoted) {
-                  fprintf(stdout, "'"); /* Ending quote for field value */
-                }
+                fprintf(stdout, "'"); /* Ending quote for field value */
                 continue;
               }
             }
