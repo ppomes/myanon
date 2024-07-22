@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
 #ifdef HAVE_JQ
 #include <jv.h>
 #include <jq.h>
@@ -70,11 +71,12 @@ static anon_base_st workinfos;
 #ifdef HAVE_JQ
 /* Current json anon working list */
 static anon_json_st *jslist=NULL;
-#endif
 
-#ifdef HAVE_JQ
 /* Current working json anon config element */
 static anon_json_st jsonwork;
+
+/* Small function used to validate json pah */
+static bool is_valid_json_path(const char *path);
 #endif
 
 
@@ -309,12 +311,20 @@ jsonline:
     memcpy(&jscur->infos,&workinfos,sizeof(anon_base_st));
     jscur->filter[0]='.';
     remove_quote(&(jscur->filter[1]),$2,CONFIG_SIZE-1);
-    jscur->jq_state=jq_init();
-    if (jq_compile(jscur->jq_state,jscur->filter) == 0) {
-      fprintf(stderr, "Warning cannot compile jq filter '%s', ignoring it\n",jscur->filter);
-      jq_teardown(&jscur->jq_state);
-    } else {
-      HASH_ADD_STR(jslist, filter, jscur);
+    if (!is_valid_json_path(jscur->filter)) {
+      fprintf(stderr, "Invalid json path '%s', ignoring it\n",&jscur->filter[1]);
+    }
+    else
+    {
+      jscur->jq_state=jq_init();
+      if (jq_compile(jscur->jq_state,jscur->filter) == 0) {
+        fprintf(stderr, "Warning cannot compile jq filter '%s', ignoring it\n",jscur->filter);
+        jq_teardown(&jscur->jq_state);
+      }
+      else
+      {
+        HASH_ADD_STR(jslist, filter, jscur);
+      }
     }
     #endif
   }
@@ -326,3 +336,29 @@ jsonaction:
   emailhash |
   pydef
 %%
+
+#ifdef HAVE_JQ
+static bool is_valid_json_path(const char *path) {
+  bool in_brackets = false;
+
+  if (!path || !*path) return false;
+
+  while (*path) {
+    if (!((isalnum(*path) || *path == '_' || *path == '.'))) {
+      if (*path == '[') {
+        path++;
+        if (*path != ']') {
+          return false;
+        }
+      }
+      else
+      {
+        return false;
+      }
+    }
+    path++;
+  }
+
+  return true;
+}
+#endif
