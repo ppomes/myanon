@@ -64,6 +64,15 @@ export PATH="/usr/local/opt/flex/bin:$PATH"
 export PATH="/usr/local/opt/bison/bin:$PATH"
 ```
 
+For Apple Silicon at build time, you may need to adjust include and library search path:
+```shell
+export CFLAGS=-I/opt/homebrew/include
+export LDFLAGS=-L/opt/homebrew/lib
+```
+
+
+
+
 ### Build/Install
 
 ```
