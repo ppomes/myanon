@@ -2,7 +2,7 @@ myanon (0.6-ppa-noble) noble; urgency=medium
 
   * Add support for anonymization based on Python.
   * Add parsing of json fields.
-  * Add parsing of values seperated by a single char.r
+  * Add parsing of values seperated by a single char.
   * Add parsing of "INSERT IGNORE" lines.
 
  -- Pierre POMES <pierre.pomes@gmail.com>  Mon, 15 Jul 2024 16:35:05 -0400
