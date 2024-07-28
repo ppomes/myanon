@@ -376,9 +376,26 @@ static void quoted_output_helper (char *s, unsigned short len, bool quoted)
 static void remove_json_backslash(char *dst, const char *src, size_t size) {
     memset(dst, 0, size);
     size_t len = strlen(src);
+    short backslash = 0;
     for (size_t i = 0, j = 0; i < len; i++) {
         if (src[i] != '\\') {
-            dst[j++] = src[i];
+            if (src[i] == '\"' || src[i] == '\'') {
+              if (backslash == 1 ) {
+                backslash = 0;
+              }
+              else
+              {
+                while (backslash) {
+                  dst[j++]='\\';
+                  backslash--;
+                }
+              }
+           }
+           dst[j++] = src[i];
+        }
+        else
+        {
+            backslash++;
         }
     }
 }
@@ -386,9 +403,19 @@ static void remove_json_backslash(char *dst, const char *src, size_t size) {
 static void add_json_backslash(char *dst, const char *src, size_t size) {
     memset(dst, 0, size);
     size_t len = strlen(src);
+    short backslash=0;
     for (size_t i = 0, j = 0; i < len; i++) {
-        if (src[i] == '\"') {
-            dst[j++] = '\\';
+        if (src[i]=='\\') {
+          backslash++;
+        }
+        else
+        {
+          if (!backslash) {
+            if (src[i] == '\"' || src[i] == '\'') {
+              dst[j++] = '\\';
+            }
+          }
+          backslash=0;
         }
         dst[j++] = src[i];
     }
