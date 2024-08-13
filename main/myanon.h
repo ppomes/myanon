@@ -103,6 +103,7 @@ typedef enum anon_type
     AM_KEY,
     AM_APPENDKEY,
     AM_PREPENDKEY,
+    AM_SUBSTRING,
     AM_JSON,
 #ifdef HAVE_PYTHON
     AM_PY,

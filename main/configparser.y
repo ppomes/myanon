@@ -91,7 +91,7 @@ static bool is_valid_json_path(const char *path);
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY EQ LEFT RIGHT PYPATH PYSCRIPT PYDEF JSON PATH SEPARATEDBY
+%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY EQ LEFT RIGHT PYPATH PYSCRIPT PYDEF JSON PATH SEPARATEDBY SUBSTRING
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -204,6 +204,8 @@ fieldaction:
   emailhash separated |
   inthash |
   inthash separated |
+  substring |
+  substring separated |
   key |
   appendkey |
   prependkey |
@@ -256,6 +258,13 @@ inthash:
                     workinfos.type = AM_INTHASH;
                     workinfos.len=(unsigned short)$2;
                  }
+
+substring:
+  SUBSTRING LENGTH {
+                    workinfos.type = AM_SUBSTRING;
+                    workinfos.len=(unsigned short)$2;
+                  }
+
 key:
   KEY {
         workinfos.type = AM_KEY;

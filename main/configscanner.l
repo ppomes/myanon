@@ -60,6 +60,7 @@ fixed                   { return FIXED; }
 texthash                { return TEXTHASH; }
 emailhash               { return EMAILHASH; }
 inthash                 { return INTHASH; }
+substring		{ return SUBSTRING; }
 truncate                { return TRUNCATE; }
 key                     { return KEY; }
 appendkey               { return APPENDKEY; }
