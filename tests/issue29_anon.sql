@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.0.37, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.39, for Linux (x86_64)
 --
 -- Host: localhost    Database: issue29
 -- ------------------------------------------------------
--- Server version	8.0.37-0ubuntu0.24.04.1
+-- Server version	8.0.39-0ubuntu0.24.04.1
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -26,7 +26,7 @@ CREATE TABLE `anontest` (
   `id` int NOT NULL AUTO_INCREMENT,
   `metadata` json DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -35,7 +35,7 @@ CREATE TABLE `anontest` (
 
 LOCK TABLES `anontest` WRITE;
 /*!40000 ALTER TABLE `anontest` DISABLE KEYS */;
-INSERT INTO `anontest` VALUES (1,'{\"name\":\"joswz\",\"title\":\"It is time for \\\"fun\\\"!\"}'),(2,'{\"name\":\"joswz\",\"title\":\"It\'s time for \\\"fun\\\"!\"}');
+INSERT INTO `anontest` VALUES (1,'{\"name\":\"joswz\",\"title\":\"It is time for \\\"fun\\\"!\"}'),(2,'{\"name\":\"joswz\",\"title\":\"It\'s time for \\\"fun\\\"!\"}'),(4,'{\"name\":\"votay\",\"title\":\"Multiline\\nmessage test.\"}');
 /*!40000 ALTER TABLE `anontest` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -48,4 +48,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-07-26 15:46:36
+-- Dump completed on 2024-08-06 19:33:22
