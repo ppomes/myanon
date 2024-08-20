@@ -379,19 +379,17 @@ static void remove_json_backslash(char *dst, const char *src, size_t size) {
     short backslash = 0;
     for (size_t i = 0, j = 0; i < len; i++) {
         if (src[i] != '\\') {
-            if (src[i] == '\"' || src[i] == '\'') {
-              if (backslash == 1 ) {
-                backslash = 0;
-              }
-              else
-              {
-                while (backslash) {
-                  dst[j++]='\\';
-                  backslash--;
-                }
-              }
-           }
-           dst[j++] = src[i];
+          if (backslash == 1 ) {
+             backslash = 0;
+          }
+          else
+          {
+            while (backslash) {
+              dst[j++]='\\';
+              backslash--;
+            }
+          }
+          dst[j++] = src[i];
         }
         else
         {
