@@ -344,7 +344,7 @@ singlefield : VALUE {
 
                } else {
                  fprintf(stderr, "WARNING! Table/field %s: Unable to parse json field '%s' at line %d, skip anonimyzation\n",cur->key, unbackslash_json_str,dump_lineno);
-                 quoted_output_helper(curfield,curleng,true);
+                 fwrite(dump_text,dump_leng,1,stdout);
                }
                break;
 #endif
