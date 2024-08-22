@@ -400,9 +400,8 @@ static void remove_json_backslash(char *dst, const char *src, size_t size) {
 static void add_json_backslash(char *dst, const char *src, size_t size) {
     memset(dst, 0, size);
     size_t len = strlen(src);
-    short backslash=0;
 
-    for (size_t i = 0, j = 0; i < len; i++) {
+    for (size_t i = 0, j = 0; i < len && j < size - 1; i++) {
      if (src[i] == '\"' ||
          src[i] == '\'' ||
          src[i] == '\\' ||
