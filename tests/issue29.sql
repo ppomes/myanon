@@ -26,7 +26,7 @@ CREATE TABLE `anontest` (
   `id` int NOT NULL AUTO_INCREMENT,
   `metadata` json DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -35,7 +35,7 @@ CREATE TABLE `anontest` (
 
 LOCK TABLES `anontest` WRITE;
 /*!40000 ALTER TABLE `anontest` DISABLE KEYS */;
-INSERT INTO `anontest` VALUES (1,'{\"name\": \"John Doe\", \"title\": \"It is time for \\\"fun\\\"!\"}'),(2,'{\"name\": \"John Doe\", \"title\": \"It\'s time for \\\"fun\\\"!\"}'),(4,'{\"name\": \"Aiden\", \"title\": \"Multiline\\nmessage test.\"}');
+INSERT INTO `anontest` VALUES (1,'{\"name\": \"John Doe\", \"title\": \"It is time for \\\"fun\\\"!\"}'),(2,'{\"name\": \"John Doe\", \"title\": \"It\'s time for \\\"fun\\\"!\"}'),(4,'{\"name\": \"Aiden\", \"title\": \"Multiline\\nmessage test.\"}'),(5,'{\"name\": \"Aiden\", \"title\": \"Backslashes at the end\\\\\"}');
 /*!40000 ALTER TABLE `anontest` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -48,4 +48,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-08-06 19:33:22
+-- Dump completed on 2024-08-22 12:58:42

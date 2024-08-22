@@ -240,7 +240,7 @@ singlefield : VALUE {
               }
               else
               {
-                fprintf(stderr, "WARNING! Table/field %s: Unable to parse seperated field, skip anonimyzation",cur->key);
+                fprintf(stderr, "WARNING! Table/field %s: Unable to parse seperated field '%s'at line %d, skip anonimyzation",cur->key,dump_text,dump_lineno);
                 fwrite(dump_text,dump_leng,1,stdout);
                 bDone=true;
                 continue;
@@ -305,6 +305,8 @@ singlefield : VALUE {
                unbackslash_json_str = mymalloc(curleng + 1);
                remove_json_backslash(unbackslash_json_str,unquoted_json_str,curleng + 1);
 
+               DEBUG_MSG("Json before: %s - after: %s\n",curfield,unbackslash_json_str);
+
                jv input_json = jv_parse(unbackslash_json_str);
                if (jv_is_valid(input_json)) {
                  result = jv_copy(input_json);
@@ -341,7 +343,7 @@ singlefield : VALUE {
                  jv_free(input_json);
 
                } else {
-                 fprintf(stderr, "WARNING! Table/field %s: Unable to parse json field, skip anonimyzation\n",cur->key);
+                 fprintf(stderr, "WARNING! Table/field %s: Unable to parse json field '%s' at line %d, skip anonimyzation\n",cur->key, unbackslash_json_str,dump_lineno);
                  quoted_output_helper(curfield,curleng,true);
                }
                break;
@@ -382,18 +384,15 @@ static void remove_json_backslash(char *dst, const char *src, size_t size) {
           if (backslash == 1 ) {
              backslash = 0;
           }
-          else
-          {
-            while (backslash) {
-              dst[j++]='\\';
-              backslash--;
-            }
-          }
           dst[j++] = src[i];
         }
         else
         {
-            backslash++;
+          backslash++;
+          if (backslash % 2 == 0) {
+            dst[j++]='\\';
+            backslash=0;
+          }
         }
     }
 }
@@ -402,20 +401,18 @@ static void add_json_backslash(char *dst, const char *src, size_t size) {
     memset(dst, 0, size);
     size_t len = strlen(src);
     short backslash=0;
+
     for (size_t i = 0, j = 0; i < len; i++) {
-        if (src[i]=='\\') {
-          backslash++;
-        }
-        else
-        {
-          if (!backslash) {
-            if (src[i] == '\"' || src[i] == '\'') {
-              dst[j++] = '\\';
-            }
-          }
-          backslash=0;
-        }
-        dst[j++] = src[i];
+     if (src[i] == '\"' ||
+         src[i] == '\'' ||
+         src[i] == '\\' ||
+         src[i] == '\b' ||
+         src[i] == '\r' ||
+         src[i] == '\t') {
+        dst[j++] = '\\';
+      }
+
+      dst[j++] = src[i];
     }
 }
 
