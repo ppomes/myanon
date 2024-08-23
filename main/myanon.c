@@ -200,6 +200,11 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
         res_st.len = MIN(SHA256_DIGEST_SIZE, config->len);
         make_readable_hash((unsigned char *)worktoken, worktokenlen, &res_st, '1', '9');
         break;
+    case AM_SUBSTRING:
+        res_st.len = MIN(worktokenlen, config->len);
+        DEBUG_MSG("%d, %d, %d", worktokenlen, config->len, res_st.len)
+        mystrcpy((char *)&(res_st.data[0]), worktoken, res_st.len + 1);
+        break;
 
 #ifdef HAVE_PYTHON
     case AM_PY:
