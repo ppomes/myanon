@@ -240,7 +240,7 @@ singlefield : VALUE {
               }
               else
               {
-                fprintf(stderr, "WARNING! Table/field %s: Unable to parse seperated field '%s'at line %d, skip anonimyzation",cur->key,dump_text,dump_lineno);
+                fprintf(stderr, "WARNING! Table/field %s: Unable to parse seperated field '%s'at line %d, skip anonimyzation",cur->key,dump_text,dump_line_nb);
                 fwrite(dump_text,dump_leng,1,stdout);
                 bDone=true;
                 continue;
@@ -343,7 +343,7 @@ singlefield : VALUE {
                  jv_free(input_json);
 
                } else {
-                 fprintf(stderr, "WARNING! Table/field %s: Unable to parse json field '%s' at line %d, skip anonimyzation\n",cur->key, unbackslash_json_str,dump_lineno);
+                 fprintf(stderr, "WARNING! Table/field %s: Unable to parse json field '%s' at line %d, skip anonimyzation\n",cur->key, unbackslash_json_str,dump_line_nb);
                  fwrite(dump_text,dump_leng,1,stdout);
                }
                break;

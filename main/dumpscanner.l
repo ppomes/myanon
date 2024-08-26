@@ -102,7 +102,6 @@ bool is_truncated() {
 %option noyywrap
 %option full
 %option pointer
-%option yylineno
 
 %x ST_TABLE ST_TRUNCATE ST_VALUES
 
@@ -126,6 +125,7 @@ bool is_truncated() {
                                       return INSERT_INTO;
                                     }
                                   }
+\n                                { DUPOUT dump_line_nb++; }
 .                                 { DUPOUT }
 
 <ST_TRUNCATE>^CREATE\ TABLE\ `[^`]+`  { DUPOUT
@@ -144,6 +144,7 @@ bool is_truncated() {
                                       }
 
 <ST_TRUNCATE>^(INSERT|REPLACE).*  { /* In truncate mode, skip statements */}
+<ST_TRUNCATE>\n                   { DUPOUT dump_line_nb++; }
 <ST_TRUNCATE>.                    { DUPOUT }
 
 
@@ -177,7 +178,8 @@ bool is_truncated() {
 <ST_TABLE>KEY.*                         { DUPOUT }
 <ST_TABLE>CONSTRAINT.*                  { DUPOUT }
 <ST_TABLE>DELIMITER.*                   { DUPOUT }
-<ST_TABLE>[ \n]                         { DUPOUT }
+<ST_TABLE>[ ]                           { DUPOUT }
+<ST_TABLE>\n                            { DUPOUT dump_line_nb++; }
 <ST_TABLE>ENGINE.*                      { BEGIN(INITIAL);
                                           DEBUG_MSG("\nENTERING STATE INITIAL")
                                           DUPOUT
@@ -200,7 +202,8 @@ bool is_truncated() {
 <ST_VALUES>_binary\ '(\\.|[^'\\])*'         { return VALUE; }
 <ST_VALUES>'(\\.|[^'\\])*'                  { return VALUE; }
 <ST_VALUES>[0-9\-\.e]+                      { return VALUE; }
-<ST_VALUES>[ \n]                            { DUPOUT }
+<ST_VALUES>[ ]                              { DUPOUT }
+<ST_VALUES>\n                               { DUPOUT dump_line_nb++;}
 <ST_VALUES>^(INSERT|REPLACE)\ (\ IGNORE\ )?\INTO\ `[^`]+`(?:\ \([^\)]+\))? { DUPOUT
                                               if (is_anonymized()) {
                                                 return INSERT_INTO;

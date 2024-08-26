@@ -129,7 +129,7 @@ pypathline:
                        }
                     }
                     #else
-                    fprintf(stderr, "Python support disabled, ignoring pypath directive at line %d\n",config_lineno);
+                    fprintf(stderr, "Python support disabled, ignoring pypath directive at line %d\n",config_line_nb);
                     #endif 
                    }
 
@@ -138,7 +138,7 @@ pyscriptline:
                       #ifdef HAVE_PYTHON
                       remove_quote(pyscript,$3,sizeof(secret));
                       #else
-                      fprintf(stderr, "Python support disabled, ignoring pyscript directive at line %d\n",config_lineno);
+                      fprintf(stderr, "Python support disabled, ignoring pyscript directive at line %d\n",config_line_nb);
                       #endif
                     }
 
@@ -286,7 +286,7 @@ pydef:
                  workinfos.type = AM_PY;
                  remove_quote(workinfos.pydef,$2,sizeof(workinfos.pydef));
                  #else
-                 fprintf(stderr, "Python support disabled, ignoring pydef directive at line %d\n",config_lineno);
+                 fprintf(stderr, "Python support disabled, ignoring pydef directive at line %d\n",config_line_nb);
                  #endif
                }
 
@@ -295,7 +295,7 @@ json:
                      #ifdef HAVE_JQ
                      workinfos.type = AM_JSON;
                      #else
-                     fprintf(stderr, "JQ support disabled, ignoring json directive at line %d\n",config_lineno);
+                     fprintf(stderr, "JQ support disabled, ignoring json directive at line %d\n",config_line_nb);
                      #endif
                     }
 

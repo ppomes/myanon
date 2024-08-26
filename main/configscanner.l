@@ -42,7 +42,6 @@
 %option prefix="config_"
 %option outfile="lex.yy.c"
 %option noyywrap
-%option yylineno
 
 
 %%
@@ -88,7 +87,8 @@ separated\ by           { return SEPARATEDBY;}
                           COPYSTR
                           return IDENTIFIER;
                         }
-[ \n]
+[ ]
+\n                      { config_line_nb ++; }
 #.*
 .                       {
                           config_error("Syntax error");

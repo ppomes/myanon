@@ -284,7 +284,7 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
 void config_error(const char *s)
 {
     fprintf(stderr, "Config parsing error at line %d: %s - Unexpected [%s]\n",
-            config_lineno, s, config_text);
+            config_line_nb, s, config_text);
 }
 
 void dump_error(const char *s)
@@ -292,7 +292,7 @@ void dump_error(const char *s)
     // flush (buffered) stdout and report error
     fflush(stdout);
     fprintf(stderr, "\nDump parsing error at line %d: %s - Unexpected [%s]\n",
-            dump_lineno, s, dump_text);
+            dump_line_nb, s, dump_text);
 }
 
 /*
@@ -322,6 +322,8 @@ int main(int argc, char **argv)
     stats = false;
     debug = false;
     anon_time = 0;
+    config_line_nb = 1;
+    dump_line_nb = 1;
 
     /* For stats */
     ts_beg = get_ts_in_ms();
