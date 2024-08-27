@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.3.0, for macos14.2 (arm64)
+-- MySQL dump 10.13  Distrib 8.0.37, for Linux (x86_64)
 --
--- Host: 127.0.0.1    Database: minimal
+-- Host: localhost    Database: test_substring
 -- ------------------------------------------------------
--- Server version	8.3.0
+-- Server version	8.0.37-0ubuntu0.24.04.1
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -33,7 +33,7 @@ CREATE TABLE `minimal_table` (
 
 LOCK TABLES `minimal_table` WRITE;
 /*!40000 ALTER TABLE `minimal_table` DISABLE KEYS */;
-INSERT INTO `minimal_table` VALUES ('minimaal zo veel'),('🥳');
+INSERT INTO `minimal_table` VALUES ('minimaal zo veel'),('🥳'),('	test escape');
 /*!40000 ALTER TABLE `minimal_table` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -46,4 +46,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-08-13 15:47:46
+-- Dump completed on 2024-08-27 14:58:38

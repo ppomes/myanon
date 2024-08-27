@@ -77,6 +77,34 @@ char *mystrcpy(char *dest, const char *src, size_t size)
     return dest;
 }
 
+char *myescapedstrcpy(char *dest, const char *src, size_t size)
+{
+    size_t srccount = 0;
+    size_t dstcount = 0;
+    short backslash = 0;
+
+    memset(dest, 0, size);
+    while (src[srccount] != '\0' && dstcount < size - 1)
+    {
+        if (src[srccount] == '\\')
+        {
+            backslash++;
+
+            if (backslash % 2 == 0)
+            {
+                backslash = 0;
+                dest[dstcount++] = src[srccount++];
+            }
+        }
+        else
+        {
+            dest[dstcount++] = src[srccount++];
+        }
+    }
+
+    return dest;
+}
+
 unsigned long get_ts_in_ms()
 {
     struct timeval tv;
@@ -203,7 +231,7 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
     case AM_SUBSTRING:
         res_st.len = MIN(worktokenlen, config->len);
         DEBUG_MSG("%d, %d, %d", worktokenlen, config->len, res_st.len)
-        mystrcpy((char *)&(res_st.data[0]), worktoken, res_st.len + 1);
+        myescapedstrcpy((char *)&(res_st.data[0]), worktoken, res_st.len + 1);
         break;
 
 #ifdef HAVE_PYTHON
