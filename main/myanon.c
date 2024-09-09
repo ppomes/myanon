@@ -267,7 +267,7 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
     case AM_SUBSTRING:
         res_st.len = MIN(worktokenlen, config->len);
         mysubstr((char *)&(res_st.data[0]), worktoken, sizeof(res_st.data), res_st.len);
-        res_st.len = strlen(&(res_st.data[0]));
+        res_st.len = strlen((char *)&(res_st.data[0]));
         DEBUG_MSG("%d, %d, %d, %s\n", worktokenlen, config->len, res_st.len, res_st.data);
         break;
 
