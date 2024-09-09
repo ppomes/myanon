@@ -78,7 +78,7 @@ char *mystrcpy(char *dest, const char *src, size_t size)
     return dest;
 }
 
-static int is_escape_char(char c)
+static inline int is_escape_char(char c)
 {
     return c == '\\';
 }
