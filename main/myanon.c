@@ -35,6 +35,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <sys/time.h>
+#include <stdint.h>
 
 #include "config.h"
 #include "uthash.h"
@@ -77,31 +78,66 @@ char *mystrcpy(char *dest, const char *src, size_t size)
     return dest;
 }
 
-char *myescapedstrcpy(char *dest, const char *src, size_t size)
+static int is_escape_char(char c)
+{
+    return c == '\\';
+}
+
+static inline int is_utf8_continuation(unsigned char c) {
+    return (c & 0xC0) == 0x80;
+}
+
+static size_t utf8_char_length(unsigned char c) {
+    if ((c & 0x80) == 0) return 1;
+    if ((c & 0xE0) == 0xC0) return 2;
+    if ((c & 0xF0) == 0xE0) return 3;
+    if ((c & 0xF8) == 0xF0) return 4;
+    return 0; // Invalid UTF-8 start byte
+}
+
+char *mysubstr(char *dest, const char *src, size_t dst_size, size_t num_chars)
 {
     size_t srccount = 0;
     size_t dstcount = 0;
-    short backslash = 0;
+    size_t copied_chars = 0;
+    memset(dest, 0, dst_size);
 
-    memset(dest, 0, size);
-    while (src[srccount] != '\0' && dstcount < size - 1)
+    while (src[srccount] != '\0' && dstcount < dst_size - 1 && copied_chars < num_chars)
     {
-        if (src[srccount] == '\\')
+        if (is_escape_char(src[srccount]))
         {
-            backslash++;
-
-            if (backslash % 2 == 0)
+            if (src[srccount + 1] != '\0')
             {
-                backslash = 0;
                 dest[dstcount++] = src[srccount++];
+                dest[dstcount++] = src[srccount++];
+                copied_chars++;
+            }
+            else
+            {
+                break;
             }
         }
         else
         {
-            dest[dstcount++] = src[srccount++];
+            size_t char_length = utf8_char_length(src[srccount]);
+            if (char_length == 0 || srccount + char_length > strlen(src))
+            {
+                break;
+            }
+            if (dstcount + char_length <= dst_size - 1)
+            {
+                for (size_t i = 0; i < char_length; i++)
+                {
+                    dest[dstcount++] = src[srccount++];
+                }
+                copied_chars++;
+            }
+            else
+            {
+                break;
+            }
         }
     }
-
     return dest;
 }
 
@@ -230,8 +266,9 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
         break;
     case AM_SUBSTRING:
         res_st.len = MIN(worktokenlen, config->len);
-        DEBUG_MSG("%d, %d, %d", worktokenlen, config->len, res_st.len)
-        myescapedstrcpy((char *)&(res_st.data[0]), worktoken, res_st.len + 1);
+        mysubstr((char *)&(res_st.data[0]), worktoken, sizeof(res_st.data), res_st.len);
+        res_st.len = strlen(&(res_st.data[0]));
+        DEBUG_MSG("%d, %d, %d, %s\n", worktokenlen, config->len, res_st.len, res_st.data);
         break;
 
 #ifdef HAVE_PYTHON

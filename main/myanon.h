@@ -201,8 +201,8 @@ EXTERN unsigned long anon_time;
 
 /* some safe malloc/strpcy wrappers */
 void *mymalloc(size_t size);
-char *myescapedstrcpy(char *dest, const char *src, size_t size);
 char *mystrcpy(char *dest, const char *src, size_t size);
+char *mysubstr(char *dst, const char *src, size_t dst_size, size_t num_chars);
 
 /* function to anonymize a single field 'token' which length is 'tokenlen'
  * anonymizaton config for this field is *config */
