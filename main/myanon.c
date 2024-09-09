@@ -95,6 +95,17 @@ static size_t utf8_char_length(unsigned char c) {
     return 0; // Invalid UTF-8 start byte
 }
 
+static int is_valid_utf8_sequence(const char *src, size_t len) {
+    if (len == 0) return 0;
+    unsigned char first = (unsigned char)src[0];
+    size_t expected_len = utf8_char_length(first);
+    if (expected_len == 0 || expected_len > len) return 0;
+    for (size_t i = 1; i < expected_len; i++) {
+        if (!is_utf8_continuation((unsigned char)src[i])) return 0;
+    }
+    return 1;
+}
+
 char *mysubstr(char *dest, const char *src, size_t dst_size, size_t num_chars)
 {
     size_t srccount = 0;
@@ -106,7 +117,7 @@ char *mysubstr(char *dest, const char *src, size_t dst_size, size_t num_chars)
     {
         if (is_escape_char(src[srccount]))
         {
-            if (src[srccount + 1] != '\0')
+            if (src[srccount + 1] != '\0' && dstcount + 1 < dst_size - 1)
             {
                 dest[dstcount++] = src[srccount++];
                 dest[dstcount++] = src[srccount++];
@@ -119,10 +130,11 @@ char *mysubstr(char *dest, const char *src, size_t dst_size, size_t num_chars)
         }
         else
         {
-            size_t char_length = utf8_char_length(src[srccount]);
-            if (char_length == 0 || srccount + char_length > strlen(src))
+            size_t char_length = utf8_char_length((unsigned char)src[srccount]);
+            if (char_length == 0 || srccount + char_length > strlen(src) ||
+                !is_valid_utf8_sequence(&src[srccount], char_length))
             {
-                break;
+                break;  // Invalid UTF-8 sequence or end of string
             }
             if (dstcount + char_length <= dst_size - 1)
             {
@@ -138,8 +150,10 @@ char *mysubstr(char *dest, const char *src, size_t dst_size, size_t num_chars)
             }
         }
     }
+    dest[dstcount] = '\0';  // Ensure null-termination
     return dest;
 }
+
 
 unsigned long get_ts_in_ms()
 {
