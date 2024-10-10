@@ -156,6 +156,7 @@ singlefield : VALUE {
       anonymized_res_st res_st;
       char *s;
       int nbcopied;
+      int rowindex;
       char concatvalue[ID_SIZE];
 #ifdef HAVE_JQ
       char *newjsonbackslash_str=NULL;
@@ -169,6 +170,7 @@ singlefield : VALUE {
 
       bool found=false;
       if (bfirstinsert) {
+        rowindex=0;
         for (cur=infos;cur!=NULL;cur=cur->hh.next) {
           if (memcmp(cur->key,currenttable,strlen(currenttable)) == 0) {
               if (cur->pos == currentfieldpos) {
@@ -187,6 +189,7 @@ singlefield : VALUE {
 
       if (found) {
         cur->infos.nbhits++;
+        rowindex++;
       }
 
       /* NULL values should remains NULL
@@ -298,6 +301,15 @@ singlefield : VALUE {
                  fprintf(stderr, "WARNING! Table %s fields order: for prependkey mode, the key must be defined before the field to anomymize\n",currenttable);
                }
                break;
+             case AM_APPENDINDEX:
+               nbcopied=snprintf(concatvalue,ID_SIZE,"%s%d",cur->infos.fixedvalue,rowindex);
+               quoted_output_helper(concatvalue,nbcopied,true);
+               break;
+             case AM_PREPENDINDEX:
+               nbcopied=snprintf(concatvalue,ID_SIZE,"%d%s",rowindex,cur->infos.fixedvalue);
+               quoted_output_helper(concatvalue,nbcopied,true);
+               break;
+
 #ifdef HAVE_JQ
              case AM_JSON:
                unquoted_json_str = mymalloc(curleng + 1);

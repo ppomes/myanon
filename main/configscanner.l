@@ -64,6 +64,8 @@ truncate                { return TRUNCATE; }
 key                     { return KEY; }
 appendkey               { return APPENDKEY; }
 prependkey              { return PREPENDKEY; }
+appendindex             { return APPENDINDEX; }
+prependindex            { return PREPENDINDEX; }
 pydef                   { return PYDEF; }
 json                    { return JSON; }
 path                    { return PATH; }

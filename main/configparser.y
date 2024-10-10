@@ -91,7 +91,7 @@ static bool is_valid_json_path(const char *path);
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY EQ LEFT RIGHT PYPATH PYSCRIPT PYDEF JSON PATH SEPARATEDBY SUBSTRING
+%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY APPENDINDEX PREPENDINDEX EQ LEFT RIGHT PYPATH PYSCRIPT PYDEF JSON PATH SEPARATEDBY SUBSTRING
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -209,6 +209,8 @@ fieldaction:
   key |
   appendkey |
   prependkey |
+  appendindex |
+  prependindex |
   pydef |
   json |
 
@@ -280,6 +282,17 @@ prependkey:
                      workinfos.type = AM_PREPENDKEY;
                      STORE_FIXEDVALUE($2)
                     }
+appendindex:
+  APPENDINDEX STRING {
+                     workinfos.type = AM_APPENDINDEX;
+                     STORE_FIXEDVALUE($2)
+                   }
+prependindex:
+  PREPENDINDEX STRING {
+                     workinfos.type = AM_PREPENDINDEX;
+                     STORE_FIXEDVALUE($2)
+                    }
+
 pydef:
   PYDEF STRING {
                  #ifdef HAVE_PYTHON
