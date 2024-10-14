@@ -66,6 +66,9 @@ static anon_json_st *jscur=NULL;
 /* True on first extended insert found for each table */
 static bool bfirstinsert;
 
+/* Current row position in current table */
+static int rowindex;
+
 static void quoted_output_helper (char *s, unsigned short len, bool quoted);
 
 #ifdef HAVE_JQ
@@ -104,7 +107,12 @@ tables: table
 table: create
       | create insert_st_list
 
-create: CREATE_TABLE { currentfieldpos=0; } LEFTPAR fields RIGHTPAR ENGINE
+create: CREATE_TABLE {
+                       currentfieldpos=0;
+                       bfirstinsert=true;
+                       rowindex=0;
+                       memset(fieldconfig,0,sizeof(fieldconfig));
+                     } LEFTPAR fields RIGHTPAR ENGINE
        
 fields: field
       | fields field;
@@ -134,16 +142,14 @@ type : TYPE { if (cur != NULL) {
 insert_st_list : insert_st
                | insert_st_list insert_st
 
-insert_st : INSERT_INTO VALUES {
-                                 bfirstinsert=true ;
-                                 memset(fieldconfig,0,sizeof(fieldconfig));
-                               } valueline SEMICOLUMN
+insert_st : INSERT_INTO VALUES valueline SEMICOLUMN
 
 valueline: value
            | valueline COMA value
 
 value: LEFTPAR {
                  currentfieldpos =0;
+                 rowindex++;
                  memset(tablekey,0,sizeof(tablekey));
                }  fieldv RIGHTPAR {
                                     bfirstinsert=false;
@@ -156,7 +162,6 @@ singlefield : VALUE {
       anonymized_res_st res_st;
       char *s;
       int nbcopied;
-      int rowindex;
       char concatvalue[ID_SIZE];
 #ifdef HAVE_JQ
       char *newjsonbackslash_str=NULL;
@@ -170,7 +175,6 @@ singlefield : VALUE {
 
       bool found=false;
       if (bfirstinsert) {
-        rowindex=0;
         for (cur=infos;cur!=NULL;cur=cur->hh.next) {
           if (memcmp(cur->key,currenttable,strlen(currenttable)) == 0) {
               if (cur->pos == currentfieldpos) {
@@ -189,7 +193,6 @@ singlefield : VALUE {
 
       if (found) {
         cur->infos.nbhits++;
-        rowindex++;
       }
 
       /* NULL values should remains NULL
