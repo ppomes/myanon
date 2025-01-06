@@ -166,6 +166,7 @@ bool is_truncated() {
 <ST_TABLE>varbinary\(.*                 { DUPOUT return TYPE; }
 <ST_TABLE>(tiny|medium|long)?blob.*     { DUPOUT return QTYPE; }
 <ST_TABLE>date.*                        { DUPOUT return QTYPE; }
+<ST_TABLE>year.*                        { DUPOUT return TYPE; }
 <ST_TABLE>time.*                        { DUPOUT return QTYPE; }
 <ST_TABLE>bit.*                         { DUPOUT return TYPE; }
 <ST_TABLE>json.*                        { DUPOUT return QTYPE; }
