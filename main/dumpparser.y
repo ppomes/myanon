@@ -119,12 +119,40 @@ fields: field
 
 field: IDENTIFIER {
      int nbytes;
+     anon_st *tmp;
+     bool found = false;
+
      nbytes=snprintf(key,KEY_SIZE,"%s:%s",currenttable,dump_text);
      key[nbytes]=0;
      DEBUG_MSG("LOOKING FOR  %s\n",key);
-     HASH_FIND_STR(infos,key,cur);
-     if (cur != NULL) {
-         cur->pos = currentfieldpos;
+
+     HASH_ITER(hh, infos, cur, tmp) {
+      char *colon = strchr(cur->key, ':');
+      if (!colon) continue;
+
+      /* Split table/field */
+      char table[colon - cur->key + 1];
+      strncpy(table, cur->key, colon - cur->key);
+      table[colon - cur->key] = '\0';
+      char *field = colon + 1;
+
+      /* Test table name */
+      bool table_match;
+      if (cur->has_regex) {
+          table_match = (regexec(cur->reg_table, currenttable, 0, NULL, 0) == 0);
+      } else {
+          table_match = (strcmp(table, currenttable) == 0);
+      }
+
+      /* Found table/field? */
+      if (table_match && strcmp(field, dump_text) == 0) {
+        found=true;
+        break;
+      }
+     }
+
+     if (found) {
+      cur->pos = currentfieldpos;
      }
      currentfieldpos++;
    } type
@@ -163,6 +191,7 @@ singlefield : VALUE {
       char *s;
       int nbcopied;
       char concatvalue[ID_SIZE];
+
 #ifdef HAVE_JQ
       char *newjsonbackslash_str=NULL;
       jv value;
@@ -174,9 +203,20 @@ singlefield : VALUE {
 #endif
 
       bool found=false;
+      bool foundtable;
       if (bfirstinsert) {
         for (cur=infos;cur!=NULL;cur=cur->hh.next) {
-          if (memcmp(cur->key,currenttable,strlen(currenttable)) == 0) {
+          foundtable=false;
+          if (cur->has_regex) {
+            if (regexec(cur->reg_table, currenttable, 0, NULL, 0) == 0) {
+              foundtable=true;
+            }
+          } else {
+            if (memcmp(cur->key,currenttable,strlen(currenttable)) == 0) {
+              foundtable=true;
+            }
+          }
+          if (foundtable) {
               if (cur->pos == currentfieldpos) {
                   found=true;
                   fieldconfig[currentfieldpos]=cur;

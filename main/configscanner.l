@@ -59,7 +59,7 @@ fixed                   { return FIXED; }
 texthash                { return TEXTHASH; }
 emailhash               { return EMAILHASH; }
 inthash                 { return INTHASH; }
-substring		{ return SUBSTRING; }
+substring		            { return SUBSTRING; }
 truncate                { return TRUNCATE; }
 key                     { return KEY; }
 appendkey               { return APPENDKEY; }
@@ -73,6 +73,7 @@ path                    { return PATH; }
 \{                      { return LEFT;}
 \}                      { return RIGHT;}
 separated\ by           { return SEPARATEDBY;}
+regex                   { return REGEX;}
 [0-9]{1,2}              {
                           COPYINT
                           if (config_lval.shortval > MAX_LEN) {

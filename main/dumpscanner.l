@@ -68,10 +68,15 @@ bool is_anonymized() {
   bool found=false;
   anon_st *cur;
 
-  for (cur=infos;cur!=NULL;cur=cur->hh.next) {
-    if (memcmp(cur->key,currenttable,strlen(currenttable)) == 0) {
-      found=true;
-      break;
+  for (cur=infos;cur!=NULL && !found;cur=cur->hh.next) {
+    if (cur->has_regex) {
+      if (regexec(cur->reg_table, currenttable, 0, NULL, 0) == 0) {
+        found=true;
+      }
+    } else {
+      if (memcmp(cur->key,currenttable,strlen(currenttable)) == 0) {
+        found=true;
+      }
     }
   }
 

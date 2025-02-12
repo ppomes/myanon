@@ -32,6 +32,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
+#include <regex.h>
 #ifdef HAVE_JQ
 #include <jv.h>
 #include <jq.h>
@@ -50,6 +51,18 @@
 
 /* Current working table */
 static char table[ID_SIZE];
+
+/* Current table name regex */
+static regex_t *reg_table;
+
+/* Current regex compilation return code */
+static int reg_ret;
+
+/* Current regex mode */
+static bool has_regex;
+
+/* Current regex error msg */
+static char reg_msg[CONFIG_SIZE];
 
 /* Walker on anon config */
 static anon_st *cur = NULL;
@@ -91,7 +104,7 @@ static bool is_valid_json_path(const char *path);
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY APPENDINDEX PREPENDINDEX EQ LEFT RIGHT PYPATH PYSCRIPT PYDEF JSON PATH SEPARATEDBY SUBSTRING
+%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY APPENDINDEX PREPENDINDEX EQ LEFT RIGHT PYPATH PYSCRIPT PYDEF JSON PATH SEPARATEDBY SUBSTRING REGEX
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -155,7 +168,20 @@ tableslist: singletable |
 singletable:
   IDENTIFIER EQ {
                   mystrcpy(table,$1,sizeof(table));
-                } tableaction
+                  has_regex=false;
+                } tableaction |
+  REGEX IDENTIFIER EQ {
+                     reg_table=mymalloc(sizeof(regex_t));
+                     memset(reg_table,0,sizeof(regex_t));
+                     mystrcpy(table,$2,sizeof(table));
+                     reg_ret=regcomp(reg_table, table, REG_EXTENDED);
+                     if (reg_ret) {
+                        regerror(reg_ret, reg_table, reg_msg, sizeof(reg_msg));
+                        fprintf(stderr, "Unable to compile regex '%s' at line %d: %s\n", table, config_line_nb, reg_msg);
+                        exit(EXIT_FAILURE);
+                     }
+                     has_regex=true;
+                   } tableaction
 tableaction: TRUNCATE {
                   trcur=mymalloc(sizeof(truncate_st));
                   memset(trcur,0,sizeof(truncate_st));
@@ -183,6 +209,10 @@ field:
     memset(cur,0,sizeof(anon_st));
     memcpy(cur,&work,sizeof(anon_st));
     memcpy(&cur->infos,&workinfos,sizeof(anon_base_st));
+    cur->has_regex=has_regex;
+    if (cur->has_regex) {
+      cur->reg_table=reg_table;
+    }
     #ifdef HAVE_JQ
     cur->json=jslist;
     #endif

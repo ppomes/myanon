@@ -32,6 +32,7 @@
 
 #include <stdbool.h>
 #include <limits.h>
+#include <regex.h>
 
 #include "uthash.h"
 #include "sha2.h"
@@ -144,6 +145,8 @@ typedef struct anon_json_st
 typedef struct anon_st
 {
     char key[KEY_SIZE]; /* key is table:field */
+    bool has_regex;     /* regex mode */
+    regex_t *reg_table; /* regex for table name */
     int pos;            /* field position in table */
     bool quoted;        /* Quoted field ? */
     anon_base_st infos; /* Anon infos */
