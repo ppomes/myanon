@@ -58,10 +58,6 @@
 #define ID_LEN 64
 #define ID_SIZE ID_LEN + 1
 
-/* Key len/size for anon info (format is table:field) */
-#define KEY_LEN ID_LEN + 1 + ID_LEN
-#define KEY_SIZE KEY_LEN + 1
-
 /* Config file value size */
 #define CONFIG_LEN 1026 /* contains up to 1024-char string with begining and ending quote */
 #define CONFIG_SIZE CONFIG_LEN + 1
@@ -113,7 +109,14 @@ typedef enum anon_type
 #endif
 } anon_type;
 
-/* Structure for anonymization info */
+/* Actio on table. Currently anonymisation or truncation */
+typedef enum table_action_st
+{
+    ACTION_TRUNCATE,
+    ACTION_ANON
+} table_action_st;
+
+/* Structure for anonymization info, used by a flat field or a json field */
 typedef struct anon_base_st
 {
     anon_type type;                /* anonymisation type */
@@ -141,27 +144,29 @@ typedef struct anon_json_st
 #endif
 
 
-/* Structure for anonymization infos of a single flat field */
-typedef struct anon_st
+/* Structure for anonymization infos of a flat field */
+typedef struct anon_field_st
 {
-    char key[KEY_SIZE]; /* key is table:field */
-    bool has_regex;     /* regex mode */
-    regex_t *reg_table; /* regex for table name */
+    char key[ID_SIZE];  /* key (field name) */
     int pos;            /* field position in table */
     bool quoted;        /* Quoted field ? */
-    anon_base_st infos; /* Anon infos */
+    anon_base_st infos; /* flast Anon infos */
 #ifdef HAVE_JQ
     anon_json_st *json; /* Json anon infos */
 #endif
     UT_hash_handle hh;  /* uthash handle */
-} anon_st;
+} anon_field_st;
 
-/* Structure for truncation */
-typedef struct truncate_st
+/* Structure for anonymization/truncation infos of a table */
+typedef struct anon_table_st
 {
-    char key[ID_SIZE]; /* key if table name */
-    UT_hash_handle hh; /* uthash handle */
-} truncate_st;
+    char key[ID_SIZE];      /* table name or regep */
+    regex_t *reg_table;     /* regex for table name if regex */
+    table_action_st action; /* Truncate or anon */
+    anon_field_st *infos;   /* Anon infos */
+    UT_hash_handle hh;      /* uthash handle */
+} anon_table_st;
+
 
 /* Structure for anonymization result
    (shared between Bison and C) */
@@ -175,10 +180,7 @@ typedef struct anonymized_res_st
  * Global variables
  */
 /* uthash list for all anonymization fields - contains all anonymization configs */
-EXTERN anon_st *infos;
-
-/* uthash list for truncated tables */
-EXTERN truncate_st *truncate_infos;
+EXTERN anon_table_st *infos;
 
 /* Hmac secret */
 EXTERN char secret[CONFIG_SIZE];

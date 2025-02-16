@@ -38,6 +38,9 @@
 /* Current table */
 char currenttable[ID_SIZE];
 
+/* current config element */
+anon_table_st *currenttableconfig;
+
 /* Increase Flex buffers */
 #undef YY_READ_BUF_SIZE
 #undef YY_BUF_SIZE
@@ -45,9 +48,14 @@ char currenttable[ID_SIZE];
 #define YY_BUF_SIZE 131072
 
 /* Set current working table according to flex token
-   flex_tolen contains "CREATE TABLE `xxxx`" */
-void set_working_table() {
+   flex_tolen contains "CREATE TABLE `xxxx`"
+
+   Find matching config */
+
+static void set_working_table() {
   char *beg,*end;
+  static anon_table_st *walker=NULL;
+  bool bfound=false;
 
   memset(currenttable,0,sizeof(currenttable));
   beg=strchr(dump_text,'`');
@@ -60,45 +68,28 @@ void set_working_table() {
       DEBUG_MSG("FOUND TABLE %s\n",currenttable);
     }
   }
-}
 
-/* Check if current table needs to be anonymized */
-bool is_anonymized() {
+  currenttableconfig=NULL;
 
-  bool found=false;
-  anon_st *cur;
-
-  for (cur=infos;cur!=NULL && !found;cur=cur->hh.next) {
-    if (cur->has_regex) {
-      if (regexec(cur->reg_table, currenttable, 0, NULL, 0) == 0) {
-        found=true;
+  for (walker=infos;walker!=NULL; walker=walker->hh.next) {
+    if (walker->reg_table) {
+      if (regexec(walker->reg_table, currenttable, 0, NULL, 0) == 0) {
+        bfound=true;
+        break;
       }
     } else {
-      if (memcmp(cur->key,currenttable,strlen(currenttable)) == 0) {
-        found=true;
+      if (strncmp(walker->key,currenttable,strlen(currenttable)) == 0) {
+        bfound=true;
+        break;
       }
     }
   }
 
-  return found;
-}
-
-/* Check if current table needs to be truncated */
-bool is_truncated() {
-
-  bool found=false;
-  truncate_st *trcur;
-
-  for (trcur=truncate_infos;trcur!=NULL;trcur=trcur->hh.next) {
-    if (strncmp(trcur->key,currenttable,strlen(currenttable)) == 0) {
-      found=true;
-      break;
-    }
+  if (bfound) {
+    currenttableconfig=walker;
   }
-
-  return found;
 }
- 
+
 
     
 %}
@@ -113,18 +104,23 @@ bool is_truncated() {
 %%
 ^CREATE\ TABLE\ `[^`]+`           { DUPOUT
                                     set_working_table();
-                                    if (is_anonymized()) {
-                                      BEGIN(ST_TABLE);
-                                      DEBUG_MSG("\nENTERING STATE ST_TABLE")
-                                      return CREATE_TABLE;
-                                    }
-                                    if (is_truncated()) {
-                                      BEGIN(ST_TRUNCATE);
-                                      DEBUG_MSG("\nENTERING STATE ST_TRUNCATE")
+
+                                    if (currenttableconfig) {
+                                      if (currenttableconfig->action == ACTION_ANON) {
+                                        BEGIN(ST_TABLE);
+                                        DEBUG_MSG("\nENTERING STATE ST_TABLE")
+                                        return CREATE_TABLE;
+                                      }
+
+                                      if (currenttableconfig->action == ACTION_TRUNCATE) {
+                                        BEGIN(ST_TRUNCATE);
+                                        DEBUG_MSG("\nENTERING STATE ST_TRUNCATE")
+                                      }
                                     }
                                   }
+
 ^(INSERT|REPLACE)\ (\ IGNORE\ )?\INTO\ `[^`]+`(?:\ \([^\)]+\))?  { DUPOUT
-                                    if (is_anonymized()) {
+                                    if (currenttableconfig) {
                                       BEGIN(ST_VALUES);
                                       DEBUG_MSG("\nENTERING STATE ST_VALUES")
                                       return INSERT_INTO;
@@ -136,15 +132,20 @@ bool is_truncated() {
 <ST_TRUNCATE>^CREATE\ TABLE\ `[^`]+`  { DUPOUT
                                         BEGIN(INITIAL);
                                         DEBUG_MSG("\nENTERING STATE INITIAL")
+
                                         set_working_table();
-                                        if (is_anonymized()) {
-                                          BEGIN(ST_TABLE);
-                                          DEBUG_MSG("\nENTERING STATE ST_TABLE")
-                                          return CREATE_TABLE;
-                                        }
-                                        if (is_truncated()) {
-                                          BEGIN(ST_TRUNCATE);
-                                          DEBUG_MSG("\nENTERING STATE ST_TRUNCATE")
+
+                                        if (currenttableconfig) {
+                                          if (currenttableconfig->action == ACTION_ANON) {
+                                            BEGIN(ST_TABLE);
+                                            DEBUG_MSG("\nENTERING STATE ST_TABLE")
+                                            return CREATE_TABLE;
+                                          }
+
+                                          if (currenttableconfig->action == ACTION_TRUNCATE) {
+                                            BEGIN(ST_TRUNCATE);
+                                            DEBUG_MSG("\nENTERING STATE ST_TRUNCATE")
+                                          }
                                         }
                                       }
 
@@ -211,7 +212,7 @@ bool is_truncated() {
 <ST_VALUES>[ ]                              { DUPOUT }
 <ST_VALUES>\n                               { DUPOUT dump_line_nb++;}
 <ST_VALUES>^(INSERT|REPLACE)\ (\ IGNORE\ )?\INTO\ `[^`]+`(?:\ \([^\)]+\))? { DUPOUT
-                                              if (is_anonymized()) {
+                                              if (currenttableconfig) {
                                                 return INSERT_INTO;
                                               }
                                             }

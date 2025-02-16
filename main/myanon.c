@@ -83,25 +83,36 @@ static inline int is_escape_char(char c)
     return c == '\\';
 }
 
-static inline int is_utf8_continuation(unsigned char c) {
+static inline int is_utf8_continuation(unsigned char c)
+{
     return (c & 0xC0) == 0x80;
 }
 
-static size_t utf8_char_length(unsigned char c) {
-    if ((c & 0x80) == 0) return 1;
-    if ((c & 0xE0) == 0xC0) return 2;
-    if ((c & 0xF0) == 0xE0) return 3;
-    if ((c & 0xF8) == 0xF0) return 4;
+static size_t utf8_char_length(unsigned char c)
+{
+    if ((c & 0x80) == 0)
+        return 1;
+    if ((c & 0xE0) == 0xC0)
+        return 2;
+    if ((c & 0xF0) == 0xE0)
+        return 3;
+    if ((c & 0xF8) == 0xF0)
+        return 4;
     return 0; // Invalid UTF-8 start byte
 }
 
-static int is_valid_utf8_sequence(const char *src, size_t len) {
-    if (len == 0) return 0;
+static int is_valid_utf8_sequence(const char *src, size_t len)
+{
+    if (len == 0)
+        return 0;
     unsigned char first = (unsigned char)src[0];
     size_t expected_len = utf8_char_length(first);
-    if (expected_len == 0 || expected_len > len) return 0;
-    for (size_t i = 1; i < expected_len; i++) {
-        if (!is_utf8_continuation((unsigned char)src[i])) return 0;
+    if (expected_len == 0 || expected_len > len)
+        return 0;
+    for (size_t i = 1; i < expected_len; i++)
+    {
+        if (!is_utf8_continuation((unsigned char)src[i]))
+            return 0;
     }
     return 1;
 }
@@ -134,7 +145,7 @@ char *mysubstr(char *dest, const char *src, size_t dst_size, size_t num_chars)
             if (char_length == 0 || srccount + char_length > strlen(src) ||
                 !is_valid_utf8_sequence(&src[srccount], char_length))
             {
-                break;  // Invalid UTF-8 sequence or end of string
+                break; /* Invalid UTF-8 sequence or end of string */
             }
             if (dstcount + char_length <= dst_size - 1)
             {
@@ -150,10 +161,9 @@ char *mysubstr(char *dest, const char *src, size_t dst_size, size_t num_chars)
             }
         }
     }
-    dest[dstcount] = '\0';  // Ensure null-termination
+    dest[dstcount] = '\0';
     return dest;
 }
-
 
 unsigned long get_ts_in_ms()
 {
@@ -380,8 +390,8 @@ int main(int argc, char **argv)
 {
     int c;
     char *fvalue = NULL;
-    anon_st *cur, *tmp = NULL;
-    truncate_st *trcur, *trtmp = NULL;
+    anon_table_st *curtable, *tmptable = NULL;
+    anon_field_st *curfield, *tmpfield = NULL;
 #ifdef HAVE_JQ
     anon_json_st *jscur, *jstmp = NULL;
 #endif
@@ -390,7 +400,6 @@ int main(int argc, char **argv)
 
     /* Variable init */
     infos = NULL;
-    truncate_infos = NULL;
     memset(secret, 0, sizeof(secret));
     secretlen = 0;
 #ifdef HAVE_PYTHON
@@ -453,23 +462,29 @@ int main(int argc, char **argv)
     }
 
     /* Report a warnig on stderr for fields not found */
-    for (cur = infos; cur != NULL; cur = cur->hh.next)
+    for (curtable = infos; curtable != NULL; curtable = curtable->hh.next)
     {
-#ifdef HAVE_JQ
-        if (cur->json)
+        if (curtable->infos)
         {
-            for (jscur = cur->json; jscur != NULL; jscur = jscur->hh.next)
+            for (curfield = curtable->infos; curfield != NULL; curfield = curfield->hh.next)
             {
-                if (0 == jscur->infos.nbhits)
+#ifdef HAVE_JQ
+                if (curfield->json)
                 {
-                    fprintf(stderr, "WARNING! Field %s - JQ filter '%s' from config file has not been found in dump. Maybe a config file error?\n", cur->key, jscur->filter);
+                    for (jscur = curfield->json; jscur != NULL; jscur = jscur->hh.next)
+                    {
+                        if (0 == jscur->infos.nbhits)
+                        {
+                            fprintf(stderr, "WARNING! Field %s:%s - JQ filter '%s' from config file has not been found in dump. Maybe a config file error?\n", curtable->key, curfield->key, jscur->filter);
+                        }
+                    }
+                }
+#endif
+                if (0 == curfield->infos.nbhits)
+                {
+                    fprintf(stderr, "WARNING! Field %s:%s from config file has not been found in dump. Maybe a config file error?\n", curtable->key, curfield->key);
                 }
             }
-        }
-#endif
-        if (0 == cur->infos.nbhits)
-        {
-            fprintf(stderr, "WARNING! Field %s from config file has not been found in dump. Maybe a config file error?\n", cur->key);
         }
     }
 
@@ -480,11 +495,14 @@ int main(int argc, char **argv)
         ts_end = get_ts_in_ms();
         fprintf(stdout, "-- Total execution time: %lu ms\n", ts_end - ts_beg);
         fprintf(stdout, "-- Time spent for anonymization: %lu ms\n", anon_time);
-        for (cur = infos; cur != NULL; cur = cur->hh.next)
+        for (curtable = infos; curtable != NULL; curtable = curtable->hh.next)
         {
-            fprintf(stdout, "-- Field %s anonymized %lu time(s)\n",
-                    cur->key, cur->infos.nbhits);
-            total_anon += cur->infos.nbhits;
+            for (curfield = curtable->infos; curfield != NULL; curfield = curfield->hh.next)
+            {
+                fprintf(stdout, "-- Field %s:%s anonymized %lu time(s)\n",
+                        curtable->key, curfield->key, curfield->infos.nbhits);
+                total_anon += curfield->infos.nbhits;
+            }
         }
         fprintf(stdout, "-- TOTAL Number of anonymization(s): %lu\n", total_anon);
     }
@@ -493,24 +511,27 @@ int main(int argc, char **argv)
     dump_lex_destroy();
 
     /* Free config memory (clean Valgrind report) */
-    HASH_ITER(hh, infos, cur, tmp)
+    HASH_ITER(hh, infos, curtable, tmptable)
     {
-#ifdef HAVE_JQ
-        HASH_ITER(hh, infos->json, jscur, jstmp)
+        HASH_ITER(hh, curtable->infos, curfield, tmpfield)
         {
-            jq_teardown(&(jscur->jq_state));
-            HASH_DEL(infos->json, jscur);
-            free(jscur);
-        }
+#ifdef HAVE_JQ
+            HASH_ITER(hh, curfield->json, jscur, jstmp)
+            {
+                jq_teardown(&(jscur->jq_state));
+                HASH_DEL(curfield->json, jscur);
+                free(jscur);
+            }
 #endif
-        HASH_DEL(infos, cur);
-        free(cur);
-    }
-
-    HASH_ITER(hh, truncate_infos, trcur, trtmp)
-    {
-        HASH_DEL(truncate_infos, trcur);
-        free(trcur);
+            HASH_DEL(curtable->infos, curfield);
+            free(curfield);
+        }
+        if (curtable->reg_table) {
+            regfree(curtable->reg_table);
+            free(curtable->reg_table);
+        }
+        HASH_DEL(infos, curtable);
+        free(curtable);
     }
 
 #ifdef HAVE_PYTHON
