@@ -55,9 +55,6 @@ static int currentfieldpos;
 /* Current kept key field */
 static char tablekey[ID_SIZE];
 
-/* Worker on table info */
-static anon_table_st *tablecur=NULL;
-
 /* Worker on field info */
 static anon_field_st *curfield=NULL;
 
@@ -121,7 +118,6 @@ fields: field
       | fields field;
 
 field: IDENTIFIER {
-    int nbytes;
     anon_field_st *tmp;
     bool found = false;
 
@@ -169,7 +165,6 @@ fieldv: singlefield
 
 singlefield : VALUE {
       anonymized_res_st res_st;
-      char *s;
       int nbcopied;
       char concatvalue[ID_SIZE];
 
@@ -184,7 +179,6 @@ singlefield : VALUE {
 #endif
 
       bool found=false;
-      bool foundtable;
       if (bfirstinsert) {
         for (curfield=currenttableconfig->infos;curfield!=NULL;curfield=curfield->hh.next) {
           if (curfield->pos == currentfieldpos) {

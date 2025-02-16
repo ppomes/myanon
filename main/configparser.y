@@ -49,17 +49,8 @@
         basework.fixedvaluelen=(unsigned short)strlen(basework.fixedvalue);
 
 
-/* Current working table */
-static char table[ID_SIZE];
-
-/* Current table name regex */
-static regex_t *reg_table;
-
 /* Current regex compilation return code */
 static int reg_ret;
-
-/* Current regex mode */
-static bool has_regex;
 
 /* Current regex error msg */
 static char reg_msg[CONFIG_SIZE];
@@ -81,9 +72,6 @@ static anon_base_st basework;
 #ifdef HAVE_JQ
 /* Current json anon working list */
 static anon_json_st *jslist=NULL;
-
-/* Current working json anon config element */
-static anon_json_st jsonwork;
 
 /* Small function used to validate json pah */
 static bool is_valid_json_path(const char *path);
@@ -387,8 +375,6 @@ jsonaction:
 
 #ifdef HAVE_JQ
 static bool is_valid_json_path(const char *path) {
-  bool in_brackets = false;
-
   if (!path || !*path) return false;
 
   while (*path) {

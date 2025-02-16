@@ -241,7 +241,6 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
     int worktokenlen;
     bool needfree = false;
 #ifdef HAVE_PYTHON
-    PyObject *pName;
     PyObject *sys_path;
     PyObject *path;
     PyObject *pArgs;
