@@ -32,6 +32,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
+#include <regex.h>
 #ifdef HAVE_JQ
 #include <jv.h>
 #include <jq.h>
@@ -44,36 +45,33 @@
 #include "myanon.h"
 
 #define STORE_FIXEDVALUE(X) \
-        remove_quote(workinfos.fixedvalue,X,sizeof(workinfos.fixedvalue)); \
-        workinfos.fixedvaluelen=(unsigned short)strlen(workinfos.fixedvalue);
+        remove_quote(basework.fixedvalue,X,sizeof(basework.fixedvalue)); \
+        basework.fixedvaluelen=(unsigned short)strlen(basework.fixedvalue);
 
 
-/* Current working table */
-static char table[ID_SIZE];
+/* Current regex compilation return code */
+static int reg_ret;
 
-/* Walker on anon config */
-static anon_st *cur = NULL;
+/* Current regex error msg */
+static char reg_msg[CONFIG_SIZE];
+
+/* Current working table config */
+static anon_table_st *currenttableconfig;
+
+/* Current working field config */
+static anon_field_st *curfield;
 
 #ifdef HAVE_JQ
 /* Walker on json config */
 static anon_json_st *jscur = NULL;
 #endif
 
-/* Walker on truncate config */
-static truncate_st *trcur = NULL;
-
-/* Current working DB flat field anon config element */
-static anon_st work;
-
-/* Current working anon info */
-static anon_base_st workinfos;
+/* Current working anon info (may be used for flat or json field) */
+static anon_base_st basework;
 
 #ifdef HAVE_JQ
 /* Current json anon working list */
 static anon_json_st *jslist=NULL;
-
-/* Current working json anon config element */
-static anon_json_st jsonwork;
 
 /* Small function used to validate json pah */
 static bool is_valid_json_path(const char *path);
@@ -91,7 +89,7 @@ static bool is_valid_json_path(const char *path);
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY APPENDINDEX PREPENDINDEX EQ LEFT RIGHT PYPATH PYSCRIPT PYDEF JSON PATH SEPARATEDBY SUBSTRING
+%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY APPENDINDEX PREPENDINDEX EQ LEFT RIGHT PYPATH PYSCRIPT PYDEF JSON PATH SEPARATEDBY SUBSTRING REGEX
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -154,15 +152,33 @@ tableslist: singletable |
 
 singletable:
   IDENTIFIER EQ {
-                  mystrcpy(table,$1,sizeof(table));
-                } tableaction
+                  currenttableconfig = mymalloc(sizeof(anon_table_st));
+                  memset(currenttableconfig,0,sizeof(anon_table_st));
+                  currenttableconfig->action=ACTION_ANON;
+                  mystrcpy(currenttableconfig->key,$1,sizeof(currenttableconfig->key));
+                } tableaction |
+  REGEX IDENTIFIER EQ {
+                     currenttableconfig = mymalloc(sizeof(anon_table_st));
+                     memset(currenttableconfig,0,sizeof(anon_table_st));
+                     currenttableconfig->action=ACTION_ANON;
+                     currenttableconfig->reg_table=mymalloc(sizeof(regex_t));
+                     memset(currenttableconfig->reg_table,0,sizeof(regex_t));
+                     mystrcpy(currenttableconfig->key,$2,sizeof(currenttableconfig->key));
+                     reg_ret=regcomp(currenttableconfig->reg_table, currenttableconfig->key, REG_EXTENDED);
+                     if (reg_ret) {
+                        regerror(reg_ret, currenttableconfig->reg_table, reg_msg, sizeof(reg_msg));
+                        fprintf(stderr, "Unable to compile regex '%s' at line %d: %s\n", currenttableconfig->key, config_line_nb, reg_msg);
+                        exit(EXIT_FAILURE);
+                     }
+                   } tableaction
 tableaction: TRUNCATE {
-                  trcur=mymalloc(sizeof(truncate_st));
-                  memset(trcur,0,sizeof(truncate_st));
-                  mystrcpy(&trcur->key[0],table,ID_SIZE);
-                  HASH_ADD_STR(truncate_infos, key, trcur);
+                  currenttableconfig->action=ACTION_TRUNCATE;
+                  HASH_ADD_STR(infos, key, currenttableconfig);
                } |
-             LEFT fieldlist RIGHT
+             LEFT fieldlist RIGHT {
+                  currenttableconfig->action=ACTION_ANON;
+                  HASH_ADD_STR(infos, key, currenttableconfig);
+               }
 
 fieldlist:
   field |
@@ -170,23 +186,21 @@ fieldlist:
 
 field:
   IDENTIFIER {
-    memset(&work,0,sizeof(work));
-    memset(&workinfos,0,sizeof(workinfos));
-    work.pos =-1 ;
-    #ifdef HAVE_JQ
+    curfield=mymalloc(sizeof(anon_field_st));
+    memset(curfield,0,sizeof(anon_field_st));
+    memset(&basework,0,sizeof(basework));
+    curfield->pos =-1 ;
+#ifdef HAVE_JQ
     jslist=NULL;
-    #endif
-    snprintf(work.key,KEY_SIZE,"%s:%.*s",table,ID_LEN,$1);
+#endif
+    mystrcpy(curfield->key,$1,sizeof(curfield->key));
     }
   EQ fieldaction {
-    cur = mymalloc(sizeof(anon_st));
-    memset(cur,0,sizeof(anon_st));
-    memcpy(cur,&work,sizeof(anon_st));
-    memcpy(&cur->infos,&workinfos,sizeof(anon_base_st));
-    #ifdef HAVE_JQ
-    cur->json=jslist;
-    #endif
-    HASH_ADD_STR(infos, key, cur);
+#ifdef HAVE_JQ
+    curfield->json=jslist;
+#endif
+    memcpy(&curfield->infos,&basework,sizeof(anon_base_st));
+    HASH_ADD_STR(currenttableconfig->infos, key, curfield);
   }
 
 fieldaction:
@@ -216,40 +230,40 @@ fieldaction:
 
 fixednull :
   FIXEDNULL {
-              workinfos.type = AM_FIXEDNULL;
+              basework.type = AM_FIXEDNULL;
             }
 
 fixedstring :
   FIXED STRING {
-                 workinfos.type = AM_FIXED;
+                 basework.type = AM_FIXED;
                  STORE_FIXEDVALUE($2)
                }
 
 fixedunquotedstring:
   FIXEDUNQUOTED STRING {
-                 workinfos.type = AM_FIXEDUNQUOTED;
+                 basework.type = AM_FIXEDUNQUOTED;
                  STORE_FIXEDVALUE($2)
                }
 
 fixedquotedstring:
   FIXEDQUOTED STRING {
-                 workinfos.type = AM_FIXEDQUOTED;
+                 basework.type = AM_FIXEDQUOTED;
                  STORE_FIXEDVALUE($2)
                }
 
 texthash:
   TEXTHASH LENGTH {
-                    workinfos.type = AM_TEXTHASH;
-                    workinfos.len=(unsigned short)$2;
+                    basework.type = AM_TEXTHASH;
+                    basework.len=(unsigned short)$2;
                   }
 
 emailhash:
   EMAILHASH STRING LENGTH {
-                            workinfos.type = AM_EMAILHASH;
-                            workinfos.len = (unsigned short)$3;
-                            remove_quote(workinfos.domain,$2,sizeof(workinfos.domain));
-                            workinfos.domainlen=(unsigned short)strlen(workinfos.domain);
-                            if (workinfos.len + workinfos.domainlen + 1 > MAX_LEN) {
+                            basework.type = AM_EMAILHASH;
+                            basework.len = (unsigned short)$3;
+                            remove_quote(basework.domain,$2,sizeof(basework.domain));
+                            basework.domainlen=(unsigned short)strlen(basework.domain);
+                            if (basework.len + basework.domainlen + 1 > MAX_LEN) {
                               config_error("Requested length is too long");
                               exit(EXIT_FAILURE);
                             }
@@ -257,47 +271,47 @@ emailhash:
 
 inthash:
   INTHASH LENGTH {
-                    workinfos.type = AM_INTHASH;
-                    workinfos.len=(unsigned short)$2;
+                    basework.type = AM_INTHASH;
+                    basework.len=(unsigned short)$2;
                  }
 
 substring:
   SUBSTRING LENGTH {
-                    workinfos.type = AM_SUBSTRING;
-                    workinfos.len=(unsigned short)$2;
+                    basework.type = AM_SUBSTRING;
+                    basework.len=(unsigned short)$2;
                   }
 
 key:
   KEY {
-        workinfos.type = AM_KEY;
+        basework.type = AM_KEY;
       }
 
 appendkey:
   APPENDKEY STRING {
-                     workinfos.type = AM_APPENDKEY;
+                     basework.type = AM_APPENDKEY;
                      STORE_FIXEDVALUE($2)
                    }
 prependkey:
   PREPENDKEY STRING {
-                     workinfos.type = AM_PREPENDKEY;
+                     basework.type = AM_PREPENDKEY;
                      STORE_FIXEDVALUE($2)
                     }
 appendindex:
   APPENDINDEX STRING {
-                     workinfos.type = AM_APPENDINDEX;
+                     basework.type = AM_APPENDINDEX;
                      STORE_FIXEDVALUE($2)
                    }
 prependindex:
   PREPENDINDEX STRING {
-                     workinfos.type = AM_PREPENDINDEX;
+                     basework.type = AM_PREPENDINDEX;
                      STORE_FIXEDVALUE($2)
                     }
 
 pydef:
   PYDEF STRING {
                  #ifdef HAVE_PYTHON
-                 workinfos.type = AM_PY;
-                 remove_quote(workinfos.pydef,$2,sizeof(workinfos.pydef));
+                 basework.type = AM_PY;
+                 remove_quote(basework.pydef,$2,sizeof(basework.pydef));
                  #else
                  fprintf(stderr, "Python support disabled, ignoring pydef directive at line %d\n",config_line_nb);
                  #endif
@@ -306,7 +320,7 @@ pydef:
 json:
   JSON LEFT jsonlines RIGHT {
                      #ifdef HAVE_JQ
-                     workinfos.type = AM_JSON;
+                     basework.type = AM_JSON;
                      #else
                      fprintf(stderr, "JQ support disabled, ignoring json directive at line %d\n",config_line_nb);
                      #endif
@@ -318,7 +332,7 @@ separated:
                        if (strlen($2) > 3) {
                          fprintf(stderr, "Warning: separator is only one char, keeping first char\n");
                        }
-                       workinfos.separator[0]=($2)[1];
+                       basework.separator[0]=($2)[1];
                      }
 
 jsonlines:
@@ -330,7 +344,7 @@ jsonline:
     #ifdef HAVE_JQ
     jscur = mymalloc(sizeof(anon_json_st));
     memset(jscur,0,sizeof(anon_json_st));
-    memcpy(&jscur->infos,&workinfos,sizeof(anon_base_st));
+    memcpy(&jscur->infos,&basework,sizeof(anon_base_st));
     jscur->filter[0]='.';
     remove_quote(&(jscur->filter[1]),$2,CONFIG_SIZE-1);
     if (!is_valid_json_path(jscur->filter)) {
@@ -361,8 +375,6 @@ jsonaction:
 
 #ifdef HAVE_JQ
 static bool is_valid_json_path(const char *path) {
-  bool in_brackets = false;
-
   if (!path || !*path) return false;
 
   while (*path) {

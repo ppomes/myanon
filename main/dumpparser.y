@@ -41,13 +41,13 @@
 /* When parsing a table, each field need to be mapped 
    to anonymisation config.
    This is computed on first insert statement */
-static anon_st* fieldconfig[MYSQL_MAX_FIELD_PER_TABLE]; 
+static anon_field_st* fieldconfig[MYSQL_MAX_FIELD_PER_TABLE]; 
 
 /* Current table (shared with flex) */
 extern char currenttable[];
 
-/* Current key in (table:field) */
-static char key[KEY_SIZE];
+/* Current tableconfig (shared with flex) */
+extern anon_table_st *currenttableconfig;
 
 /* Current field position on table */
 static int currentfieldpos;
@@ -55,8 +55,8 @@ static int currentfieldpos;
 /* Current kept key field */
 static char tablekey[ID_SIZE];
 
-/* Worker on anonymisation info */
-static anon_st *cur=NULL;
+/* Worker on field info */
+static anon_field_st *curfield=NULL;
 
 #ifdef HAVE_JQ
 /* Worker on json infos */
@@ -118,23 +118,28 @@ fields: field
       | fields field;
 
 field: IDENTIFIER {
-     int nbytes;
-     nbytes=snprintf(key,KEY_SIZE,"%s:%s",currenttable,dump_text);
-     key[nbytes]=0;
-     DEBUG_MSG("LOOKING FOR  %s\n",key);
-     HASH_FIND_STR(infos,key,cur);
-     if (cur != NULL) {
-         cur->pos = currentfieldpos;
-     }
-     currentfieldpos++;
-   } type
+    anon_field_st *tmp;
+    bool found = false;
 
-type : TYPE { if (cur != NULL) {
-                cur->quoted = false;
+    HASH_ITER(hh, currenttableconfig->infos, curfield, tmp) {
+      if (strncmp(dump_text,curfield->key,ID_LEN)==0) {
+        found=true;
+        break;
+      }
+    }
+
+    if (found) {
+      curfield->pos = currentfieldpos;
+    }
+    currentfieldpos++;
+  } type
+
+type : TYPE { if (curfield != NULL) {
+                curfield->quoted = false;
               }
             }
-     | QTYPE { if (cur != NULL) {
-                cur->quoted = true;
+     | QTYPE { if (curfield != NULL) {
+                curfield->quoted = true;
                }
              }
 
@@ -160,9 +165,9 @@ fieldv: singlefield
 
 singlefield : VALUE {
       anonymized_res_st res_st;
-      char *s;
       int nbcopied;
       char concatvalue[ID_SIZE];
+
 #ifdef HAVE_JQ
       char *newjsonbackslash_str=NULL;
       jv value;
@@ -175,24 +180,22 @@ singlefield : VALUE {
 
       bool found=false;
       if (bfirstinsert) {
-        for (cur=infos;cur!=NULL;cur=cur->hh.next) {
-          if (memcmp(cur->key,currenttable,strlen(currenttable)) == 0) {
-              if (cur->pos == currentfieldpos) {
-                  found=true;
-                  fieldconfig[currentfieldpos]=cur;
-                  break;
-              }
+        for (curfield=currenttableconfig->infos;curfield!=NULL;curfield=curfield->hh.next) {
+          if (curfield->pos == currentfieldpos) {
+            found=true;
+            fieldconfig[currentfieldpos]=curfield;
+            break;
           }
         }
       } else {
         if (fieldconfig[currentfieldpos] != NULL) {
-          cur = fieldconfig[currentfieldpos];
+          curfield = fieldconfig[currentfieldpos];
           found=true;
         }
       }
 
       if (found) {
-        cur->infos.nbhits++;
+        curfield->infos.nbhits++;
       }
 
       /* NULL values should remains NULL
@@ -201,33 +204,33 @@ singlefield : VALUE {
         bool bDone=false;
         bool bFirstSeperatedValue=true;
 
-        cur->infos.nbhits++;
-        char *curfield;
-        int curleng;
-        bool curquoted=false;
+        curfield->infos.nbhits++;
+        char *field;
+        int leng;
+        bool quoted=false;
 
         char *noquotetext=NULL;
 
         /* Separated mode? */
-        if (cur->infos.separator[0]) {
+        if (curfield->infos.separator[0]) {
           /* Handle quoting if present */
-          if (cur->quoted) {
+          if (curfield->quoted) {
             /* Remove quoting for working text before split */
             noquotetext = mymalloc(dump_leng+1);
             remove_quote(noquotetext,dump_text,dump_leng+1);
-            curfield=noquotetext;
-            curquoted=false;
+            field=noquotetext;
+            quoted=false;
           }
         } else {
           /* Single value */
-          curfield=dump_text;
-          curleng=dump_leng;
-          curquoted=cur->quoted;
+          field=dump_text;
+          leng=dump_leng;
+          quoted=curfield->quoted;
         }
 
         /* We may loop  on separated valued */
         while(!bDone) {
-          if (!cur->infos.separator[0]) {
+          if (!curfield->infos.separator[0]) {
             bDone=true; /* Single anon */
           }
           else
@@ -236,17 +239,17 @@ singlefield : VALUE {
               bFirstSeperatedValue=false;
               /* First extraction on separated values */
               if (noquotetext != NULL) {
-                 curfield = strtok(noquotetext,cur->infos.separator);
+                 field = strtok(noquotetext,curfield->infos.separator);
               } else {
-                 curfield = strtok(dump_text,cur->infos.separator);
+                 field = strtok(dump_text,curfield->infos.separator);
               }
-              if (curfield) {
-                curleng=strlen(curfield);
+              if (field) {
+                leng=strlen(field);
                 fprintf(stdout, "'"); /* Opening quote for field value */
               }
               else
               {
-                fprintf(stderr, "WARNING! Table/field %s: Unable to parse seperated field '%s'at line %d, skip anonimyzation",cur->key,dump_text,dump_line_nb);
+                fprintf(stderr, "WARNING! Table/field %s: Unable to parse seperated field '%s'at line %d, skip anonimyzation",curfield->key,dump_text,dump_line_nb);
                 fwrite(dump_text,dump_leng,1,stdout);
                 bDone=true;
                 continue;
@@ -255,12 +258,12 @@ singlefield : VALUE {
             else
             {
               /* Other extractions on separated values */
-              curfield = strtok(NULL,cur->infos.separator);
+              field = strtok(NULL,curfield->infos.separator);
 
-              if (curfield) {
-                curleng=strlen(curfield);
+              if (field) {
+                leng=strlen(field);
                 if (!bFirstSeperatedValue) {
-                  fprintf(stdout, "%s", cur->infos.separator);
+                  fprintf(stdout, "%s", curfield->infos.separator);
                 }
                 bFirstSeperatedValue=false;
               }
@@ -273,61 +276,61 @@ singlefield : VALUE {
             }
           }
 
-          switch(cur->infos.type) {
+          switch(curfield->infos.type) {
             case AM_FIXEDNULL:
               quoted_output_helper((char *)"NULL",4,false);
               break;
             case AM_FIXED:
-              quoted_output_helper(cur->infos.fixedvalue,cur->infos.fixedvaluelen,curquoted);
+              quoted_output_helper(curfield->infos.fixedvalue,curfield->infos.fixedvaluelen,quoted);
               break;
             case AM_FIXEDUNQUOTED:
-              quoted_output_helper(cur->infos.fixedvalue,cur->infos.fixedvaluelen,false);
+              quoted_output_helper(curfield->infos.fixedvalue,curfield->infos.fixedvaluelen,false);
               break;
             case AM_FIXEDQUOTED:
-               quoted_output_helper(cur->infos.fixedvalue,cur->infos.fixedvaluelen,true);
+               quoted_output_helper(curfield->infos.fixedvalue,curfield->infos.fixedvaluelen,true);
                break;
              case AM_KEY:
-               remove_quote(tablekey,curfield,sizeof(tablekey));
-               quoted_output_helper(curfield,curleng,curquoted);
+               remove_quote(tablekey,field,sizeof(tablekey));
+               quoted_output_helper(field,leng,quoted);
                break;
              case AM_APPENDKEY:
-               nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",cur->infos.fixedvalue,tablekey);
+               nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",curfield->infos.fixedvalue,tablekey);
                quoted_output_helper(concatvalue,nbcopied,true);
                if (0 == tablekey[0] && bfirstinsert) {
                  fprintf(stderr, "WARNING! Table %s fields order: for appendkey mode, the key must be defined before the field to anomymize\n",currenttable);
                }
                break;
              case AM_PREPENDKEY:
-               nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",tablekey,cur->infos.fixedvalue);
+               nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",tablekey,curfield->infos.fixedvalue);
                quoted_output_helper(concatvalue,nbcopied,true);
                if (0 == tablekey[0] && bfirstinsert) {
                  fprintf(stderr, "WARNING! Table %s fields order: for prependkey mode, the key must be defined before the field to anomymize\n",currenttable);
                }
                break;
              case AM_APPENDINDEX:
-               nbcopied=snprintf(concatvalue,ID_SIZE,"%s%d",cur->infos.fixedvalue,rowindex);
+               nbcopied=snprintf(concatvalue,ID_SIZE,"%s%d",curfield->infos.fixedvalue,rowindex);
                quoted_output_helper(concatvalue,nbcopied,true);
                break;
              case AM_PREPENDINDEX:
-               nbcopied=snprintf(concatvalue,ID_SIZE,"%d%s",rowindex,cur->infos.fixedvalue);
+               nbcopied=snprintf(concatvalue,ID_SIZE,"%d%s",rowindex,curfield->infos.fixedvalue);
                quoted_output_helper(concatvalue,nbcopied,true);
                break;
 
 #ifdef HAVE_JQ
              case AM_JSON:
-               unquoted_json_str = mymalloc(curleng + 1);
-               remove_quote(unquoted_json_str,curfield,curleng + 1);
-               unbackslash_json_str = mymalloc(curleng + 1);
-               remove_json_backslash(unbackslash_json_str,unquoted_json_str,curleng + 1);
+               unquoted_json_str = mymalloc(leng + 1);
+               remove_quote(unquoted_json_str,field,leng + 1);
+               unbackslash_json_str = mymalloc(leng + 1);
+               remove_json_backslash(unbackslash_json_str,unquoted_json_str,leng + 1);
 
-               DEBUG_MSG("Json before: %s - after: %s\n",curfield,unbackslash_json_str);
+               DEBUG_MSG("Json before: %s - after: %s\n",field,unbackslash_json_str);
 
                jv input_json = jv_parse(unbackslash_json_str);
                if (jv_is_valid(input_json)) {
                  result = jv_copy(input_json);
 
                  /* Loop over json rules and replace */
-                 for (jscur = cur->json; jscur != NULL; jscur = jscur->hh.next) {
+                 for (jscur = curfield->json; jscur != NULL; jscur = jscur->hh.next) {
                    char *strvalue;
 
                    jq_start(jscur->jq_state, jv_copy(input_json), 0);
@@ -358,15 +361,15 @@ singlefield : VALUE {
                  jv_free(input_json);
 
                } else {
-                 fprintf(stderr, "WARNING! Table/field %s: Unable to parse json field '%s' at line %d, skip anonimyzation\n",cur->key, unbackslash_json_str,dump_line_nb);
+                 fprintf(stderr, "WARNING! Table/field %s: Unable to parse json field '%s' at line %d, skip anonimyzation\n",curfield->key, unbackslash_json_str,dump_line_nb);
                  fwrite(dump_text,dump_leng,1,stdout);
                }
                break;
 #endif
 
              default:
-               res_st=anonymize_token(curquoted,&cur->infos,curfield,curleng);
-               quoted_output_helper((char *)&res_st.data[0],res_st.len,curquoted);
+               res_st=anonymize_token(quoted,&curfield->infos,field,leng);
+               quoted_output_helper((char *)&res_st.data[0],res_st.len,quoted);
                break;
             }
          }
