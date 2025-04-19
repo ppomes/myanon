@@ -54,6 +54,23 @@ static char buffer[STDOUT_BUFFER_SIZE];
 #ifdef HAVE_PYTHON
 static bool pyinitialized = false;
 static PyObject *pModule;
+
+static PyObject* get_secret(PyObject* self, PyObject* args) {
+    return PyUnicode_DecodeFSDefault(secret);
+}
+
+static PyMethodDef MyanonUtilsMethods[] = {
+    {"get_secret", get_secret, METH_NOARGS, "Get HMAC secret"},
+    {NULL, NULL, 0, NULL}
+};
+
+static struct PyModuleDef myanon_utils_module = {
+    PyModuleDef_HEAD_INIT, "myanon_utils", NULL, -1, MyanonUtilsMethods
+};
+
+PyMODINIT_FUNC PyInit_myanon_utils(void) {
+    return PyModule_Create(&myanon_utils_module);
+}
 #endif
 
 void *mymalloc(size_t size)
@@ -297,6 +314,7 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
     case AM_PY:
         if (!pyinitialized)
         {
+            PyImport_AppendInittab("myanon_utils", PyInit_myanon_utils);
             Py_Initialize();
             sys_path = PySys_GetObject("path");
             path = PyUnicode_DecodeFSDefault(pypath);
