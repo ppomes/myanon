@@ -98,6 +98,14 @@ To create a static executable file on Linux and mimimal build only
 make LDFLAGS="-static"
 ```
 
+### Python support
+
+When Python support is enabled (`--enable-python`), custom anonymization functions can be defined in Python scripts. These scripts have access to a `myanon_utils` module that provides functions to retrieve configuration parameters:
+
+- `get_secret()`: Returns the HMAC secret defined in the configuration file
+
+This allows Python anonymization functions to use the same secret as the core anonymization process, ensuring consistency across all anonymized fields.
+
 
 ### Run/Tests
 ```
