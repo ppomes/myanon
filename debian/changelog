@@ -1,3 +1,16 @@
+myanon (0.7-ppa-noble) noble; urgency=medium
+
+  * Pass configuration parameters (e.g. secret) to pyscript modules
+  * Add regexp support for table name in config file
+  * Add parsing of year type
+  * Fix JSON parsing with backslashes
+  * Add substring field action config
+  * Add appendindex/prependindex field action config
+  * Handle line number correctly for parsing error reporting
+  * Improve UTF-8 support
+
+ -- Pierre POMES <pierre.pomes@gmail.com>  Sat, 17 May 2025 11:06:06 -0400
+
 myanon (0.6-ppa-noble) noble; urgency=medium
 
   * Add support for anonymization based on Python.
