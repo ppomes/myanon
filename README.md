@@ -14,7 +14,7 @@ This tool is in alpha stage. Please report any issue.
 
 ## Simple use case
 
-Example to create both a real crypted (sensitive) backup and an anonymized (non-sentitive) backup from a single mysqldump command:
+Example to create both a real crypted (sensitive) backup and an anonymized (non-sensitive) backup from a single mysqldump command:
 
 ```
 mysqldump mydb | tee >(myanon -f myanon.cfg | gzip > mydb_anon.sql.gz) | gpg -e -r me@domain.com > mydb.sql.gz.gpg
@@ -93,7 +93,7 @@ To create a debug build:
 make CFLAGS="-O0 -g"
 ```
 
-To create a static executable file on Linux and mimimal build only  
+To create a static executable file on Linux and minimal build only  
 ```
 make LDFLAGS="-static"
 ```
