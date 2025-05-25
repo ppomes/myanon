@@ -19,6 +19,12 @@ AC_ARG_ENABLE([python],
               [enable_python=$enableval],
               [enable_python="no"])
 
+# Legacy jq option (deprecated)
+AC_ARG_ENABLE([jq],
+              [AS_HELP_STRING([--enable-jq],
+                              [Deprecated - JSON support is now built-in])],
+              [AC_MSG_WARN([--enable-jq is deprecated and has no effect. JSON support is now built-in without external dependencies.])])
+
 
 # Checks flex/bison version
 AC_PATH_PROG([FLEX],[flex])
