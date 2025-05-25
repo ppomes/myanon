@@ -34,6 +34,7 @@
 
 #include "myanon.h"
 #include "uthash.h"
+#include "json.h"
 
 /* Maximum number of fields in a table */
 #define MYSQL_MAX_FIELD_PER_TABLE 4096
@@ -58,10 +59,8 @@ static char tablekey[ID_SIZE];
 /* Worker on field info */
 static anon_field_st *curfield=NULL;
 
-#ifdef HAVE_JQ
 /* Worker on json infos */
 static anon_json_st *jscur=NULL;
-#endif
 
 /* True on first extended insert found for each table */
 static bool bfirstinsert;
@@ -71,13 +70,9 @@ static int rowindex;
 
 static void quoted_output_helper (char *s, unsigned short len, bool quoted);
 
-#ifdef HAVE_JQ
 static void remove_json_backslash(char *dst, const char *src, size_t size);
 
 static void add_json_backslash(char *dst, const char *src, size_t size);
-
-void json_replace_values(jv *value, const char *key, char *newvalue);
-#endif
 
 
 
@@ -122,6 +117,7 @@ field: IDENTIFIER {
     bool found = false;
 
     HASH_ITER(hh, currenttableconfig->infos, curfield, tmp) {
+      DEBUG_MSG("Comparing field '%s' with config key '%s'\n", dump_text, curfield->key);
       if (strncmp(dump_text,curfield->key,ID_LEN)==0) {
         found=true;
         break;
@@ -130,6 +126,9 @@ field: IDENTIFIER {
 
     if (found) {
       curfield->pos = currentfieldpos;
+      DEBUG_MSG("Found field '%s' at position %d\n", curfield->key, currentfieldpos);
+    } else {
+      DEBUG_MSG("Field '%s' not found in config at position %d\n", dump_text, currentfieldpos);
     }
     currentfieldpos++;
   } type
@@ -167,16 +166,11 @@ singlefield : VALUE {
       anonymized_res_st res_st;
       int nbcopied;
       char concatvalue[ID_SIZE];
-
-#ifdef HAVE_JQ
       char *newjsonbackslash_str=NULL;
-      jv value;
-      jv result;
       char *newvalue;
       char *unquoted_json_str;
       char *resultstr;
       char *unbackslash_json_str;
-#endif
 
       bool found=false;
       if (bfirstinsert) {
@@ -316,7 +310,6 @@ singlefield : VALUE {
                quoted_output_helper(concatvalue,nbcopied,true);
                break;
 
-#ifdef HAVE_JQ
              case AM_JSON:
                unquoted_json_str = mymalloc(leng + 1);
                remove_quote(unquoted_json_str,field,leng + 1);
@@ -325,47 +318,49 @@ singlefield : VALUE {
 
                DEBUG_MSG("Json before: %s - after: %s\n",field,unbackslash_json_str);
 
-               jv input_json = jv_parse(unbackslash_json_str);
-               if (jv_is_valid(input_json)) {
-                 result = jv_copy(input_json);
-
+               json_value_st *parsed_json = json_parse_string(unbackslash_json_str);
+               if (parsed_json) {
                  /* Loop over json rules and replace */
                  for (jscur = curfield->json; jscur != NULL; jscur = jscur->hh.next) {
-                   char *strvalue;
-
-                   jq_start(jscur->jq_state, jv_copy(input_json), 0);
-
-                   while (jv_is_valid((value = jq_next(jscur->jq_state)))) {
-                     if (jv_get_kind(value) == JV_KIND_STRING) {
-                       jscur->infos.nbhits++;
-                       strvalue = (char *)jv_string_value(value);
-                       switch (jscur->infos.type) {
-                         case AM_FIXED:
-                           newvalue = &(jscur->infos.fixedvalue[0]);
-                           break;
-                         default:
-                           res_st=anonymize_token(false,&jscur->infos,strvalue,strlen(strvalue));
-                           newvalue = (char *)&res_st.data[0];
-                           break;
-                       }
-                       json_replace_values(&result, strvalue, newvalue);
-                     }
+                   char newvalue_buf[CONFIG_SIZE];
+                   char *newvalue;
+                   
+                   /* Get current value at path for hashing */
+                   char *current_value = json_get_string_at_path(parsed_json, jscur->filter);
+                   if (!current_value) continue;
+                   
+                   switch (jscur->infos.type) {
+                     case AM_FIXED:
+                       newvalue = jscur->infos.fixedvalue;
+                       break;
+                     default:
+                       res_st = anonymize_token(false, &jscur->infos, current_value, strlen(current_value));
+                       memcpy(newvalue_buf, res_st.data, res_st.len);
+                       newvalue_buf[res_st.len] = '\0';
+                       newvalue = newvalue_buf;
+                       break;
                    }
+                   
+                   json_replace_value_at_path(parsed_json, jscur->filter, newvalue);
+                   jscur->infos.nbhits++;
                  }
 
-                 resultstr = (char *)jv_string_value(jv_dump_string(result, 0));
+                 char *resultstr = json_to_string(parsed_json);
                  newjsonbackslash_str = mymalloc(strlen(resultstr)*2+1);
                  add_json_backslash(newjsonbackslash_str,resultstr,strlen(resultstr)*2+1);
                  quoted_output_helper(newjsonbackslash_str,strlen(newjsonbackslash_str),true);
 
-                 jv_free(input_json);
+                 free(resultstr);
+                 json_free_value(parsed_json);
+                 free(unquoted_json_str);
+                 free(unbackslash_json_str);
+                 free(newjsonbackslash_str);
 
                } else {
                  fprintf(stderr, "WARNING! Table/field %s: Unable to parse json field '%s' at line %d, skip anonimyzation\n",curfield->key, unbackslash_json_str,dump_line_nb);
                  fwrite(dump_text,dump_leng,1,stdout);
                }
                break;
-#endif
 
              default:
                res_st=anonymize_token(quoted,&curfield->infos,field,leng);
@@ -392,7 +387,6 @@ static void quoted_output_helper (char *s, unsigned short len, bool quoted)
   }
 }
 
-#ifdef HAVE_JQ
 static void remove_json_backslash(char *dst, const char *src, size_t size) {
     memset(dst, 0, size);
     size_t len = strlen(src);
@@ -434,37 +428,4 @@ static void add_json_backslash(char *dst, const char *src, size_t size) {
 }
 
 
-void json_replace_values(jv *value, const char *key, char *newvalue) {
-    switch (jv_get_kind(*value)) {
-        case JV_KIND_OBJECT: {
-            jv_object_foreach(*value, k, v) {
-                json_replace_values(&v, key, newvalue);
-                *value = jv_object_set(jv_copy(*value), jv_copy(k), jv_copy(v));
-                jv_free(k);
-                jv_free(v);
-            }
-            break;
-        }
-        case JV_KIND_ARRAY: {
-            int len = jv_array_length(jv_copy(*value));
-            for (int i = 0; i < len; i++) {
-                jv element = jv_array_get(jv_copy(*value), i);
-                json_replace_values(&element, key, newvalue);
-                *value = jv_array_set(jv_copy(*value), i, jv_copy(element));
-                jv_free(element);
-            }
-            break;
-        }
-        case JV_KIND_STRING: {
-            if (strcmp(jv_string_value(*value), key) == 0) {
-                jv_free(*value);
-                *value = jv_string(newvalue);
-            }
-            break;
-        }
-        default:
-            break;
-    }
-}
-#endif
 

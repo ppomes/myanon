@@ -35,7 +35,7 @@ CREATE TABLE `anontest` (
 
 LOCK TABLES `anontest` WRITE;
 /*!40000 ALTER TABLE `anontest` DISABLE KEYS */;
-INSERT INTO `anontest` VALUES (1,'{\"name\":\"joswz\",\"title\":\"It is time for \\\"fun\\\"!\"}'),(2,'{\"name\":\"joswz\",\"title\":\"It\'s time for \\\"fun\\\"!\"}'),(4,'{\"name\":\"votay\",\"title\":\"Multiline\\nmessage test.\"}'),(5,'{\"name\":\"votay\",\"title\":\"Backslashes at the end\\\\\"}');
+INSERT INTO `anontest` VALUES (1,'{\"name\":\"bcmge\",\"title\":\"It is time for \\\"fun\\\"!\"}'),(2,'{\"name\":\"bcmge\",\"title\":\"It\'s time for \\\"fun\\\"!\"}'),(4,'{\"name\":\"bczkp\",\"title\":\"Multiline\\nmessage test.\"}'),(5,'{\"name\":\"bczkp\",\"title\":\"Backslashes at the end\\\\\"}');
 /*!40000 ALTER TABLE `anontest` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
