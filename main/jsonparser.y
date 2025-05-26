@@ -192,6 +192,13 @@ array:
     }
     | LBRACKET array_content RBRACKET { 
         $$ = create_json_value(JSON_ARRAY);
+        /* Reverse the array to get correct order */
+        size_t i, j;
+        for (i = 0, j = $2->size - 1; i < j; i++, j--) {
+            json_value_st *temp = $2->elements[i];
+            $2->elements[i] = $2->elements[j];
+            $2->elements[j] = temp;
+        }
         $$->data.array = $2;
     }
     ;
@@ -470,6 +477,11 @@ char *json_get_string_at_path(json_value_st *root, const char *path) {
     return NULL;
 }
 
+typedef bool (*json_value_processor)(json_value_st *value, void *context);
+
+static bool json_set_value_at_path_with_processor(json_value_st *value, const char *path, 
+                                                  json_value_processor processor, void *context);
+
 static bool json_set_value_at_path(json_value_st *value, const char *path, const char *new_value) {
     if (!value || !path || !new_value) return false;
     
@@ -478,6 +490,35 @@ static bool json_set_value_at_path(json_value_st *value, const char *path, const
             free(value->data.string);
             value->data.string = strdup(new_value);
             return true;
+        }
+        return false;
+    }
+    
+    /* Handle array wildcard at start of path */
+    if (*path == '[') {
+        if (*(path + 1) == ']') {
+            /* Wildcard array access [] */
+            if (value->type == JSON_ARRAY && value->data.array) {
+                bool any_success = false;
+                const char *remaining_path = path + 2;
+                if (*remaining_path == '.') remaining_path++;
+                
+                for (size_t i = 0; i < value->data.array->size; i++) {
+                    if (json_set_value_at_path(value->data.array->elements[i], remaining_path, new_value)) {
+                        any_success = true;
+                    }
+                }
+                return any_success;
+            }
+        } else {
+            /* Specific index [n] */
+            char *end;
+            long index = strtol(path + 1, &end, 10);
+            if (*end == ']' && index >= 0 && (size_t)index < value->data.array->size) {
+                const char *remaining_path = end + 1;
+                if (*remaining_path == '.') remaining_path++;
+                return json_set_value_at_path(value->data.array->elements[index], remaining_path, new_value);
+            }
         }
         return false;
     }
@@ -497,15 +538,40 @@ static bool json_set_value_at_path(json_value_st *value, const char *path, const
         json_member_st *m = value->data.object->members;
         while (m) {
             if (strcmp(m->key, segment) == 0) {
-                return json_set_value_at_path(m->value, next_path, new_value);
+                /* Check if next_path starts with array access */
+                if (*next_path == '[') {
+                    if (*(next_path + 1) == ']') {
+                        /* Wildcard array access */
+                        if (m->value->type == JSON_ARRAY && m->value->data.array) {
+                            bool any_success = false;
+                            const char *remaining_path = next_path + 2;
+                            if (*remaining_path == '.') remaining_path++;
+                            
+                            for (size_t i = 0; i < m->value->data.array->size; i++) {
+                                if (json_set_value_at_path(m->value->data.array->elements[i], remaining_path, new_value)) {
+                                    any_success = true;
+                                }
+                            }
+                            return any_success;
+                        }
+                    } else {
+                        /* Specific index */
+                        char *end;
+                        long index = strtol(next_path + 1, &end, 10);
+                        if (*end == ']' && m->value->type == JSON_ARRAY && 
+                            m->value->data.array && index >= 0 && 
+                            (size_t)index < m->value->data.array->size) {
+                            const char *remaining_path = end + 1;
+                            if (*remaining_path == '.') remaining_path++;
+                            return json_set_value_at_path(m->value->data.array->elements[index], remaining_path, new_value);
+                        }
+                    }
+                    return false;
+                } else {
+                    return json_set_value_at_path(m->value, next_path, new_value);
+                }
             }
             m = m->next;
-        }
-    } else if (value->type == JSON_ARRAY && value->data.array && *segment == '[') {
-        char *end;
-        long index = strtol(segment + 1, &end, 10);
-        if (*end == ']' && index >= 0 && (size_t)index < value->data.array->size) {
-            return json_set_value_at_path(value->data.array->elements[index], next_path, new_value);
         }
     }
     
@@ -614,6 +680,243 @@ static void json_to_string_internal(json_value_st *value, char **buffer, size_t 
 
 void json_free_value(json_value_st *value) {
     free_json_value(value);
+}
+
+bool json_path_has_wildcards(const char *path) {
+    if (!path) return false;
+    return strstr(path, "[]") != NULL;
+}
+
+typedef struct {
+    char *value;
+    char *new_value;
+} json_replacement_st;
+
+static bool json_process_wildcard_values(json_value_st *value, const char *path, 
+                                        bool (*processor)(const char *value, void *context),
+                                        void *context) {
+    if (!value || !path || !processor) return false;
+    
+    /* Skip leading dot if present */
+    if (*path == '.') path++;
+    
+    if (*path == '\0') {
+        if (value->type == JSON_STRING) {
+            return processor(value->data.string, context);
+        }
+        return false;
+    }
+    
+    /* Handle array wildcard at start of path */
+    if (*path == '[') {
+        if (*(path + 1) == ']') {
+            /* Wildcard array access [] */
+            if (value->type == JSON_ARRAY && value->data.array) {
+                bool any_success = false;
+                const char *remaining_path = path + 2;
+                if (*remaining_path == '.') remaining_path++;
+                
+                for (size_t i = 0; i < value->data.array->size; i++) {
+                    if (json_process_wildcard_values(value->data.array->elements[i], 
+                                                   remaining_path, processor, context)) {
+                        any_success = true;
+                    }
+                }
+                return any_success;
+            }
+        }
+        return false;
+    }
+    
+    char segment[256];
+    const char *next_path = path;
+    size_t i = 0;
+    
+    while (*next_path && *next_path != '.' && *next_path != '[' && i < sizeof(segment) - 1) {
+        segment[i++] = *next_path++;
+    }
+    segment[i] = '\0';
+    
+    if (*next_path == '.') next_path++;
+    
+    if (value->type == JSON_OBJECT && value->data.object) {
+        json_member_st *m = value->data.object->members;
+        while (m) {
+            if (strcmp(m->key, segment) == 0) {
+                /* Check if next_path starts with array access */
+                if (*next_path == '[') {
+                    if (*(next_path + 1) == ']') {
+                        /* Wildcard array access */
+                        if (m->value->type == JSON_ARRAY && m->value->data.array) {
+                            bool any_success = false;
+                            const char *remaining_path = next_path + 2;
+                            if (*remaining_path == '.') remaining_path++;
+                            
+                            for (size_t i = 0; i < m->value->data.array->size; i++) {
+                                if (json_process_wildcard_values(m->value->data.array->elements[i], 
+                                                               remaining_path, processor, context)) {
+                                    any_success = true;
+                                }
+                            }
+                            return any_success;
+                        }
+                    }
+                    return false;
+                } else {
+                    return json_process_wildcard_values(m->value, next_path, processor, context);
+                }
+            }
+            m = m->next;
+        }
+    }
+    
+    return false;
+}
+
+typedef struct {
+    anon_base_st *infos;
+    bool is_fixed;
+    char *fixed_value;
+} wildcard_context_st;
+
+static bool wildcard_anonymize_processor(const char *value, void *context) {
+    wildcard_context_st *ctx = (wildcard_context_st *)context;
+    
+    if (ctx->is_fixed) {
+        /* For fixed values, we don't need to process, just mark success */
+        return true;
+    } else {
+        /* For anonymization, we need to process each value */
+        anonymized_res_st res = anonymize_token(false, ctx->infos, (char *)value, strlen(value));
+        /* The actual replacement happens in the main function */
+        return true;
+    }
+}
+
+typedef struct {
+    anon_base_st *infos;
+    char *fixed_value;
+} json_anonymize_context_st;
+
+static bool json_anonymize_value(json_value_st *value, const char *path, json_anonymize_context_st *ctx);
+
+static bool json_anonymize_at_path(json_value_st *value, const char *path, json_anonymize_context_st *ctx) {
+    if (!value || !path || !ctx) return false;
+    
+    /* Skip leading dot if present */
+    if (*path == '.') path++;
+    
+    if (*path == '\0') {
+        if (value->type == JSON_STRING) {
+            if (ctx->fixed_value) {
+                free(value->data.string);
+                value->data.string = strdup(ctx->fixed_value);
+            } else {
+                anonymized_res_st res = anonymize_token(false, ctx->infos, value->data.string, strlen(value->data.string));
+                free(value->data.string);
+                value->data.string = mymalloc(res.len + 1);
+                memcpy(value->data.string, res.data, res.len);
+                value->data.string[res.len] = '\0';
+            }
+            return true;
+        }
+        return false;
+    }
+    
+    /* Handle array wildcard at start of path */
+    if (*path == '[') {
+        if (*(path + 1) == ']') {
+            /* Wildcard array access [] */
+            if (value->type == JSON_ARRAY && value->data.array) {
+                bool any_success = false;
+                const char *remaining_path = path + 2;
+                if (*remaining_path == '.') remaining_path++;
+                
+                for (size_t i = 0; i < value->data.array->size; i++) {
+                    if (json_anonymize_at_path(value->data.array->elements[i], remaining_path, ctx)) {
+                        any_success = true;
+                    }
+                }
+                return any_success;
+            }
+        } else {
+            /* Specific index [n] */
+            char *end;
+            long index = strtol(path + 1, &end, 10);
+            if (*end == ']' && value->type == JSON_ARRAY && value->data.array &&
+                index >= 0 && (size_t)index < value->data.array->size) {
+                const char *remaining_path = end + 1;
+                if (*remaining_path == '.') remaining_path++;
+                return json_anonymize_at_path(value->data.array->elements[index], remaining_path, ctx);
+            }
+        }
+        return false;
+    }
+    
+    char segment[256];
+    const char *next_path = path;
+    size_t i = 0;
+    
+    while (*next_path && *next_path != '.' && *next_path != '[' && i < sizeof(segment) - 1) {
+        segment[i++] = *next_path++;
+    }
+    segment[i] = '\0';
+    
+    if (*next_path == '.') next_path++;
+    
+    if (value->type == JSON_OBJECT && value->data.object) {
+        json_member_st *m = value->data.object->members;
+        while (m) {
+            if (strcmp(m->key, segment) == 0) {
+                /* Check if next_path starts with array access */
+                if (*next_path == '[') {
+                    if (*(next_path + 1) == ']') {
+                        /* Wildcard array access */
+                        if (m->value->type == JSON_ARRAY && m->value->data.array) {
+                            bool any_success = false;
+                            const char *remaining_path = next_path + 2;
+                            if (*remaining_path == '.') remaining_path++;
+                            
+                            for (size_t i = 0; i < m->value->data.array->size; i++) {
+                                if (json_anonymize_at_path(m->value->data.array->elements[i], remaining_path, ctx)) {
+                                    any_success = true;
+                                }
+                            }
+                            return any_success;
+                        }
+                    } else {
+                        /* Specific index */
+                        char *end;
+                        long index = strtol(next_path + 1, &end, 10);
+                        if (*end == ']' && m->value->type == JSON_ARRAY && 
+                            m->value->data.array && index >= 0 && 
+                            (size_t)index < m->value->data.array->size) {
+                            const char *remaining_path = end + 1;
+                            if (*remaining_path == '.') remaining_path++;
+                            return json_anonymize_at_path(m->value->data.array->elements[index], remaining_path, ctx);
+                        }
+                    }
+                    return false;
+                } else {
+                    return json_anonymize_at_path(m->value, next_path, ctx);
+                }
+            }
+            m = m->next;
+        }
+    }
+    
+    return false;
+}
+
+void json_anonymize_path(json_value_st *root, const char *path, anon_base_st *infos, char *fixed_value) {
+    if (!root || !path) return;
+    
+    json_anonymize_context_st ctx = {
+        .infos = infos,
+        .fixed_value = fixed_value
+    };
+    
+    json_anonymize_at_path(root, path, &ctx);
 }
 
 void json_error(const char *s) {

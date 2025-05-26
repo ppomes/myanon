@@ -322,26 +322,33 @@ singlefield : VALUE {
                if (parsed_json) {
                  /* Loop over json rules and replace */
                  for (jscur = curfield->json; jscur != NULL; jscur = jscur->hh.next) {
-                   char newvalue_buf[CONFIG_SIZE];
-                   char *newvalue;
-                   
-                   /* Get current value at path for hashing */
-                   char *current_value = json_get_string_at_path(parsed_json, jscur->filter);
-                   if (!current_value) continue;
-                   
-                   switch (jscur->infos.type) {
-                     case AM_FIXED:
-                       newvalue = jscur->infos.fixedvalue;
-                       break;
-                     default:
-                       res_st = anonymize_token(false, &jscur->infos, current_value, strlen(current_value));
-                       memcpy(newvalue_buf, res_st.data, res_st.len);
-                       newvalue_buf[res_st.len] = '\0';
-                       newvalue = newvalue_buf;
-                       break;
+                   if (json_path_has_wildcards(jscur->filter)) {
+                     /* For wildcard paths, use the new anonymize function */
+                     json_anonymize_path(parsed_json, jscur->filter, &jscur->infos, 
+                                       jscur->infos.type == AM_FIXED ? jscur->infos.fixedvalue : NULL);
+                   } else {
+                     /* For non-wildcard paths, use the existing approach */
+                     char newvalue_buf[CONFIG_SIZE];
+                     char *newvalue;
+                     
+                     /* Get current value at path for hashing */
+                     char *current_value = json_get_string_at_path(parsed_json, jscur->filter);
+                     if (!current_value) continue;
+                     
+                     switch (jscur->infos.type) {
+                       case AM_FIXED:
+                         newvalue = jscur->infos.fixedvalue;
+                         break;
+                       default:
+                         res_st = anonymize_token(false, &jscur->infos, current_value, strlen(current_value));
+                         memcpy(newvalue_buf, res_st.data, res_st.len);
+                         newvalue_buf[res_st.len] = '\0';
+                         newvalue = newvalue_buf;
+                         break;
+                     }
+                     
+                     json_replace_value_at_path(parsed_json, jscur->filter, newvalue);
                    }
-                   
-                   json_replace_value_at_path(parsed_json, jscur->filter, newvalue);
                    jscur->infos.nbhits++;
                  }
 

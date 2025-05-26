@@ -34,12 +34,15 @@ typedef struct json_value_st json_value_st;
 typedef struct json_object_st json_object_st;
 typedef struct json_array_st json_array_st;
 typedef struct json_member_st json_member_st;
+typedef struct anon_base_st anon_base_st;
 
 json_value_st *json_parse_string(const char *input);
 void json_replace_value_at_path(json_value_st *root, const char *path, const char *new_value);
 char *json_get_string_at_path(json_value_st *root, const char *path);
 char *json_to_string(json_value_st *value);
 void json_free_value(json_value_st *value);
+bool json_path_has_wildcards(const char *path);
+void json_anonymize_path(json_value_st *root, const char *path, anon_base_st *infos, char *fixed_value);
 
 int json_lex();
 int json_parse();
