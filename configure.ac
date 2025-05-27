@@ -19,11 +19,12 @@ AC_ARG_ENABLE([python],
               [enable_python=$enableval],
               [enable_python="no"])
 
+# Legacy jq option (deprecated)
 AC_ARG_ENABLE([jq],
               [AS_HELP_STRING([--enable-jq],
-                              [enable @<:@default=no@:>@ jq support @<:@default=no@:>@])],
-              [enable_jq=$enableval],
-              [enable_jq="no"])
+                              [Deprecated - JSON support is now built-in])],
+              [AC_MSG_WARN([--enable-jq is deprecated and has no effect. JSON support is now built-in without external dependencies.])])
+
 
 # Checks flex/bison version
 AC_PATH_PROG([FLEX],[flex])
@@ -69,13 +70,6 @@ if test "$enable_python" = "yes"; then
     AC_SUBST([PYTHON_SUPPORT], [$enable_python])
 fi
 
-# Check jq dependencies
-if test "x$enable_jq" = "xyes"; then
-   AC_CHECK_LIB([jq], [jq_init], [], [AC_MSG_ERROR([libjq not found])])
-
-   AC_DEFINE([HAVE_JQ], ["yes"], [Define to "yes" if JQ support is enabled.])
-   AC_SUBST([JQ], [$enable_jq])
-fi
 
 AC_CONFIG_FILES([Makefile
                  hmac/Makefile

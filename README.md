@@ -6,11 +6,14 @@ Anonymization is done through a deterministic hmac processing based on sha-256. 
 
 However, an optional python support can be used to define custom anonymization rules (python faker for example)
 
-Myanon works by default on flat (numeric and text) fields. An optional json module is available for json fields.
+Myanon works by default on flat (numeric and text) fields and has built-in support for JSON fields.
 
 A configuration file is used to store the hmac secret and to select which fields need to be anonymized. A self-commented sample is provided (main/myanon-sample.conf)
 
-This tool is in alpha stage. Please report any issue.
+## Notable Changes
+
+### Version 0.8 (upcoming)
+- **Removed jq dependency**: JSON field anonymization is now handled by a built-in parser, eliminating the need for the external jq library. The `--enable-jq` configure option is now deprecated but still accepted for backward compatibility.
 
 ## Simple use case
 
@@ -31,26 +34,25 @@ mysqldump mydb | tee >(myanon -f myanon.cfg | gzip > mydb_anon.sql.gz) | gpg -e 
 - flex 
 - bison
 - python (optional)
-- jq (optional)
 
 Example on a Fedora system: 
 
 ```shell
 $ sudo dnf install autoconf automake gcc make flex bison
-$ sudo dnf install python3-devel jq-devel # For optional python and json support
+$ sudo dnf install python3-devel # For optional python support
 [...]
 ```
 Example on a Debian/Ubuntu system:
 
 ```shell
 $ sudo apt-get install autoconf automake flex bison build-essential
-$ sudo apt-get install python3-dev libjq-dev # For optional python and json support
+$ sudo apt-get install python3-dev # For optional python support
 [...]
 ```
 On macOS, you need to install Xcode and homebrew, and then:
 ```shell
 $ brew install autoconf automake flex bison m4
-$ brew install python3 jq # For optional python and json support
+$ brew install python3 # For optional python support
 [...]
 ```
 
@@ -77,10 +79,8 @@ export LDFLAGS=-L/opt/homebrew/lib
 
 ```
 ./autogen.sh
-./configure                             # Minimal build
-./configure --enable-python             # Optional python support
-./configure --enable-jq                 # Optional json support
-./configure --enable-python --enable-jq # Both
+./configure                             # Minimal build (includes JSON support)
+./configure --enable-python             # With optional python support
 make
 make install
 ```

@@ -33,10 +33,6 @@
 #include <string.h>
 #include <ctype.h>
 #include <regex.h>
-#ifdef HAVE_JQ
-#include <jv.h>
-#include <jq.h>
-#endif
 
 
 #include "config.h"
@@ -61,21 +57,17 @@ static anon_table_st *currenttableconfig;
 /* Current working field config */
 static anon_field_st *curfield;
 
-#ifdef HAVE_JQ
 /* Walker on json config */
 static anon_json_st *jscur = NULL;
-#endif
 
 /* Current working anon info (may be used for flat or json field) */
 static anon_base_st basework;
 
-#ifdef HAVE_JQ
 /* Current json anon working list */
 static anon_json_st *jslist=NULL;
 
 /* Small function used to validate json pah */
 static bool is_valid_json_path(const char *path);
-#endif
 
 
 %}
@@ -189,16 +181,12 @@ field:
     curfield=mymalloc(sizeof(anon_field_st));
     memset(curfield,0,sizeof(anon_field_st));
     memset(&basework,0,sizeof(basework));
-    curfield->pos =-1 ;
-#ifdef HAVE_JQ
+    curfield->pos = -1;
     jslist=NULL;
-#endif
     mystrcpy(curfield->key,$1,sizeof(curfield->key));
     }
   EQ fieldaction {
-#ifdef HAVE_JQ
     curfield->json=jslist;
-#endif
     memcpy(&curfield->infos,&basework,sizeof(anon_base_st));
     HASH_ADD_STR(currenttableconfig->infos, key, curfield);
   }
@@ -319,11 +307,7 @@ pydef:
 
 json:
   JSON LEFT jsonlines RIGHT {
-                     #ifdef HAVE_JQ
                      basework.type = AM_JSON;
-                     #else
-                     fprintf(stderr, "JQ support disabled, ignoring json directive at line %d\n",config_line_nb);
-                     #endif
                     }
 
 separated:
@@ -341,28 +325,24 @@ jsonlines:
 
 jsonline:
   PATH STRING EQ jsonaction {
-    #ifdef HAVE_JQ
     jscur = mymalloc(sizeof(anon_json_st));
     memset(jscur,0,sizeof(anon_json_st));
     memcpy(&jscur->infos,&basework,sizeof(anon_base_st));
-    jscur->filter[0]='.';
-    remove_quote(&(jscur->filter[1]),$2,CONFIG_SIZE-1);
+    remove_quote(jscur->filter,$2,CONFIG_SIZE);
+    /* Add leading dot if not present */
+    if (jscur->filter[0] != '.') {
+      char temp[CONFIG_SIZE];
+      mystrcpy(temp, jscur->filter, CONFIG_SIZE);
+      jscur->filter[0] = '.';
+      mystrcpy(&jscur->filter[1], temp, CONFIG_SIZE-1);
+    }
     if (!is_valid_json_path(jscur->filter)) {
-      fprintf(stderr, "Invalid json path '%s', ignoring it\n",&jscur->filter[1]);
+      fprintf(stderr, "Invalid json path '%s', ignoring it\n",jscur->filter);
     }
     else
     {
-      jscur->jq_state=jq_init();
-      if (jq_compile(jscur->jq_state,jscur->filter) == 0) {
-        fprintf(stderr, "Warning cannot compile jq filter '%s', ignoring it\n",jscur->filter);
-        jq_teardown(&jscur->jq_state);
-      }
-      else
-      {
-        HASH_ADD_STR(jslist, filter, jscur);
-      }
+      HASH_ADD_STR(jslist, filter, jscur);
     }
-    #endif
   }
 
 jsonaction:
@@ -373,7 +353,6 @@ jsonaction:
   pydef
 %%
 
-#ifdef HAVE_JQ
 static bool is_valid_json_path(const char *path) {
   if (!path || !*path) return false;
 
@@ -395,4 +374,3 @@ static bool is_valid_json_path(const char *path) {
 
   return true;
 }
-#endif
