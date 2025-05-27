@@ -12,6 +12,11 @@ A configuration file is used to store the hmac secret and to select which fields
 
 This tool is in alpha stage. Please report any issue.
 
+## Notable Changes
+
+### Version 0.8 (upcoming)
+- **Removed jq dependency**: JSON field anonymization is now handled by a built-in parser, eliminating the need for the external jq library. The `--enable-jq` configure option is now deprecated but still accepted for backward compatibility.
+
 ## Simple use case
 
 Example to create both a real crypted (sensitive) backup and an anonymized (non-sensitive) backup from a single mysqldump command:
