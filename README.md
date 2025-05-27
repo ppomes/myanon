@@ -10,8 +10,6 @@ Myanon works by default on flat (numeric and text) fields and has built-in suppo
 
 A configuration file is used to store the hmac secret and to select which fields need to be anonymized. A self-commented sample is provided (main/myanon-sample.conf)
 
-This tool is in alpha stage. Please report any issue.
-
 ## Notable Changes
 
 ### Version 0.8 (upcoming)
