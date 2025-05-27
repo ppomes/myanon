@@ -88,6 +88,15 @@ static void print_json_value(json_value_st *value, int indent);
 typedef void (*json_visitor_fn)(const char *path, json_value_st *value, void *context);
 static void visit_json_value(json_value_st *value, const char *path, json_visitor_fn visitor, void *context);
 
+/* Utility function - safe strdup using myanon's utilities */
+static char *mystrdup(const char *s) {
+    if (!s) return NULL;
+    size_t len = strlen(s) + 1;
+    char *p = mymalloc(len);
+    mystrcpy(p, s, len);
+    return p;
+}
+
 %}
 
 %define api.prefix {json_}
@@ -126,7 +135,7 @@ value:
     | array     { $$ = $1; }
     | STRING    { 
                   $$ = create_json_value(JSON_STRING);
-                  $$->data.string = strdup($1);
+                  $$->data.string = mystrdup($1);
                 }
     | NUMBER_INT { 
                   $$ = create_json_value(JSON_NUMBER);
@@ -179,7 +188,7 @@ members:
 member:
     STRING COLON value { 
         $$ = mymalloc(sizeof(json_member_st));
-        $$->key = strdup($1);
+        $$->key = mystrdup($1);
         $$->value = $3;
         $$->next = NULL;
     }
@@ -488,7 +497,7 @@ static bool json_set_value_at_path(json_value_st *value, const char *path, const
     if (*path == '\0') {
         if (value->type == JSON_STRING) {
             free(value->data.string);
-            value->data.string = strdup(new_value);
+            value->data.string = mystrdup(new_value);
             return true;
         }
         return false;
@@ -810,7 +819,7 @@ static bool json_anonymize_at_path(json_value_st *value, const char *path, json_
         if (value->type == JSON_STRING) {
             if (ctx->fixed_value) {
                 free(value->data.string);
-                value->data.string = strdup(ctx->fixed_value);
+                value->data.string = mystrdup(ctx->fixed_value);
             } else {
                 anonymized_res_st res = anonymize_token(false, ctx->infos, value->data.string, strlen(value->data.string));
                 free(value->data.string);
