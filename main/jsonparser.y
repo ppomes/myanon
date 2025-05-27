@@ -836,10 +836,11 @@ static bool json_anonymize_at_path(json_value_st *value, const char *path, json_
                 value->data.string = mystrdup(ctx->fixed_value);
             } else {
                 anonymized_res_st res = anonymize_token(false, ctx->infos, value->data.string, strlen(value->data.string));
+                char *new_string = mymalloc(res.len + 1);
+                memcpy(new_string, res.data, res.len);
+                new_string[res.len] = '\0';
                 free(value->data.string);
-                value->data.string = mymalloc(res.len + 1);
-                memcpy(value->data.string, res.data, res.len);
-                value->data.string[res.len] = '\0';
+                value->data.string = new_string;
             }
             return true;
         }
