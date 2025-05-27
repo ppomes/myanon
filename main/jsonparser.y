@@ -37,6 +37,8 @@
 #include "myanon.h"
 #include "json.h"
 
+#define JSON_PATH_SEGMENT_SIZE 256
+
 int json_line_nb = 1;
 
 typedef enum {
@@ -95,6 +97,16 @@ static char *mystrdup(const char *s) {
     char *p = mymalloc(len);
     mystrcpy(p, s, len);
     return p;
+}
+
+/* Safe realloc wrapper */
+static void *myrealloc(void *ptr, size_t size) {
+    void *new_ptr = realloc(ptr, size);
+    if (!new_ptr && size > 0) {
+        fprintf(stderr, "ERROR: realloc failed for size %zu\n", size);
+        exit(1);
+    }
+    return new_ptr;
 }
 
 %}
@@ -266,7 +278,7 @@ static void add_member_to_object(json_object_st *obj, char *key, json_value_st *
 static void add_element_to_array(json_array_st *arr, json_value_st *value) {
     if (arr->size >= arr->capacity) {
         size_t new_capacity = arr->capacity == 0 ? 8 : arr->capacity * 2;
-        arr->elements = realloc(arr->elements, new_capacity * sizeof(json_value_st *));
+        arr->elements = myrealloc(arr->elements, new_capacity * sizeof(json_value_st *));
         arr->capacity = new_capacity;
     }
     arr->elements[arr->size++] = value;
@@ -374,8 +386,9 @@ static void visit_json_value(json_value_st *value, const char *path, json_visito
             if (value->data.object && value->data.object->members) {
                 json_member_st *m = value->data.object->members;
                 while (m) {
-                    char *new_path = mymalloc(strlen(path) + strlen(m->key) + 2);
-                    sprintf(new_path, "%s.%s", path, m->key);
+                    size_t path_len = strlen(path) + strlen(m->key) + 2;
+                    char *new_path = mymalloc(path_len);
+                    snprintf(new_path, path_len, "%s.%s", path, m->key);
                     visit_json_value(m->value, new_path, visitor, context);
                     free(new_path);
                     m = m->next;
@@ -385,8 +398,9 @@ static void visit_json_value(json_value_st *value, const char *path, json_visito
         case JSON_ARRAY:
             if (value->data.array) {
                 for (size_t i = 0; i < value->data.array->size; i++) {
-                    char *new_path = mymalloc(strlen(path) + 20);
-                    sprintf(new_path, "%s[%zu]", path, i);
+                    size_t path_len = strlen(path) + 20;
+                    char *new_path = mymalloc(path_len);
+                    snprintf(new_path, path_len, "%s[%zu]", path, i);
                     visit_json_value(value->data.array->elements[i], new_path, visitor, context);
                     free(new_path);
                 }
@@ -443,7 +457,7 @@ static json_value_st *json_get_value_at_path(json_value_st *value, const char *p
         return value;
     }
     
-    char segment[256];
+    char segment[JSON_PATH_SEGMENT_SIZE];
     const char *next_path = path;
     size_t i = 0;
     
@@ -532,7 +546,7 @@ static bool json_set_value_at_path(json_value_st *value, const char *path, const
         return false;
     }
     
-    char segment[256];
+    char segment[JSON_PATH_SEGMENT_SIZE];
     const char *next_path = path;
     size_t i = 0;
     
@@ -607,16 +621,16 @@ static void json_to_string_internal(json_value_st *value, char **buffer, size_t 
         size_t len = strlen(str); \
         while (*pos + len >= *size) { \
             *size *= 2; \
-            *buffer = realloc(*buffer, *size); \
+            *buffer = myrealloc(*buffer, *size); \
         } \
-        strcpy(*buffer + *pos, str); \
+        memcpy(*buffer + *pos, str, len); \
         *pos += len; \
     } while(0)
     
     #define APPEND_CHAR(c) do { \
         if (*pos + 1 >= *size) { \
             *size *= 2; \
-            *buffer = realloc(*buffer, *size); \
+            *buffer = myrealloc(*buffer, *size); \
         } \
         (*buffer)[(*pos)++] = c; \
     } while(0)
@@ -737,7 +751,7 @@ static bool json_process_wildcard_values(json_value_st *value, const char *path,
         return false;
     }
     
-    char segment[256];
+    char segment[JSON_PATH_SEGMENT_SIZE];
     const char *next_path = path;
     size_t i = 0;
     
@@ -862,7 +876,7 @@ static bool json_anonymize_at_path(json_value_st *value, const char *path, json_
         return false;
     }
     
-    char segment[256];
+    char segment[JSON_PATH_SEGMENT_SIZE];
     const char *next_path = path;
     size_t i = 0;
     
