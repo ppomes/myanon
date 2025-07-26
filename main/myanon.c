@@ -267,8 +267,8 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
 
     /* Initialize result structure */
     memset(&res_st, 0, sizeof(res_st));
-    res_st.data = res_st.static_data;  /* Default to static buffer */
     res_st.is_allocated = false;
+    res_st.allocated_data = NULL;
 
     DEBUG_MSG("ANON_TOKEN for %s - %d - %d\n", token, tokenlen, quoted);
 
@@ -310,7 +310,7 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
         make_readable_hash((unsigned char *)worktoken, worktokenlen, &res_st, '1', '9');
         break;
     case AM_SUBSTRING:
-        mysubstr((char *)res_st.data, worktoken, sizeof(res_st.static_data), config->len);
+        mysubstr((char *)res_st.data, worktoken, sizeof(res_st.data), config->len);
         res_st.len = strlen((char *)res_st.data);
         DEBUG_MSG("%d, %d, %d, %s\n", worktokenlen, config->len, res_st.len, res_st.data);
         break;
@@ -353,15 +353,18 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
                     const char *result = PyUnicode_AsUTF8(pResult);
                     res_st.len = strlen(result);
                     
-                    /* Allocate memory if result is larger than static buffer */
-                    if (res_st.len >= sizeof(res_st.static_data)) {
-                        res_st.data = mymalloc(res_st.len + 1);
+                    /* Check if result fits in static buffer */
+                    if (res_st.len < sizeof(res_st.data)) {
+                        /* Use static buffer */
+                        memcpy(res_st.data, result, res_st.len);
+                        res_st.data[res_st.len] = '\0';
+                    } else {
+                        /* Allocate memory for large result */
+                        res_st.allocated_data = mymalloc(res_st.len + 1);
+                        memcpy(res_st.allocated_data, result, res_st.len);
+                        res_st.allocated_data[res_st.len] = '\0';
                         res_st.is_allocated = true;
                     }
-                    
-                    /* Copy the result */
-                    memcpy(res_st.data, result, res_st.len);
-                    res_st.data[res_st.len] = '\0';
                     
                     Py_DECREF(pResult);
                 }

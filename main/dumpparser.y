@@ -341,11 +341,12 @@ singlefield : VALUE {
                          break;
                        default:
                          res_st = anonymize_token(false, &jscur->infos, current_value, strlen(current_value));
-                         memcpy(newvalue_buf, res_st.data, res_st.len);
+                         unsigned char *res_data = anonymized_res_get_data(&res_st);
+                         memcpy(newvalue_buf, res_data, res_st.len);
                          newvalue_buf[res_st.len] = '\0';
                          newvalue = newvalue_buf;
                          if (res_st.is_allocated) {
-                           free(res_st.data);
+                           free(res_st.allocated_data);
                          }
                          break;
                      }
@@ -374,9 +375,9 @@ singlefield : VALUE {
 
              default:
                res_st=anonymize_token(quoted,&curfield->infos,field,leng);
-               quoted_output_helper((char *)res_st.data,res_st.len,quoted);
+               quoted_output_helper((char *)anonymized_res_get_data(&res_st),res_st.len,quoted);
                if (res_st.is_allocated) {
-                 free(res_st.data);
+                 free(res_st.allocated_data);
                }
                break;
             }

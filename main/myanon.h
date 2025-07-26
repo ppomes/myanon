@@ -163,10 +163,10 @@ typedef struct anon_table_st
    (shared between Bison and C) */
 typedef struct anonymized_res_st
 {
-    unsigned char *data;      /* Pointer to data (either static_data or allocated) */
-    unsigned char static_data[SHA256_DIGEST_SIZE + 1]; /* Static buffer for hash results */
+    unsigned char data[SHA256_DIGEST_SIZE + 1]; /* Static buffer for hash results */
+    unsigned char *allocated_data;  /* Pointer to allocated memory for large results */
     unsigned short len;
-    bool is_allocated;        /* True if data points to allocated memory */
+    bool is_allocated;        /* True if allocated_data is used */
 } anonymized_res_st;
 
 /*
@@ -207,6 +207,11 @@ char *mysubstr(char *dst, const char *src, size_t dst_size, size_t num_chars);
 /* function to anonymize a single field 'token' which length is 'tokenlen'
  * anonymizaton config for this field is *config */
 anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token, int tokenlen);
+
+/* Helper to get data pointer from anonymized_res_st */
+static inline unsigned char *anonymized_res_get_data(anonymized_res_st *res) {
+    return res->is_allocated ? res->allocated_data : res->data;
+}
 
 /* Function to get a timestamp is ms */
 unsigned long get_ts_in_ms();

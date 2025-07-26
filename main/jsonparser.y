@@ -837,12 +837,13 @@ static bool json_anonymize_at_path(json_value_st *value, const char *path, json_
             } else {
                 anonymized_res_st res = anonymize_token(false, ctx->infos, value->data.string, strlen(value->data.string));
                 char *new_string = mymalloc(res.len + 1);
-                memcpy(new_string, res.data, res.len);
+                unsigned char *res_data = anonymized_res_get_data(&res);
+                memcpy(new_string, res_data, res.len);
                 new_string[res.len] = '\0';
                 free(value->data.string);
                 value->data.string = new_string;
                 if (res.is_allocated) {
-                    free(res.data);
+                    free(res.allocated_data);
                 }
             }
             return true;
