@@ -841,6 +841,9 @@ static bool json_anonymize_at_path(json_value_st *value, const char *path, json_
                 new_string[res.len] = '\0';
                 free(value->data.string);
                 value->data.string = new_string;
+                if (res.is_allocated) {
+                    free(res.data);
+                }
             }
             return true;
         }

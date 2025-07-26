@@ -163,8 +163,10 @@ typedef struct anon_table_st
    (shared between Bison and C) */
 typedef struct anonymized_res_st
 {
-    unsigned char data[SHA256_DIGEST_SIZE + 1];
+    unsigned char *data;      /* Pointer to data (either static_data or allocated) */
+    unsigned char static_data[SHA256_DIGEST_SIZE + 1]; /* Static buffer for hash results */
     unsigned short len;
+    bool is_allocated;        /* True if data points to allocated memory */
 } anonymized_res_st;
 
 /*

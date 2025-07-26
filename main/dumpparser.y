@@ -344,6 +344,9 @@ singlefield : VALUE {
                          memcpy(newvalue_buf, res_st.data, res_st.len);
                          newvalue_buf[res_st.len] = '\0';
                          newvalue = newvalue_buf;
+                         if (res_st.is_allocated) {
+                           free(res_st.data);
+                         }
                          break;
                      }
                      
@@ -371,7 +374,10 @@ singlefield : VALUE {
 
              default:
                res_st=anonymize_token(quoted,&curfield->infos,field,leng);
-               quoted_output_helper((char *)&res_st.data[0],res_st.len,quoted);
+               quoted_output_helper((char *)res_st.data,res_st.len,quoted);
+               if (res_st.is_allocated) {
+                 free(res_st.data);
+               }
                break;
             }
          }
