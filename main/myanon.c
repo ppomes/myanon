@@ -250,9 +250,16 @@ void make_readable_hash(const unsigned char *token, unsigned int tokenlen,
     }
 }
 
-anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token, int tokenlen)
+void anonymized_res_free(anonymized_res_st *res)
 {
-    anonymized_res_st res_st;
+    if (res) {
+        free(res);
+    }
+}
+
+anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *token, int tokenlen)
+{
+    anonymized_res_st *res_st;
     unsigned long ts_beg, ts_end;
     char *worktoken;
     int worktokenlen;
@@ -264,11 +271,6 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
     PyObject *pResult;
     PyObject *pFunc;
 #endif
-
-    /* Initialize result structure */
-    memset(&res_st, 0, sizeof(res_st));
-    res_st.is_allocated = false;
-    res_st.allocated_data = NULL;
 
     DEBUG_MSG("ANON_TOKEN for %s - %d - %d\n", token, tokenlen, quoted);
 
@@ -291,28 +293,55 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
     }
     DEBUG_MSG("--WORKTOKEN %s - %d\n", worktoken, worktokenlen);
 
+    /* Pre-allocate result structure - we'll determine size after processing */
+    res_st = NULL;
+
     switch (config->type)
     {
     case AM_TEXTHASH:
-        res_st.len = MIN(SHA256_DIGEST_SIZE, config->len);
-        make_readable_hash((unsigned char *)worktoken, worktokenlen, &res_st, 'a', 'z');
+        {
+            int hash_len = MIN(SHA256_DIGEST_SIZE, config->len);
+            res_st = mymalloc(sizeof(anonymized_res_st));
+            res_st->len = hash_len;
+            res_st->data = res_st->static_buffer;
+            res_st->is_large = false;
+            make_readable_hash((unsigned char *)worktoken, worktokenlen, res_st, 'a', 'z');
+        }
         break;
 
     case AM_EMAILHASH:
-        res_st.len = config->len + 1 + config->domainlen; // anon part + '@' + domain
-        make_readable_hash((unsigned char *)worktoken, worktokenlen, &res_st, 'a', 'z');
-        res_st.data[config->len] = '@';
-        memcpy(&res_st.data[config->len + 1], config->domain, config->domainlen);
+        {
+            int total_len = config->len + 1 + config->domainlen; // anon part + '@' + domain
+            res_st = mymalloc(sizeof(anonymized_res_st));
+            res_st->len = total_len;
+            res_st->data = res_st->static_buffer;
+            res_st->is_large = false;
+            make_readable_hash((unsigned char *)worktoken, worktokenlen, res_st, 'a', 'z');
+            res_st->data[config->len] = '@';
+            memcpy(&res_st->data[config->len + 1], config->domain, config->domainlen);
+        }
         break;
 
     case AM_INTHASH:
-        res_st.len = MIN(SHA256_DIGEST_SIZE, config->len);
-        make_readable_hash((unsigned char *)worktoken, worktokenlen, &res_st, '1', '9');
+        {
+            int hash_len = MIN(SHA256_DIGEST_SIZE, config->len);
+            res_st = mymalloc(sizeof(anonymized_res_st));
+            res_st->len = hash_len;
+            res_st->data = res_st->static_buffer;
+            res_st->is_large = false;
+            make_readable_hash((unsigned char *)worktoken, worktokenlen, res_st, '1', '9');
+        }
         break;
+        
     case AM_SUBSTRING:
-        mysubstr((char *)res_st.data, worktoken, sizeof(res_st.data), config->len);
-        res_st.len = strlen((char *)res_st.data);
-        DEBUG_MSG("%d, %d, %d, %s\n", worktokenlen, config->len, res_st.len, res_st.data);
+        {
+            res_st = mymalloc(sizeof(anonymized_res_st));
+            res_st->data = res_st->static_buffer;
+            res_st->is_large = false;
+            mysubstr((char *)res_st->data, worktoken, sizeof(res_st->static_buffer), config->len);
+            res_st->len = strlen((char *)res_st->data);
+            DEBUG_MSG("%d, %d, %d, %s\n", worktokenlen, config->len, res_st->len, res_st->data);
+        }
         break;
 
 #ifdef HAVE_PYTHON
@@ -338,7 +367,6 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
             pyinitialized = true;
         }
 
-        res_st.len = 0;
         if (pModule != NULL)
         {
             pFunc = PyObject_GetAttrString(pModule, config->pydef);
@@ -351,48 +379,85 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
                 if (pResult != NULL)
                 {
                     const char *result = PyUnicode_AsUTF8(pResult);
-                    res_st.len = strlen(result);
+                    int result_len = strlen(result);
                     
-                    /* Check if result fits in static buffer */
-                    if (res_st.len < sizeof(res_st.data)) {
+                    /* Allocate based on result size */
+                    if (result_len < sizeof(((anonymized_res_st*)0)->static_buffer)) {
                         /* Use static buffer */
-                        memcpy(res_st.data, result, res_st.len);
-                        res_st.data[res_st.len] = '\0';
+                        res_st = mymalloc(sizeof(anonymized_res_st));
+                        res_st->data = res_st->static_buffer;
+                        res_st->is_large = false;
                     } else {
-                        /* Allocate memory for large result */
-                        res_st.allocated_data = mymalloc(res_st.len + 1);
-                        memcpy(res_st.allocated_data, result, res_st.len);
-                        res_st.allocated_data[res_st.len] = '\0';
-                        res_st.is_allocated = true;
+                        /* Allocate struct + extra space in one block */
+                        res_st = mymalloc(sizeof(anonymized_res_st) + result_len + 1);
+                        res_st->data = (unsigned char*)(res_st + 1); /* Point after struct */
+                        res_st->is_large = true;
                     }
+                    
+                    res_st->len = result_len;
+                    memcpy(res_st->data, result, result_len);
+                    res_st->data[result_len] = '\0';
                     
                     Py_DECREF(pResult);
                 }
                 else
                 {
                     PyErr_Print();
+                    /* Return empty result on error */
+                    res_st = mymalloc(sizeof(anonymized_res_st));
+                    res_st->data = res_st->static_buffer;
+                    res_st->is_large = false;
+                    res_st->len = 0;
+                    res_st->data[0] = '\0';
                 }
             }
             else
             {
                 PyErr_Print();
+                /* Return empty result on error */
+                res_st = mymalloc(sizeof(anonymized_res_st));
+                res_st->data = res_st->static_buffer;
+                res_st->is_large = false;
+                res_st->len = 0;
+                res_st->data[0] = '\0';
             }
             Py_XDECREF(pFunc);
+        }
+        else
+        {
+            /* No module - return empty result */
+            res_st = mymalloc(sizeof(anonymized_res_st));
+            res_st->data = res_st->static_buffer;
+            res_st->is_large = false;
+            res_st->len = 0;
+            res_st->data[0] = '\0';
         }
         break;
 
 #endif
 
     default:
+        /* Unknown type - return empty result */
+        res_st = mymalloc(sizeof(anonymized_res_st));
+        res_st->data = res_st->static_buffer;
+        res_st->is_large = false;
+        res_st->len = 0;
+        res_st->data[0] = '\0';
         break;
     }
 
-    res_st.data[res_st.len] = '\0';
+    /* Ensure result is allocated */
+    if (!res_st) {
+        res_st = mymalloc(sizeof(anonymized_res_st));
+        res_st->data = res_st->static_buffer;
+        res_st->is_large = false;
+        res_st->len = 0;
+        res_st->data[0] = '\0';
+    }
 
     if (stats)
     {
         ts_end = get_ts_in_ms();
-
         anon_time += (ts_end - ts_beg);
     }
 
@@ -400,6 +465,8 @@ anonymized_res_st anonymize_token(bool quoted, anon_base_st *config, char *token
     {
         free(worktoken);
     }
+
+    config->nbhits++;
 
     return res_st;
 }
