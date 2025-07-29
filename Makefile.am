@@ -10,7 +10,7 @@ EXTRA_DIST = $(top_srcdir)/uthash/uthash.h \
              $(top_srcdir)/debian/rules
 
 TULIST = test1 test1-insert-ignore null-example appendkey prependkey issue29 test_substring appendindex prependindex test_regex complex
-PYTULIST = test_python test_large_python
+PYTULIST = test_python test_large_python test_large_python_2
 PYTHON_SUPPORT = @PYTHON_SUPPORT@
 
 check: all
