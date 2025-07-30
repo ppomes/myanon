@@ -59,8 +59,95 @@ static PyObject* get_secret(PyObject* self, PyObject* args) {
     return PyUnicode_DecodeFSDefault(secret);
 }
 
+static PyObject* unescape_sql_string(PyObject* self, PyObject* args) {
+    const char *input;
+    if (!PyArg_ParseTuple(args, "s", &input)) {
+        return NULL;
+    }
+    
+    size_t input_len = strlen(input);
+    char *unescaped = mymalloc(input_len + 1);  /* Result will be same size or smaller */
+    
+    /* Perform unescaping - handle both backslash escaping and double-quote escaping */
+    size_t j = 0;
+    for (size_t i = 0; i < input_len; i++) {
+        if (input[i] == '\\' && i + 1 < input_len) {
+            /* Backslash escape sequence */
+            if (input[i + 1] == '\'') {
+                /* \' becomes ' */
+                unescaped[j++] = '\'';
+                i++; /* Skip the escaped character */
+            } else if (input[i + 1] == '\\') {
+                /* \\ becomes \ */
+                unescaped[j++] = '\\';
+                i++; /* Skip the escaped character */
+            } else if (input[i + 1] == '"') {
+                /* \" becomes " */
+                unescaped[j++] = '"';
+                i++; /* Skip the escaped character */
+            } else {
+                /* Not a recognized escape sequence, keep the backslash */
+                unescaped[j++] = input[i];
+            }
+        } else if (input[i] == '\'' && i + 1 < input_len && input[i + 1] == '\'') {
+            /* Double quote '' becomes single quote ' (standard SQL escaping) */
+            unescaped[j++] = '\'';
+            i++; /* Skip the second quote */
+        } else {
+            unescaped[j++] = input[i];
+        }
+    }
+    unescaped[j] = '\0';
+    
+    PyObject *result = PyUnicode_FromString(unescaped);
+    free(unescaped);
+    return result;
+}
+
+static PyObject* escape_sql_string(PyObject* self, PyObject* args) {
+    const char *input;
+    if (!PyArg_ParseTuple(args, "s", &input)) {
+        return NULL;
+    }
+    
+    /* Count chars that need escaping */
+    size_t input_len = strlen(input);
+    size_t escaped_len = 0;
+    for (size_t i = 0; i < input_len; i++) {
+        if (input[i] == '\'' || input[i] == '\\') {
+            escaped_len += 2;  /* Double the character */
+        } else {
+            escaped_len++;
+        }
+    }
+    
+    /* Allocate output buffer */
+    char *escaped = mymalloc(escaped_len + 1);
+    
+    /* Perform escaping */
+    size_t j = 0;
+    for (size_t i = 0; i < input_len; i++) {
+        if (input[i] == '\'') {
+            escaped[j++] = '\'';
+            escaped[j++] = '\'';
+        } else if (input[i] == '\\') {
+            escaped[j++] = '\\';
+            escaped[j++] = '\\';
+        } else {
+            escaped[j++] = input[i];
+        }
+    }
+    escaped[j] = '\0';
+    
+    PyObject *result = PyUnicode_FromString(escaped);
+    free(escaped);
+    return result;
+}
+
 static PyMethodDef MyanonUtilsMethods[] = {
     {"get_secret", get_secret, METH_NOARGS, "Get HMAC secret"},
+    {"unescape_sql_string", unescape_sql_string, METH_VARARGS, "Unescape a SQL string (converts '' to ' and \\\\ to \\)"},
+    {"escape_sql_string", escape_sql_string, METH_VARARGS, "Escape a string for SQL (doubles quotes and backslashes)"},
     {NULL, NULL, 0, NULL}
 };
 
