@@ -100,11 +100,13 @@ make LDFLAGS="-static"
 
 ### Python support
 
-When Python support is enabled (`--enable-python`), custom anonymization functions can be defined in Python scripts. These scripts have access to a `myanon_utils` module that provides functions to retrieve configuration parameters:
+When Python support is enabled (`--enable-python`), custom anonymization functions can be defined in Python scripts. These scripts have access to a `myanon_utils` module that provides utility functions:
 
 - `get_secret()`: Returns the HMAC secret defined in the configuration file
+- `escape_sql_string(str)`: Escapes a string for safe SQL insertion
+- `unescape_sql_string(str)`: Unescapes a SQL-escaped string
 
-This allows Python anonymization functions to use the same secret as the core anonymization process, ensuring consistency across all anonymized fields.
+This allows Python anonymization functions to handle SQL strings properly and use the same secret as the core anonymization process, ensuring consistency across all anonymized fields.
 
 
 ### Run/Tests
