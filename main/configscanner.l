@@ -90,7 +90,7 @@ regex                   { return REGEX;}
                           COPYSTR
                           return IDENTIFIER;
                         }
-[ \t]
+[ \t\r]
 \n                      { config_line_nb ++; }
 #.*
 .                       {
