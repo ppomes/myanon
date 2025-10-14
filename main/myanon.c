@@ -560,8 +560,24 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
 
 void config_error(const char *s)
 {
-    fprintf(stderr, "Config parsing error at line %d: %s - Unexpected [%s]\n",
-            config_line_nb, s, config_text);
+    fprintf(stderr, "Config parsing error at line %d: %s - Unexpected [",
+            config_line_nb, s);
+
+    for (const char *p = config_text; *p; p++) {
+        unsigned char c = (unsigned char)*p;
+
+        /* Escape common control characters with readable notation */
+        if (c == '\n')      fprintf(stderr, "\\n");
+        else if (c == '\r') fprintf(stderr, "\\r");
+        else if (c == '\t') fprintf(stderr, "\\t");
+        else if (c == '\0') fprintf(stderr, "\\0");
+        else if (c == '\\') fprintf(stderr, "\\\\");
+        // Let everything else pass through
+        else
+            fputc(c, stderr);
+    }
+
+    fprintf(stderr, "]\n");
 }
 
 void dump_error(const char *s)
