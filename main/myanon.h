@@ -158,6 +158,22 @@ typedef struct anon_table_st
     UT_hash_handle hh;      /* uthash handle */
 } anon_table_st;
 
+/* How to quote the output of anonymize_token() */
+typedef enum quote_mode {
+    QUOTE_AS_INPUT,     /* Follow the field's detected quoting */
+    QUOTE_FORCE_TRUE,   /* Always quote output */
+    QUOTE_FORCE_FALSE,  /* Never quote output */
+} quote_mode;
+
+/* Context passed from dumpparser to anonymize_token for key/index types */
+typedef struct anon_context_st
+{
+    char *tablekey;         /* For AM_KEY to write / AM_APPENDKEY,PREPENDKEY to read */
+    size_t tablekey_size;   /* Size of tablekey buffer */
+    int rowindex;           /* For AM_APPENDINDEX / AM_PREPENDINDEX */
+    bool bfirstinsert;      /* For warning messages */
+    const char *tablename;  /* For warning messages */
+} anon_context_st;
 
 /* Structure for anonymization result
    (shared between Bison and C) */
@@ -166,6 +182,7 @@ typedef struct anonymized_res_st
     unsigned char *data;      /* Points to either static_buffer or beyond struct */
     unsigned short len;
     bool is_large;            /* True if data points beyond static_buffer */
+    quote_mode quoting;       /* How to quote the output */
     unsigned char static_buffer[SHA256_DIGEST_SIZE + 1]; /* Buffer for small results */
 } anonymized_res_st;
 
@@ -206,7 +223,8 @@ char *mysubstr(char *dst, const char *src, size_t dst_size, size_t num_chars);
 
 /* function to anonymize a single field 'token' which length is 'tokenlen'
  * anonymizaton config for this field is *config */
-anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *token, int tokenlen);
+anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *token, int tokenlen,
+                                   anon_context_st *ctx);
 
 /* Free anonymization result */
 void anonymized_res_free(anonymized_res_st *res);

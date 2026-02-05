@@ -59,9 +59,6 @@ static char tablekey[ID_SIZE];
 /* Worker on field info */
 static anon_field_st *curfield=NULL;
 
-/* Worker on json infos */
-static anon_json_st *jscur=NULL;
-
 /* True on first extended insert found for each table */
 static bool bfirstinsert;
 
@@ -73,6 +70,11 @@ static void quoted_output_helper (char *s, unsigned short len, bool quoted);
 static void remove_json_backslash(char *dst, const char *src, size_t size);
 
 static void add_json_backslash(char *dst, const char *src, size_t size);
+
+static bool handle_json_anonymization(char *field, int leng, anon_field_st *curfield);
+
+static void handle_separated_values(char *field_text, int field_leng,
+                                    anon_field_st *curfield, anon_context_st *ctx);
 
 
 
@@ -163,16 +165,9 @@ fieldv: singlefield
     | fieldv COMA singlefield
 
 singlefield : VALUE {
-      anonymized_res_st *res_st;
-      int nbcopied;
-      char concatvalue[ID_SIZE];
-      char *newjsonbackslash_str=NULL;
-      char *newvalue;
-      char *unquoted_json_str;
-      char *resultstr;
-      char *unbackslash_json_str;
-
       bool found=false;
+
+      /* Lookup field config (cached after first insert) */
       if (bfirstinsert) {
         for (curfield=currenttableconfig->infos;curfield!=NULL;curfield=curfield->hh.next) {
           if (curfield->pos == currentfieldpos) {
@@ -188,195 +183,45 @@ singlefield : VALUE {
         }
       }
 
-      if (found) {
-        curfield->infos.nbhits++;
-      }
-
-      /* NULL values should remains NULL
-         Skip anonymisation on NULL values */
+      /* NULL values should remain NULL — skip anonymisation on NULL values */
       if ((found) && (strncmp(dump_text,"NULL",dump_leng))) {
-        bool bDone=false;
-        bool bFirstSeperatedValue=true;
-
         curfield->infos.nbhits++;
-        char *field;
-        int leng;
-        bool quoted=false;
 
-        char *noquotetext=NULL;
-
-        /* Separated mode? */
-        if (curfield->infos.separator[0]) {
-          /* Handle quoting if present */
-          if (curfield->quoted) {
-            /* Remove quoting for working text before split */
-            noquotetext = mymalloc(dump_leng+1);
-            remove_quote(noquotetext,dump_text,dump_leng+1);
-            field=noquotetext;
-            quoted=false;
+        if (curfield->infos.type == AM_JSON) {
+          /* JSON anonymization */
+          if (!handle_json_anonymization(dump_text, dump_leng, curfield)) {
+            fwrite(dump_text,dump_leng,1,stdout);
           }
+        } else if (curfield->infos.separator[0]) {
+          /* Separated values */
+          anon_context_st ctx = {
+            .tablekey = tablekey,
+            .tablekey_size = sizeof(tablekey),
+            .rowindex = rowindex,
+            .bfirstinsert = bfirstinsert,
+            .tablename = currenttable
+          };
+          handle_separated_values(dump_text, dump_leng, curfield, &ctx);
         } else {
           /* Single value */
-          field=dump_text;
-          leng=dump_leng;
-          quoted=curfield->quoted;
+          anon_context_st ctx = {
+            .tablekey = tablekey,
+            .tablekey_size = sizeof(tablekey),
+            .rowindex = rowindex,
+            .bfirstinsert = bfirstinsert,
+            .tablename = currenttable
+          };
+          anonymized_res_st *res_st = anonymize_token(curfield->quoted, &curfield->infos,
+                                                      dump_text, dump_leng, &ctx);
+          bool out_quoted;
+          switch (res_st->quoting) {
+            case QUOTE_FORCE_TRUE:  out_quoted = true; break;
+            case QUOTE_FORCE_FALSE: out_quoted = false; break;
+            default:                out_quoted = curfield->quoted; break;
+          }
+          quoted_output_helper((char *)res_st->data, res_st->len, out_quoted);
+          anonymized_res_free(res_st);
         }
-
-        /* We may loop  on separated valued */
-        while(!bDone) {
-          if (!curfield->infos.separator[0]) {
-            bDone=true; /* Single anon */
-          }
-          else
-          {
-            if (bFirstSeperatedValue) {
-              bFirstSeperatedValue=false;
-              /* First extraction on separated values */
-              if (noquotetext != NULL) {
-                 field = strtok(noquotetext,curfield->infos.separator);
-              } else {
-                 field = strtok(dump_text,curfield->infos.separator);
-              }
-              if (field) {
-                leng=strlen(field);
-                fprintf(stdout, "'"); /* Opening quote for field value */
-              }
-              else
-              {
-                fprintf(stderr, "WARNING! Table/field %s: Unable to parse seperated field '%s'at line %d, skip anonimyzation",curfield->key,dump_text,dump_line_nb);
-                fwrite(dump_text,dump_leng,1,stdout);
-                bDone=true;
-                continue;
-              }
-            }
-            else
-            {
-              /* Other extractions on separated values */
-              field = strtok(NULL,curfield->infos.separator);
-
-              if (field) {
-                leng=strlen(field);
-                if (!bFirstSeperatedValue) {
-                  fprintf(stdout, "%s", curfield->infos.separator);
-                }
-                bFirstSeperatedValue=false;
-              }
-              else
-              {
-                bDone=true;
-                fprintf(stdout, "'"); /* Ending quote for field value */
-                continue;
-              }
-            }
-          }
-
-          switch(curfield->infos.type) {
-            case AM_FIXEDNULL:
-              quoted_output_helper((char *)"NULL",4,false);
-              break;
-            case AM_FIXED:
-              quoted_output_helper(curfield->infos.fixedvalue,curfield->infos.fixedvaluelen,quoted);
-              break;
-            case AM_FIXEDUNQUOTED:
-              quoted_output_helper(curfield->infos.fixedvalue,curfield->infos.fixedvaluelen,false);
-              break;
-            case AM_FIXEDQUOTED:
-               quoted_output_helper(curfield->infos.fixedvalue,curfield->infos.fixedvaluelen,true);
-               break;
-             case AM_KEY:
-               remove_quote(tablekey,field,sizeof(tablekey));
-               quoted_output_helper(field,leng,quoted);
-               break;
-             case AM_APPENDKEY:
-               nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",curfield->infos.fixedvalue,tablekey);
-               quoted_output_helper(concatvalue,nbcopied,true);
-               if (0 == tablekey[0] && bfirstinsert) {
-                 fprintf(stderr, "WARNING! Table %s fields order: for appendkey mode, the key must be defined before the field to anomymize\n",currenttable);
-               }
-               break;
-             case AM_PREPENDKEY:
-               nbcopied=snprintf(concatvalue,ID_SIZE,"%s%s",tablekey,curfield->infos.fixedvalue);
-               quoted_output_helper(concatvalue,nbcopied,true);
-               if (0 == tablekey[0] && bfirstinsert) {
-                 fprintf(stderr, "WARNING! Table %s fields order: for prependkey mode, the key must be defined before the field to anomymize\n",currenttable);
-               }
-               break;
-             case AM_APPENDINDEX:
-               nbcopied=snprintf(concatvalue,ID_SIZE,"%s%d",curfield->infos.fixedvalue,rowindex);
-               quoted_output_helper(concatvalue,nbcopied,true);
-               break;
-             case AM_PREPENDINDEX:
-               nbcopied=snprintf(concatvalue,ID_SIZE,"%d%s",rowindex,curfield->infos.fixedvalue);
-               quoted_output_helper(concatvalue,nbcopied,true);
-               break;
-
-             case AM_JSON:
-               unquoted_json_str = mymalloc(leng + 1);
-               remove_quote(unquoted_json_str,field,leng + 1);
-               unbackslash_json_str = mymalloc(leng + 1);
-               remove_json_backslash(unbackslash_json_str,unquoted_json_str,leng + 1);
-
-               DEBUG_MSG("Json before: %s - after: %s\n",field,unbackslash_json_str);
-
-               json_value_st *parsed_json = json_parse_string(unbackslash_json_str);
-               if (parsed_json) {
-                 /* Loop over json rules and replace */
-                 for (jscur = curfield->json; jscur != NULL; jscur = jscur->hh.next) {
-                   if (json_path_has_wildcards(jscur->filter)) {
-                     /* For wildcard paths, use the new anonymize function */
-                     json_anonymize_path(parsed_json, jscur->filter, &jscur->infos, 
-                                       jscur->infos.type == AM_FIXED ? jscur->infos.fixedvalue : NULL);
-                   } else {
-                     /* For non-wildcard paths, use the existing approach */
-                     char newvalue_buf[CONFIG_SIZE];
-                     char *newvalue;
-                     
-                     /* Get current value at path for hashing */
-                     char *current_value = json_get_string_at_path(parsed_json, jscur->filter);
-                     if (!current_value) continue;
-                     
-                     switch (jscur->infos.type) {
-                       case AM_FIXED:
-                         newvalue = jscur->infos.fixedvalue;
-                         break;
-                       default:
-                         res_st = anonymize_token(false, &jscur->infos, current_value, strlen(current_value));
-                         memcpy(newvalue_buf, res_st->data, res_st->len);
-                         newvalue_buf[res_st->len] = '\0';
-                         newvalue = newvalue_buf;
-                         anonymized_res_free(res_st);
-                         break;
-                     }
-                     
-                     json_replace_value_at_path(parsed_json, jscur->filter, newvalue);
-                   }
-                   jscur->infos.nbhits++;
-                 }
-
-                 char *resultstr = json_to_string(parsed_json);
-                 newjsonbackslash_str = mymalloc(strlen(resultstr)*2+1);
-                 add_json_backslash(newjsonbackslash_str,resultstr,strlen(resultstr)*2+1);
-                 quoted_output_helper(newjsonbackslash_str,strlen(newjsonbackslash_str),true);
-
-                 free(resultstr);
-                 json_free_value(parsed_json);
-                 free(unquoted_json_str);
-                 free(unbackslash_json_str);
-                 free(newjsonbackslash_str);
-
-               } else {
-                 fprintf(stderr, "WARNING! Table/field %s: Unable to parse json field '%s' at line %d, skip anonimyzation\n",curfield->key, unbackslash_json_str,dump_line_nb);
-                 fwrite(dump_text,dump_leng,1,stdout);
-               }
-               break;
-
-             default:
-               res_st=anonymize_token(quoted,&curfield->infos,field,leng);
-               quoted_output_helper((char *)res_st->data,res_st->len,quoted);
-               anonymized_res_free(res_st);
-               break;
-            }
-         }
       } else {
         fwrite(dump_text,dump_leng,1,stdout);
       }
@@ -434,6 +279,128 @@ static void add_json_backslash(char *dst, const char *src, size_t size) {
 
       dst[j++] = src[i];
     }
+}
+
+/* Handle JSON field anonymization.
+   Returns true on success, false on parse error (caller outputs original value). */
+static bool handle_json_anonymization(char *field, int leng, anon_field_st *curfield) {
+    char *unquoted_json_str = mymalloc(leng + 1);
+    remove_quote(unquoted_json_str, field, leng + 1);
+    char *unbackslash_json_str = mymalloc(leng + 1);
+    remove_json_backslash(unbackslash_json_str, unquoted_json_str, leng + 1);
+
+    DEBUG_MSG("Json before: %s - after: %s\n", field, unbackslash_json_str);
+
+    json_value_st *parsed_json = json_parse_string(unbackslash_json_str);
+    if (!parsed_json) {
+        fprintf(stderr, "WARNING! Table/field %s: Unable to parse json field '%s' at line %d, skip anonimyzation\n",
+                curfield->key, unbackslash_json_str, dump_line_nb);
+        free(unquoted_json_str);
+        free(unbackslash_json_str);
+        return false;
+    }
+
+    /* Loop over json rules and replace */
+    anon_json_st *jscur;
+    for (jscur = curfield->json; jscur != NULL; jscur = jscur->hh.next) {
+        if (json_path_has_wildcards(jscur->filter)) {
+            json_anonymize_path(parsed_json, jscur->filter, &jscur->infos,
+                              jscur->infos.type == AM_FIXED ? jscur->infos.fixedvalue : NULL);
+        } else {
+            char newvalue_buf[CONFIG_SIZE];
+            char *newvalue;
+
+            char *current_value = json_get_string_at_path(parsed_json, jscur->filter);
+            if (!current_value) continue;
+
+            switch (jscur->infos.type) {
+                case AM_FIXED:
+                    newvalue = jscur->infos.fixedvalue;
+                    break;
+                default:
+                {
+                    anonymized_res_st *res_st = anonymize_token(false, &jscur->infos,
+                                                                current_value, strlen(current_value), NULL);
+                    memcpy(newvalue_buf, res_st->data, res_st->len);
+                    newvalue_buf[res_st->len] = '\0';
+                    newvalue = newvalue_buf;
+                    anonymized_res_free(res_st);
+                    break;
+                }
+            }
+
+            json_replace_value_at_path(parsed_json, jscur->filter, newvalue);
+        }
+        jscur->infos.nbhits++;
+    }
+
+    char *resultstr = json_to_string(parsed_json);
+    char *newjsonbackslash_str = mymalloc(strlen(resultstr) * 2 + 1);
+    add_json_backslash(newjsonbackslash_str, resultstr, strlen(resultstr) * 2 + 1);
+    quoted_output_helper(newjsonbackslash_str, strlen(newjsonbackslash_str), true);
+
+    free(resultstr);
+    json_free_value(parsed_json);
+    free(unquoted_json_str);
+    free(unbackslash_json_str);
+    free(newjsonbackslash_str);
+
+    return true;
+}
+
+/* Handle separated values (fields with a separator character).
+   Splits the field by separator and anonymizes each sub-value. */
+static void handle_separated_values(char *field_text, int field_leng,
+                                    anon_field_st *curfield, anon_context_st *ctx) {
+    char *noquotetext = NULL;
+    char *worktext;
+
+    /* Handle quoting if present */
+    if (curfield->quoted) {
+        noquotetext = mymalloc(field_leng + 1);
+        remove_quote(noquotetext, field_text, field_leng + 1);
+        worktext = noquotetext;
+    } else {
+        worktext = field_text;
+    }
+
+    /* First extraction */
+    char *field = strtok(worktext, curfield->infos.separator);
+    if (!field) {
+        fprintf(stderr, "WARNING! Table/field %s: Unable to parse seperated field '%s'at line %d, skip anonimyzation",
+                curfield->key, field_text, dump_line_nb);
+        fwrite(field_text, field_leng, 1, stdout);
+        if (noquotetext) free(noquotetext);
+        return;
+    }
+
+    fprintf(stdout, "'"); /* Opening quote */
+
+    bool first = true;
+    while (field) {
+        if (!first) {
+            fprintf(stdout, "%s", curfield->infos.separator);
+        }
+        first = false;
+
+        int leng = strlen(field);
+        anonymized_res_st *res_st = anonymize_token(false, &curfield->infos, field, leng, ctx);
+
+        bool out_quoted;
+        switch (res_st->quoting) {
+            case QUOTE_FORCE_TRUE:  out_quoted = true; break;
+            case QUOTE_FORCE_FALSE: out_quoted = false; break;
+            default:                out_quoted = false; break;
+        }
+        quoted_output_helper((char *)res_st->data, res_st->len, out_quoted);
+        anonymized_res_free(res_st);
+
+        field = strtok(NULL, curfield->infos.separator);
+    }
+
+    fprintf(stdout, "'"); /* Closing quote */
+
+    if (noquotetext) free(noquotetext);
 }
 
 

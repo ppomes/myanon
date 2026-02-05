@@ -344,7 +344,8 @@ void anonymized_res_free(anonymized_res_st *res)
     }
 }
 
-anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *token, int tokenlen)
+anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *token, int tokenlen,
+                                   anon_context_st *ctx)
 {
     anonymized_res_st *res_st;
     unsigned long ts_beg, ts_end;
@@ -385,6 +386,152 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
 
     switch (config->type)
     {
+    case AM_FIXEDNULL:
+        res_st = mymalloc(sizeof(anonymized_res_st));
+        res_st->data = res_st->static_buffer;
+        res_st->is_large = false;
+        memcpy(res_st->data, "NULL", 4);
+        res_st->len = 4;
+        res_st->quoting = QUOTE_FORCE_FALSE;
+        break;
+
+    case AM_FIXED:
+    case AM_FIXEDUNQUOTED:
+    case AM_FIXEDQUOTED:
+        {
+            int datalen = config->fixedvaluelen;
+            if (datalen < (int)sizeof(((anonymized_res_st*)0)->static_buffer)) {
+                res_st = mymalloc(sizeof(anonymized_res_st));
+                res_st->data = res_st->static_buffer;
+                res_st->is_large = false;
+            } else {
+                res_st = mymalloc(sizeof(anonymized_res_st) + datalen + 1);
+                res_st->data = (unsigned char *)(res_st + 1);
+                res_st->is_large = true;
+            }
+            memcpy(res_st->data, config->fixedvalue, datalen);
+            res_st->len = datalen;
+            if (config->type == AM_FIXEDQUOTED)
+                res_st->quoting = QUOTE_FORCE_TRUE;
+            else if (config->type == AM_FIXEDUNQUOTED)
+                res_st->quoting = QUOTE_FORCE_FALSE;
+            else
+                res_st->quoting = QUOTE_AS_INPUT;
+        }
+        break;
+
+    case AM_KEY:
+        {
+            if (worktokenlen < (int)sizeof(((anonymized_res_st*)0)->static_buffer)) {
+                res_st = mymalloc(sizeof(anonymized_res_st));
+                res_st->data = res_st->static_buffer;
+                res_st->is_large = false;
+            } else {
+                res_st = mymalloc(sizeof(anonymized_res_st) + worktokenlen + 1);
+                res_st->data = (unsigned char *)(res_st + 1);
+                res_st->is_large = true;
+            }
+            memcpy(res_st->data, worktoken, worktokenlen);
+            res_st->len = worktokenlen;
+            res_st->quoting = QUOTE_AS_INPUT;
+            if (ctx) {
+                mystrcpy(ctx->tablekey, worktoken, ctx->tablekey_size);
+            }
+        }
+        break;
+
+    case AM_APPENDKEY:
+        {
+            char concatvalue[ID_SIZE];
+            int nbcopied = snprintf(concatvalue, ID_SIZE, "%s%s",
+                                    config->fixedvalue,
+                                    ctx ? ctx->tablekey : "");
+            if (nbcopied < (int)sizeof(((anonymized_res_st*)0)->static_buffer)) {
+                res_st = mymalloc(sizeof(anonymized_res_st));
+                res_st->data = res_st->static_buffer;
+                res_st->is_large = false;
+            } else {
+                res_st = mymalloc(sizeof(anonymized_res_st) + nbcopied + 1);
+                res_st->data = (unsigned char *)(res_st + 1);
+                res_st->is_large = true;
+            }
+            memcpy(res_st->data, concatvalue, nbcopied);
+            res_st->len = nbcopied;
+            res_st->quoting = QUOTE_FORCE_TRUE;
+            if (ctx && ctx->tablekey[0] == '\0' && ctx->bfirstinsert) {
+                fprintf(stderr, "WARNING! Table %s fields order: for appendkey mode, the key must be defined before the field to anomymize\n",
+                        ctx->tablename);
+            }
+        }
+        break;
+
+    case AM_PREPENDKEY:
+        {
+            char concatvalue[ID_SIZE];
+            int nbcopied = snprintf(concatvalue, ID_SIZE, "%s%s",
+                                    ctx ? ctx->tablekey : "",
+                                    config->fixedvalue);
+            if (nbcopied < (int)sizeof(((anonymized_res_st*)0)->static_buffer)) {
+                res_st = mymalloc(sizeof(anonymized_res_st));
+                res_st->data = res_st->static_buffer;
+                res_st->is_large = false;
+            } else {
+                res_st = mymalloc(sizeof(anonymized_res_st) + nbcopied + 1);
+                res_st->data = (unsigned char *)(res_st + 1);
+                res_st->is_large = true;
+            }
+            memcpy(res_st->data, concatvalue, nbcopied);
+            res_st->len = nbcopied;
+            res_st->quoting = QUOTE_FORCE_TRUE;
+            if (ctx && ctx->tablekey[0] == '\0' && ctx->bfirstinsert) {
+                fprintf(stderr, "WARNING! Table %s fields order: for prependkey mode, the key must be defined before the field to anomymize\n",
+                        ctx->tablename);
+            }
+        }
+        break;
+
+    case AM_APPENDINDEX:
+        {
+            char concatvalue[ID_SIZE];
+            int nbcopied = snprintf(concatvalue, ID_SIZE, "%s%d",
+                                    config->fixedvalue,
+                                    ctx ? ctx->rowindex : 0);
+            if (nbcopied < (int)sizeof(((anonymized_res_st*)0)->static_buffer)) {
+                res_st = mymalloc(sizeof(anonymized_res_st));
+                res_st->data = res_st->static_buffer;
+                res_st->is_large = false;
+            } else {
+                res_st = mymalloc(sizeof(anonymized_res_st) + nbcopied + 1);
+                res_st->data = (unsigned char *)(res_st + 1);
+                res_st->is_large = true;
+            }
+            memcpy(res_st->data, concatvalue, nbcopied);
+            res_st->len = nbcopied;
+            res_st->quoting = QUOTE_FORCE_TRUE;
+        }
+        break;
+
+    case AM_PREPENDINDEX:
+        {
+            char concatvalue[ID_SIZE];
+            int nbcopied = snprintf(concatvalue, ID_SIZE, "%d%s",
+                                    ctx ? ctx->rowindex : 0,
+                                    config->fixedvalue);
+            if (nbcopied < (int)sizeof(((anonymized_res_st*)0)->static_buffer)) {
+                res_st = mymalloc(sizeof(anonymized_res_st));
+                res_st->data = res_st->static_buffer;
+                res_st->is_large = false;
+            } else {
+                res_st = mymalloc(sizeof(anonymized_res_st) + nbcopied + 1);
+                res_st->data = (unsigned char *)(res_st + 1);
+                res_st->is_large = true;
+            }
+            memcpy(res_st->data, concatvalue, nbcopied);
+            res_st->len = nbcopied;
+            res_st->quoting = QUOTE_FORCE_TRUE;
+        }
+        break;
+
     case AM_TEXTHASH:
         {
             int hash_len = MIN(SHA256_DIGEST_SIZE, config->len);
@@ -393,6 +540,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
             res_st->data = res_st->static_buffer;
             res_st->is_large = false;
             make_readable_hash((unsigned char *)worktoken, worktokenlen, res_st, 'a', 'z');
+            res_st->quoting = QUOTE_AS_INPUT;
         }
         break;
 
@@ -406,6 +554,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
             make_readable_hash((unsigned char *)worktoken, worktokenlen, res_st, 'a', 'z');
             res_st->data[config->len] = '@';
             memcpy(&res_st->data[config->len + 1], config->domain, config->domainlen);
+            res_st->quoting = QUOTE_AS_INPUT;
         }
         break;
 
@@ -417,9 +566,10 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
             res_st->data = res_st->static_buffer;
             res_st->is_large = false;
             make_readable_hash((unsigned char *)worktoken, worktokenlen, res_st, '1', '9');
+            res_st->quoting = QUOTE_AS_INPUT;
         }
         break;
-        
+
     case AM_SUBSTRING:
         {
             res_st = mymalloc(sizeof(anonymized_res_st));
@@ -427,6 +577,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
             res_st->is_large = false;
             mysubstr((char *)res_st->data, worktoken, sizeof(res_st->static_buffer), config->len);
             res_st->len = strlen((char *)res_st->data);
+            res_st->quoting = QUOTE_AS_INPUT;
             DEBUG_MSG("%d, %d, %d, %s\n", worktokenlen, config->len, res_st->len, res_st->data);
         }
         break;
@@ -482,9 +633,10 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
                     }
                     
                     res_st->len = result_len;
+                    res_st->quoting = QUOTE_AS_INPUT;
                     memcpy(res_st->data, result, result_len);
                     res_st->data[result_len] = '\0';
-                    
+
                     Py_DECREF(pResult);
                 }
                 else
@@ -495,6 +647,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
                     res_st->data = res_st->static_buffer;
                     res_st->is_large = false;
                     res_st->len = 0;
+                    res_st->quoting = QUOTE_AS_INPUT;
                     res_st->data[0] = '\0';
                 }
             }
@@ -506,6 +659,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
                 res_st->data = res_st->static_buffer;
                 res_st->is_large = false;
                 res_st->len = 0;
+                res_st->quoting = QUOTE_AS_INPUT;
                 res_st->data[0] = '\0';
             }
             Py_XDECREF(pFunc);
@@ -517,6 +671,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
             res_st->data = res_st->static_buffer;
             res_st->is_large = false;
             res_st->len = 0;
+            res_st->quoting = QUOTE_AS_INPUT;
             res_st->data[0] = '\0';
         }
         break;
@@ -529,6 +684,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
         res_st->data = res_st->static_buffer;
         res_st->is_large = false;
         res_st->len = 0;
+        res_st->quoting = QUOTE_AS_INPUT;
         res_st->data[0] = '\0';
         break;
     }
@@ -539,6 +695,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
         res_st->data = res_st->static_buffer;
         res_st->is_large = false;
         res_st->len = 0;
+        res_st->quoting = QUOTE_AS_INPUT;
         res_st->data[0] = '\0';
     }
 

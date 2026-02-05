@@ -810,7 +810,7 @@ static bool wildcard_anonymize_processor(const char *value, void *context) {
         return true;
     } else {
         /* For anonymization, we need to process each value */
-        anonymized_res_st *res = anonymize_token(false, ctx->infos, (char *)value, strlen(value));
+        anonymized_res_st *res = anonymize_token(false, ctx->infos, (char *)value, strlen(value), NULL);
         anonymized_res_free(res);
         /* The actual replacement happens in the main function */
         return true;
@@ -836,7 +836,7 @@ static bool json_anonymize_at_path(json_value_st *value, const char *path, json_
                 free(value->data.string);
                 value->data.string = mystrdup(ctx->fixed_value);
             } else {
-                anonymized_res_st *res = anonymize_token(false, ctx->infos, value->data.string, strlen(value->data.string));
+                anonymized_res_st *res = anonymize_token(false, ctx->infos, value->data.string, strlen(value->data.string), NULL);
                 char *new_string = mymalloc(res->len + 1);
                 memcpy(new_string, res->data, res->len);
                 new_string[res->len] = '\0';
