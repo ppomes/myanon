@@ -59,6 +59,9 @@ main/configscanner.c
 main/dumpparser.c
 main/dumpparser.h
 main/dumpscanner.c
+main/jsonparser.c
+main/jsonparser.h
+main/jsonscanner.c
 main/myanon
 
 # OSX stupidity
