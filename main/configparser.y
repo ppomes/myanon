@@ -66,7 +66,7 @@ static anon_base_st basework;
 /* Current json anon working list */
 static anon_json_st *jslist=NULL;
 
-/* Small function used to validate json pah */
+/* Small function used to validate json path */
 static bool is_valid_json_path(const char *path);
 
 

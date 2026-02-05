@@ -55,7 +55,7 @@
 #define ID_SIZE ID_LEN + 1
 
 /* Config file value size */
-#define CONFIG_LEN 1026 /* contains up to 1024-char string with begining and ending quote */
+#define CONFIG_LEN 1026 /* contains up to 1024-char string with beginning and ending quote */
 #define CONFIG_SIZE CONFIG_LEN + 1
 
 /* Max length from config file */

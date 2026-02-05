@@ -293,7 +293,7 @@ static bool handle_json_anonymization(char *field, int leng, anon_field_st *curf
 
     json_value_st *parsed_json = json_parse_string(unbackslash_json_str);
     if (!parsed_json) {
-        fprintf(stderr, "WARNING! Table/field %s: Unable to parse json field '%s' at line %d, skip anonimyzation\n",
+        fprintf(stderr, "WARNING! Table/field %s: Unable to parse json field '%s' at line %d, skip anonymization\n",
                 curfield->key, unbackslash_json_str, dump_line_nb);
         free(unquoted_json_str);
         free(unbackslash_json_str);
@@ -367,7 +367,7 @@ static void handle_separated_values(char *field_text, int field_leng,
     /* First extraction */
     char *field = strtok(worktext, curfield->infos.separator);
     if (!field) {
-        fprintf(stderr, "WARNING! Table/field %s: Unable to parse seperated field '%s'at line %d, skip anonimyzation",
+        fprintf(stderr, "WARNING! Table/field %s: Unable to parse separated field '%s' at line %d, skip anonymization",
                 curfield->key, field_text, dump_line_nb);
         fwrite(field_text, field_leng, 1, stdout);
         if (noquotetext) free(noquotetext);

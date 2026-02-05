@@ -168,7 +168,7 @@ void *mymalloc(size_t size)
 
     if (NULL == ptr)
     {
-        fprintf(stderr, "Memory allocatiom failed, exiting\n");
+        fprintf(stderr, "Memory allocation failed, exiting\n");
         exit(EXIT_FAILURE);
     }
 
@@ -459,7 +459,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
             res_st->len = nbcopied;
             res_st->quoting = QUOTE_FORCE_TRUE;
             if (ctx && ctx->tablekey[0] == '\0' && ctx->bfirstinsert) {
-                fprintf(stderr, "WARNING! Table %s fields order: for appendkey mode, the key must be defined before the field to anomymize\n",
+                fprintf(stderr, "WARNING! Table %s fields order: for appendkey mode, the key must be defined before the field to anonymize\n",
                         ctx->tablename);
             }
         }
@@ -484,7 +484,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
             res_st->len = nbcopied;
             res_st->quoting = QUOTE_FORCE_TRUE;
             if (ctx && ctx->tablekey[0] == '\0' && ctx->bfirstinsert) {
-                fprintf(stderr, "WARNING! Table %s fields order: for prependkey mode, the key must be defined before the field to anomymize\n",
+                fprintf(stderr, "WARNING! Table %s fields order: for prependkey mode, the key must be defined before the field to anonymize\n",
                         ctx->tablename);
             }
         }
