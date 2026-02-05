@@ -64,6 +64,19 @@ main/jsonparser.h
 main/jsonscanner.c
 main/myanon
 
+# Debian build artifacts
+debian/.debhelper/
+debian/autoreconf.after
+debian/autoreconf.before
+debian/debhelper-build-stamp
+debian/files
+debian/myanon.debhelper.log
+debian/myanon.substvars
+debian/myanon/
+
+# Autoconf backup
+configure~
+
 # OSX stupidity
 .DS_Store
 # Thumbnails
