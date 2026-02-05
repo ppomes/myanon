@@ -778,7 +778,13 @@ int main(int argc, char **argv)
     ts_beg = get_ts_in_ms();
 
     /* Read command line options */
-    while ((c = getopt(argc, argv, "df:")) != -1)
+    static struct option long_options[] = {
+        {"help",    no_argument,       NULL, 'h'},
+        {"version", no_argument,       NULL, 'v'},
+        {NULL,      0,                 NULL,  0 }
+    };
+
+    while ((c = getopt_long(argc, argv, "df:hv", long_options, NULL)) != -1)
     {
         switch (c)
         {
@@ -788,6 +794,17 @@ int main(int argc, char **argv)
         case 'd':
             debug = true;
             break;
+        case 'v':
+            fprintf(stdout, "%s %s\n", PACKAGE_NAME, PACKAGE_VERSION);
+            exit(EXIT_SUCCESS);
+        case 'h':
+            fprintf(stdout, "Usage: %s -f config_file [-d]\n", argv[0]);
+            fprintf(stdout, "\nOptions:\n");
+            fprintf(stdout, "  -f <file>      Configuration file\n");
+            fprintf(stdout, "  -d             Debug mode\n");
+            fprintf(stdout, "  -v, --version  Show version\n");
+            fprintf(stdout, "  -h, --help     Show this help\n");
+            exit(EXIT_SUCCESS);
         case '?':
             if (optopt == 'f')
             {
@@ -807,6 +824,11 @@ int main(int argc, char **argv)
     if (fvalue == NULL)
     {
         fprintf(stderr, "Usage: %s -f config_file [-d]\n", argv[0]);
+        fprintf(stderr, "\nOptions:\n");
+        fprintf(stderr, "  -f <file>      Configuration file\n");
+        fprintf(stderr, "  -d             Debug mode\n");
+        fprintf(stderr, "  -v, --version  Show version\n");
+        fprintf(stderr, "  -h, --help     Show this help\n");
         goto failure;
     }
 
