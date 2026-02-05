@@ -1,0 +1,236 @@
+.\" Man page for myanon
+.TH MYANON 1 "2026-02-05" "myanon 0.8" "User Commands"
+.SH NAME
+myanon \- MySQL dump anonymizer
+.SH SYNOPSIS
+.B myanon
+.B \-f
+.I config_file
+.RB [ \-d ]
+.SH DESCRIPTION
+.B myanon
+reads a MySQL dump (as produced by
+.BR mysqldump (1))
+from standard input and writes an anonymized version to standard output.
+.PP
+Anonymization is deterministic: it uses HMAC\-SHA256 keyed by a shared secret
+so that identical input values always produce the same anonymized output.
+This preserves referential integrity across foreign keys.
+.PP
+.B myanon
+works on flat (numeric and text) fields and has built\-in support for
+JSON fields.
+Optional Python support allows custom anonymization functions (e.g.\& using
+.IR faker ).
+.SH OPTIONS
+.TP
+.BI \-f " config_file"
+Path to the configuration file (required).
+.TP
+.B \-d
+Enable debug mode.
+Prints debug information to standard error.
+.TP
+.BR \-v ", " \-\-version
+Print version information and exit.
+.TP
+.BR \-h ", " \-\-help
+Print a usage summary and exit.
+.SH CONFIGURATION FILE
+The configuration file is a text file with the following directives.
+.SS Global directives
+.TP
+.BI secret " = '" key \'
+HMAC secret, up to 64 characters.
+.TP
+.BI stats " = '" yes\fR|\fPno \'
+When set to
+.BR yes ,
+statistics are appended as SQL comments at the end of the output.
+.TP
+.BI pypath " = '" path \'
+Directory where the Python script is located.
+May be relative or absolute.
+The environment variable
+.B PYTHONPATH
+can also be used.
+Only available when compiled with Python support
+.RB ( \-\-enable\-python ).
+.TP
+.BI pyscript " = '" name \'
+Name of the Python script (without the
+.I .py
+extension).
+Only available when compiled with Python support.
+.SS Tables block
+The
+.B tables
+block lists tables and their anonymization rules:
+.PP
+.RS 4
+.nf
+tables = {
+   \(gatable\(ga = {
+     \(gafield\(ga = \fIrule\fP
+     ...
+   }
+   \(gaother_table\(ga = truncate
+}
+.fi
+.RE
+.PP
+Table and field names are enclosed in backticks.
+Tables may also be matched using a regular expression with the
+.B regex
+prefix:
+.PP
+.RS 4
+.nf
+regex \(ga(prod|test)players\(ga = {
+   \(galastname\(ga  = texthash 20
+   \(gafirstname\(ga = texthash 20
+}
+.fi
+.RE
+.SH ANONYMIZATION RULES
+The following anonymization rules are available.
+An optional
+.BI "separated by '" c \'
+suffix can be added to most rules to handle multiple values within a
+single field, separated by character
+.IR c .
+.TP
+.BI texthash " N"
+Hash the value into a readable text string of
+.I N
+characters (max 32).
+.TP
+.BI inthash " N"
+Hash the value into a numeric string of
+.I N
+digits (max 32).
+.TP
+.BI emailhash " 'domain' N"
+Hash the value into an email address ending with
+.IR domain ,
+.I N
+characters long in total (max 32).
+.TP
+.BI "fixed '" value \'
+Replace the field with a fixed
+.IR value .
+Quoting follows the field type (text fields are quoted, numeric fields are not).
+Quoting can be overridden with the
+.B quoted
+or
+.B unquoted
+keyword before the value:
+.RS
+.nf
+fixed 'myvalue'
+fixed quoted '5'
+fixed unquoted '0x1234'
+.fi
+.RE
+.TP
+.B fixed null
+Replace the field with SQL NULL.
+.TP
+.B key
+Tag this field as the key column.
+Its anonymized value is remembered and can be referenced by
+.B appendkey
+or
+.B prependkey
+rules in other columns of the same table.
+.TP
+.BI appendkey " 'prefix'"
+Replace the field with
+.I prefix
+followed by the current key value.
+Requires a
+.B key
+column in the same table.
+.TP
+.BI prependkey " 'suffix'"
+Replace the field with the current key value followed by
+.IR suffix .
+Requires a
+.B key
+column in the same table.
+.TP
+.BI appendindex " 'prefix'"
+Replace the field with
+.I prefix
+followed by the current row index (starting at 1).
+.TP
+.BI prependindex " 'suffix'"
+Replace the field with the current row index followed by
+.IR suffix .
+.TP
+.BI substring " N"
+Truncate the field value to the first
+.I N
+characters.
+.TP
+\fBjson { path '\fIjsonpath\fB' = \fIrule\fP ... }
+Apply anonymization rules to specific paths within a JSON field.
+Paths use dot notation for nested objects (e.g.\&
+.IR address.street )
+and brackets for arrays (e.g.\&
+.IR items[] ).
+Each path is followed by one of the rules above.
+Example:
+.RS
+.nf
+\(gadata\(ga = json {
+    path 'email'           = emailhash 'example.com' 20
+    path 'address.street'  = texthash 15
+    path 'items[]'         = texthash 10
+}
+.fi
+.RE
+.TP
+.BI pydef " 'function'"
+Call a custom Python function for anonymization.
+The function must be defined in the script specified by
+.B pyscript
+and accept a single parameter (the value to anonymize).
+Only available when compiled with Python support.
+.TP
+.B truncate
+Remove all INSERT and UPDATE statements for this table (table-level rule).
+.SH EXAMPLES
+Anonymize a dump file:
+.PP
+.RS 4
+.nf
+mysqldump mydb | myanon \-f myanon.conf > mydb_anon.sql
+.fi
+.RE
+.PP
+Create both a real encrypted backup and an anonymized backup from a
+single dump:
+.PP
+.RS 4
+.nf
+mysqldump mydb | \\
+  tee >(myanon \-f myanon.conf | gzip > mydb_anon.sql.gz) | \\
+  gpg \-e \-r me@domain.com > mydb.sql.gz.gpg
+.fi
+.RE
+.SH EXIT STATUS
+.TP
+.B 0
+Successful completion.
+.TP
+.B 1
+An error occurred (configuration error, parse error, etc.).
+.SH SEE ALSO
+.BR mysqldump (1)
+.SH BUGS
+Report bugs to <pierre.pomes@gmail.com> or at
+.UR https://github.com/ppomes/myanon/issues
+.UE .
+.SH AUTHORS
+Pierre Pomes.

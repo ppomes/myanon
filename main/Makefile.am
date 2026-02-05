@@ -5,6 +5,9 @@ CLEANFILES = configparser.h configparser.c configscanner.c dumpparser.h dumppars
 # Main target
 bin_PROGRAMS = myanon
 
+# Man page
+man_MANS = myanon.1
+
 # Sources
 myanon_SOURCES = configparser.y configscanner.l dumpparser.y dumpscanner.l jsonparser.y jsonscanner.l myanon.c
 
