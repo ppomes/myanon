@@ -102,7 +102,7 @@ A self-documented sample config is provided in [`main/myanon-sample.conf`](main/
 - `stats` -- report anonymization statistics as SQL comments at the end of the dump (`yes`/`no`)
 - `pypath` / `pyscript` -- path and module name for Python custom functions
 
-**Tables block**: list tables and columns with their anonymization rules. Table names can be literal or regex-matched.
+**Tables block**: list tables and columns with their anonymization rules. Table names can be literal or regex-matched. Table and column names must be back-quoted (e.g. `` `users` ``), matching the format used by mysqldump output.
 
 ### Simple use case
 
