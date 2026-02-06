@@ -754,9 +754,7 @@ int main(int argc, char **argv)
     char *fvalue = NULL;
     anon_table_st *curtable, *tmptable = NULL;
     anon_field_st *curfield, *tmpfield = NULL;
-#ifdef HAVE_JQ
     anon_json_st *jscur, *jstmp = NULL;
-#endif
     unsigned long ts_beg;
     unsigned long ts_end;
 
@@ -852,18 +850,16 @@ int main(int argc, char **argv)
         {
             for (curfield = curtable->infos; curfield != NULL; curfield = curfield->hh.next)
             {
-#ifdef HAVE_JQ
                 if (curfield->json)
                 {
                     for (jscur = curfield->json; jscur != NULL; jscur = jscur->hh.next)
                     {
                         if (0 == jscur->infos.nbhits)
                         {
-                            fprintf(stderr, "WARNING! Field %s:%s - JQ filter '%s' from config file has not been found in dump. Maybe a config file error?\n", curtable->key, curfield->key, jscur->filter);
+                            fprintf(stderr, "WARNING! Field %s:%s - JSON path '%s' from config file has not been found in dump. Maybe a config file error?\n", curtable->key, curfield->key, jscur->filter);
                         }
                     }
                 }
-#endif
                 if (0 == curfield->infos.nbhits)
                 {
                     fprintf(stderr, "WARNING! Field %s:%s from config file has not been found in dump. Maybe a config file error?\n", curtable->key, curfield->key);
@@ -899,14 +895,11 @@ int main(int argc, char **argv)
     {
         HASH_ITER(hh, curtable->infos, curfield, tmpfield)
         {
-#ifdef HAVE_JQ
             HASH_ITER(hh, curfield->json, jscur, jstmp)
             {
-                jq_teardown(&(jscur->jq_state));
                 HASH_DEL(curfield->json, jscur);
                 free(jscur);
             }
-#endif
             HASH_DEL(curtable->infos, curfield);
             free(curfield);
         }
