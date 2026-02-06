@@ -4,9 +4,9 @@ title-heading: false
 ---
 
 
-Fast, deterministic MySQL dump anonymizer.
+Fast MySQL dump anonymizer.
 
-- **Deterministic**: HMAC-SHA256 hashing means the same input always produces the same output -- foreign key relationships are preserved automatically
+- **Deterministic hashing**: built-in HMAC-SHA256 rules always produce the same output for the same input -- foreign key relationships are preserved automatically
 - **Fast**: written in C, processes dumps as a stream with zero intermediate storage
 - **JSON-aware**: built-in parser for anonymizing fields inside JSON columns
 - **Extensible**: optional Python support for custom anonymization logic (e.g. Faker)
