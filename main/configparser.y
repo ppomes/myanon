@@ -359,6 +359,12 @@ jsonline:
     }
     else
     {
+      anon_json_st *dupj = NULL;
+      HASH_FIND_STR(jslist, jscur->filter, dupj);
+      if (dupj) {
+          fprintf(stderr, "Error: JSON path '%s' in field %s of table %s is defined more than once in config file at line %d\n", jscur->filter, curfield->key, currenttableconfig->key, config_line_nb);
+          exit(EXIT_FAILURE);
+      }
       HASH_ADD_STR(jslist, filter, jscur);
     }
   }
