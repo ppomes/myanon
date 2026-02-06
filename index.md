@@ -39,8 +39,8 @@ INSERT INTO `users` VALUES (2,'Bob Johnson','bob.johnson@corp.com','555-123-4567
 
 **After** (anonymized dump):
 ```sql
-INSERT INTO `users` VALUES (1,'d8f2a1b0','d8f2a1b0e6c3@example.com',NULL);
-INSERT INTO `users` VALUES (2,'c4e9b7d2','c4e9b7d2f1a5@example.com',NULL);
+INSERT INTO `users` VALUES (1,'kducynmt','brtqbnlokywxzafpghej@example.com',NULL);
+INSERT INTO `users` VALUES (2,'wpxldjca','tsmgkrebvufdxihonalq@example.com',NULL);
 ```
 
 Referential integrity is preserved: if `bob.johnson@corp.com` appears in another table with the same `emailhash` rule, it produces the same anonymized value.
