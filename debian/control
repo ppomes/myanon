@@ -3,11 +3,13 @@ Section: admin
 Maintainer: Pierre POMES <pierre.pomes@gmail.com>
 Priority: optional
 Homepage: https://myanon.io
-Build-Depends: debhelper (>= 7), flex (>= 2.6), bison (>= 3), automake (>= 1.15), autoconf (>= 2.69), python3-dev (>=3.8)
+Vcs-Git: https://github.com/ppomes/myanon.git
+Vcs-Browser: https://github.com/ppomes/myanon
+Build-Depends: debhelper-compat (= 13), flex (>= 2.6), bison (>= 3), automake (>= 1.15), autoconf (>= 2.69), python3-dev (>= 3.8)
 
 Package: myanon
 Architecture: any
-Depends: python3-minimal (>=3.8)
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: mysqldump anonymizer
  Myanon is a mysqldump anonymizer, reading a dump from stdin, and producing an 
  anonymized version to stdout

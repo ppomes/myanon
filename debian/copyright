@@ -29,7 +29,7 @@ Files: configure.ac
        main/*
        tests/*
        debian/*
-Copyright: 2021 Pierre POMES <pierre.pomes@gmail.com>
+Copyright: 2021-2026 Pierre POMES <pierre.pomes@gmail.com>
 License: BSD-3-Clause  
 
 License: BSD-1-Clause

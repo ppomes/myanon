@@ -1,8 +1,15 @@
 myanon (0.8-dev) UNRELEASED; urgency=medium
 
-  * Development version
+  * Remove jq dependency: JSON anonymization now handled by built-in parser
+  * Add -v/--version and -h/--help options
+  * Add man page
+  * Support large strings from Python anonymization functions
+  * Add unescape_sql_string and escape_sql_string in python myanon_utils module
+  * Add tab as separator when reading config file
+  * Fix CRLF line endings in config file crashing the parser
+  * Fix escape of control chars in config_error()
 
- -- Pierre Pomes <pierre.pomes@gmail.com>  Fri, 24 May 2025 00:00:00 +0000
+ -- Pierre POMES <pierre.pomes@gmail.com>  Thu, 06 Feb 2026 00:00:00 +0000
 
 myanon (0.7-ppa-noble) noble; urgency=medium
 
@@ -21,7 +28,7 @@ myanon (0.6-ppa-noble) noble; urgency=medium
 
   * Add support for anonymization based on Python.
   * Add parsing of json fields.
-  * Add parsing of values seperated by a single char.
+  * Add parsing of values separated by a single char.
   * Add parsing of "INSERT IGNORE" lines.
 
  -- Pierre POMES <pierre.pomes@gmail.com>  Mon, 15 Jul 2024 16:35:05 -0400
