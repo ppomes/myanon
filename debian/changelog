@@ -8,6 +8,7 @@ myanon (0.8-dev) UNRELEASED; urgency=medium
   * Add tab as separator when reading config file
   * Fix CRLF line endings in config file crashing the parser
   * Fix escape of control chars in config_error()
+  * Detect duplicate table and field definitions in config file
 
  -- Pierre POMES <pierre.pomes@gmail.com>  Thu, 06 Feb 2026 00:00:00 +0000
 

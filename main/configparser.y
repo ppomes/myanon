@@ -165,10 +165,22 @@ singletable:
                    } tableaction
 tableaction: TRUNCATE {
                   currenttableconfig->action=ACTION_TRUNCATE;
+                  anon_table_st *dup = NULL;
+                  HASH_FIND_STR(infos, currenttableconfig->key, dup);
+                  if (dup) {
+                      fprintf(stderr, "Error: table %s is defined more than once in config file at line %d\n", currenttableconfig->key, config_line_nb);
+                      exit(EXIT_FAILURE);
+                  }
                   HASH_ADD_STR(infos, key, currenttableconfig);
                } |
              LEFT fieldlist RIGHT {
                   currenttableconfig->action=ACTION_ANON;
+                  anon_table_st *dup = NULL;
+                  HASH_FIND_STR(infos, currenttableconfig->key, dup);
+                  if (dup) {
+                      fprintf(stderr, "Error: table %s is defined more than once in config file at line %d\n", currenttableconfig->key, config_line_nb);
+                      exit(EXIT_FAILURE);
+                  }
                   HASH_ADD_STR(infos, key, currenttableconfig);
                }
 
@@ -188,6 +200,12 @@ field:
   EQ fieldaction {
     curfield->json=jslist;
     memcpy(&curfield->infos,&basework,sizeof(anon_base_st));
+    anon_field_st *dupf = NULL;
+    HASH_FIND_STR(currenttableconfig->infos, curfield->key, dupf);
+    if (dupf) {
+        fprintf(stderr, "Error: field %s in table %s is defined more than once in config file at line %d\n", curfield->key, currenttableconfig->key, config_line_nb);
+        exit(EXIT_FAILURE);
+    }
     HASH_ADD_STR(currenttableconfig->infos, key, curfield);
   }
 
