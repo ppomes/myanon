@@ -1,4 +1,4 @@
-FROM alpine:latest as builder
+FROM alpine:latest AS builder
 RUN apk update && apk add --no-cache \
     build-base \
     flex \
