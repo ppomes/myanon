@@ -37,4 +37,38 @@ check: all
 	fi; \
 	exit $$rc
 
-.PHONY: check
+valgrind-check: all
+	@if [ "$$(uname)" != "Linux" ]; then echo "valgrind-check is only supported on Linux" >&2; exit 1; fi
+	@which valgrind > /dev/null 2>&1 || { echo "valgrind not found" >&2; exit 1; }
+	@rc=0; \
+	for ut in $(TULIST); do \
+		valgrind --leak-check=full --error-exitcode=99 main/myanon -f tests/$${ut}.conf < tests/$${ut}.sql 2>valgrind_$${ut}.log | diff tests/$${ut}_anon.sql - > /dev/null; \
+		vrc=$$?; \
+		leaks=$$(grep "definitely lost:" valgrind_$${ut}.log | grep -v "0 bytes" || true); \
+		errors=$$(grep "ERROR SUMMARY:" valgrind_$${ut}.log | grep -v "0 errors" || true); \
+		if [ $$vrc -eq 0 ] && [ -z "$$leaks" ] && [ -z "$$errors" ]; then \
+			echo "Test $${ut} OK (valgrind clean)" >&2; \
+		else \
+			echo "Test $${ut} FAILED (see valgrind_$${ut}.log)" >&2; \
+			rc=1; \
+		fi; \
+		rm -f valgrind_$${ut}.log; \
+	done; \
+	if test "x$(PYTHON_SUPPORT)" = "xyes"; then \
+		for ut in $(PYTULIST); do \
+			valgrind --leak-check=full --error-exitcode=99 main/myanon -f tests/$${ut}.conf < tests/$${ut}.sql 2>valgrind_$${ut}.log | diff tests/$${ut}_anon.sql - > /dev/null; \
+			vrc=$$?; \
+			leaks=$$(grep "definitely lost:" valgrind_$${ut}.log | grep -v "0 bytes" || true); \
+			errors=$$(grep "ERROR SUMMARY:" valgrind_$${ut}.log | grep -v "0 errors" || true); \
+			if [ $$vrc -eq 0 ] && [ -z "$$leaks" ] && [ -z "$$errors" ]; then \
+				echo "Test $${ut} OK (valgrind clean)" >&2; \
+			else \
+				echo "Test $${ut} FAILED (see valgrind_$${ut}.log)" >&2; \
+				rc=1; \
+			fi; \
+			rm -f valgrind_$${ut}.log; \
+		done; \
+	fi; \
+	exit $$rc
+
+.PHONY: check valgrind-check
