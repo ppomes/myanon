@@ -1,6 +1,6 @@
 %{
   /*
- * Copyright (C) 2021 Pierre POMES <pierre.pomes@gmail.com>
+ * Copyright (C) 2021-2026 Pierre POMES <pierre.pomes@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

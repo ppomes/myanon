@@ -1,7 +1,7 @@
 Modified BSD License
 ====================
 
-_Copyright © `2021`, Pierre POMES <pierre.pomes@gmail.com>_
+_Copyright © `2021-2026`, Pierre POMES <pierre.pomes@gmail.com>_
 
 _Copyright © `2003-2018`, Troy D. Hanson, http://troydhanson.github.com/uthash/_
 

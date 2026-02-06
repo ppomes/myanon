@@ -1,4 +1,4 @@
-myanon (0.8-dev) UNRELEASED; urgency=medium
+myanon (0.8-ppa-noble) noble; urgency=medium
 
   * Remove jq dependency: JSON anonymization now handled by built-in parser
   * Add -v/--version and -h/--help options
@@ -10,7 +10,7 @@ myanon (0.8-dev) UNRELEASED; urgency=medium
   * Fix escape of control chars in config_error()
   * Detect duplicate table and field definitions in config file
 
- -- Pierre POMES <pierre.pomes@gmail.com>  Thu, 06 Feb 2026 00:00:00 +0000
+ -- Pierre POMES <pierre.pomes@gmail.com>  Fri, 06 Feb 2026 14:02:15 -0500
 
 myanon (0.7-ppa-noble) noble; urgency=medium
 
