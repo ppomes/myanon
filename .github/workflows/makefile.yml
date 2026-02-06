@@ -12,19 +12,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: install dependencies
-      run: sudo apt-get install -y python3-dev libjq-dev jq
-    
+      run: sudo apt-get install -y python3-dev valgrind
+
     - name: autogen
       run: ./autogen.sh
-    
+
     - name: configure
-      run: ./configure --enable-python --enable-jq
-      
+      run: ./configure --enable-python
+
     - name: build
       run: make
-      
+
     - name: Run tests
       run: make check
+
+    - name: Run valgrind checks
+      run: make valgrind-check
