@@ -4,10 +4,11 @@ dist_doc_DATA = README.md
 EXTRA_DIST = $(top_srcdir)/uthash/uthash.h \
              $(top_srcdir)/main/myanon-sample.conf \
              $(top_srcdir)/debian/changelog \
-             $(top_srcdir)/debian/compat \
              $(top_srcdir)/debian/control \
              $(top_srcdir)/debian/copyright \
-             $(top_srcdir)/debian/rules
+             $(top_srcdir)/debian/manpages \
+             $(top_srcdir)/debian/rules \
+             $(top_srcdir)/debian/source/format
 
 TULIST = test1 test1-insert-ignore null-example appendkey prependkey issue29 test_substring appendindex prependindex test_regex complex
 PYTULIST = test_python test_large_python test_large_python_2
