@@ -16,9 +16,12 @@ Description: mysqldump anonymizer
  Myanon is a streaming anonymizer for MySQL dump files. It reads a mysqldump
  from standard input and writes an anonymized version to standard output.
  .
- It supports a wide range of anonymization methods including hashing, fixed
- values, random data generation, regular expressions, and Python-based custom
- functions. It can also anonymize JSON fields embedded in SQL strings.
+ It supports many anonymization methods including deterministic hashing
+ (texthash, emailhash, inthash), fixed value replacement, substrings,
+ key-based and index-based transformations, and custom Python functions.
+ It can also anonymize JSON fields embedded in SQL strings and truncate
+ entire tables. All hashing methods use HMAC-SHA256 with a configurable
+ secret to preserve referential integrity across the dump.
  .
  Myanon is configured via a simple configuration file that maps database
  table columns to anonymization rules.

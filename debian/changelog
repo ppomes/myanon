@@ -1,3 +1,9 @@
+myanon (0.8.1-2) unstable; urgency=medium
+
+  * Fix package description
+
+ -- Pierre POMES <pierre.pomes@gmail.com>  Sun, 09 Feb 2026 10:00:00 -0500
+
 myanon (0.8.1-1) unstable; urgency=medium
 
   * Initial release. (Closes: #1127451)
