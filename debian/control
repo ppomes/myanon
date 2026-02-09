@@ -2,7 +2,7 @@ Source: myanon
 Section: admin
 Maintainer: Pierre POMES <pierre.pomes@gmail.com>
 Priority: optional
-Standards-Version: 4.7.0
+Standards-Version: 4.7.3
 Rules-Requires-Root: no
 Homepage: https://myanon.io
 Vcs-Git: https://github.com/ppomes/myanon.git
