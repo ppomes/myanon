@@ -2,6 +2,8 @@ Source: myanon
 Section: admin
 Maintainer: Pierre POMES <pierre.pomes@gmail.com>
 Priority: optional
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
 Homepage: https://myanon.io
 Vcs-Git: https://github.com/ppomes/myanon.git
 Vcs-Browser: https://github.com/ppomes/myanon
@@ -11,5 +13,12 @@ Package: myanon
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: mysqldump anonymizer
- Myanon is a mysqldump anonymizer, reading a dump from stdin, and producing an 
- anonymized version to stdout
+ Myanon is a streaming anonymizer for MySQL dump files. It reads a mysqldump
+ from standard input and writes an anonymized version to standard output.
+ .
+ It supports a wide range of anonymization methods including hashing, fixed
+ values, random data generation, regular expressions, and Python-based custom
+ functions. It can also anonymize JSON fields embedded in SQL strings.
+ .
+ Myanon is configured via a simple configuration file that maps database
+ table columns to anonymization rules.

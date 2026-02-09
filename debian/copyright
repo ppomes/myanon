@@ -1,6 +1,11 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Myanon
+Upstream-Contact: Pierre POMES <pierre.pomes@gmail.com>
 Source: https://myanon.io/
+
+Files: *
+Copyright: 2021-2026 Pierre POMES <pierre.pomes@gmail.com>
+License: BSD-3-Clause
 
 Files: uthash/uthash.h
 Copyright: 2003-2018 Troy D. Hanson <tdh@tkhanson.net>
@@ -21,16 +26,6 @@ Files: m4/ax_prog_bison_version.m4
        m4/ax_prog_flex_version.m4
 Copyright: 2015 Jonathan Rajotte-Julien <jonathan.rajotte-julien@efficios.com>
 License: FSFAP
-
-Files: configure.ac
-       Makefile.am
-       README.md
-       hmac/Makefile.am
-       main/*
-       tests/*
-       debian/*
-Copyright: 2021-2026 Pierre POMES <pierre.pomes@gmail.com>
-License: BSD-3-Clause  
 
 License: BSD-1-Clause
  Redistribution and use in source and binary forms, with or without

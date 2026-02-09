@@ -1,6 +1,6 @@
 # Generated sources
 BUILT_SOURCES = configparser.h dumpparser.h jsonparser.h
-CLEANFILES = configparser.h configparser.c configscanner.c dumpparser.h dumpparser.c dumpscanner.c jsonparser.h jsonparser.c jsonscanner.c
+MAINTAINERCLEANFILES = configparser.h configparser.c configscanner.c dumpparser.h dumpparser.c dumpscanner.c jsonparser.h jsonparser.c jsonscanner.c
 
 # Main target
 bin_PROGRAMS = myanon

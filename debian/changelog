@@ -1,3 +1,9 @@
+myanon (0.8.1-1) unstable; urgency=medium
+
+  * Initial release. (Closes: #1127451)
+
+ -- Pierre POMES <pierre.pomes@gmail.com>  Sun, 08 Feb 2026 12:00:00 -0500
+
 myanon (0.8-ppa-noble) noble; urgency=medium
 
   * Remove jq dependency: JSON anonymization now handled by built-in parser
