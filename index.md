@@ -57,7 +57,7 @@ Referential integrity is preserved: if `bob.johnson@corp.com` appears in another
 | `key` | Mark a column as the key for `appendkey`/`prependkey` references |
 | `appendkey 'prefix'` / `prependkey 'suffix'` | Deterministic value tied to the row's key column |
 | `appendindex 'prefix'` / `prependindex 'suffix'` | Value tied to the row's position (1-based) |
-| `substring N` | Anonymize only the first N characters of the field |
+| `substring N` | Truncate the field value to the first N characters |
 | `json { path 'x.y' = ... }` | Anonymize specific paths inside JSON columns (supports nested objects and arrays with `[]`) |
 | `truncate` | Drop all data from a table (removes INSERT/UPDATE statements) |
 | `pydef 'func'` | Call a custom Python function |
