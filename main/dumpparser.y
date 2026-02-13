@@ -268,12 +268,15 @@ static void add_json_backslash(char *dst, const char *src, size_t size) {
     size_t len = strlen(src);
 
     for (size_t i = 0, j = 0; i < len && j < size - 1; i++) {
-     if (src[i] == '\"' ||
-         src[i] == '\'' ||
-         src[i] == '\\' ||
-         src[i] == '\b' ||
-         src[i] == '\r' ||
-         src[i] == '\t') {
+      bool needs_escape = (src[i] == '\"' ||
+                           src[i] == '\'' ||
+                           src[i] == '\\' ||
+                           src[i] == '\b' ||
+                           src[i] == '\r' ||
+                           src[i] == '\t');
+      if (needs_escape) {
+        if (j + 2 > size - 1)
+          break;
         dst[j++] = '\\';
       }
 
