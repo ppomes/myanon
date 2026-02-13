@@ -555,6 +555,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
             make_readable_hash((unsigned char *)worktoken, worktokenlen, res_st, 'a', 'z');
             res_st->data[config->len] = '@';
             memcpy(&res_st->data[config->len + 1], config->domain, config->domainlen);
+            res_st->data[total_len] = '\0';
             res_st->quoting = QUOTE_AS_INPUT;
         }
         break;
