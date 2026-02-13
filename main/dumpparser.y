@@ -355,16 +355,17 @@ static bool handle_json_anonymization(char *field, int leng, anon_field_st *curf
    Splits the field by separator and anonymizes each sub-value. */
 static void handle_separated_values(char *field_text, int field_leng,
                                     anon_field_st *curfield, anon_context_st *ctx) {
-    char *noquotetext = NULL;
     char *worktext;
 
     /* Handle quoting if present */
     if (curfield->quoted) {
-        noquotetext = mymalloc(field_leng + 1);
-        remove_quote(noquotetext, field_text, field_leng + 1);
-        worktext = noquotetext;
+        worktext = mymalloc(field_leng + 1);
+        remove_quote(worktext, field_text, field_leng + 1);
     } else {
-        worktext = field_text;
+        /* strtok modifies its input, so always work on a copy */
+        worktext = mymalloc(field_leng + 1);
+        memcpy(worktext, field_text, field_leng);
+        worktext[field_leng] = '\0';
     }
 
     /* First extraction */
@@ -373,7 +374,7 @@ static void handle_separated_values(char *field_text, int field_leng,
         fprintf(stderr, "WARNING! Table/field %s: Unable to parse separated field '%s' at line %d, skip anonymization",
                 curfield->key, field_text, dump_line_nb);
         fwrite(field_text, field_leng, 1, stdout);
-        if (noquotetext) free(noquotetext);
+        free(worktext);
         return;
     }
 
@@ -403,7 +404,7 @@ static void handle_separated_values(char *field_text, int field_leng,
 
     fprintf(stdout, "'"); /* Closing quote */
 
-    if (noquotetext) free(noquotetext);
+    free(worktext);
 }
 
 
