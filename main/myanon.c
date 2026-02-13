@@ -617,6 +617,19 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
                 if (pResult != NULL)
                 {
                     const char *result = PyUnicode_AsUTF8(pResult);
+                    if (result == NULL)
+                    {
+                        PyErr_Print();
+                        Py_DECREF(pResult);
+                        /* Return empty result on encoding error */
+                        res_st = mymalloc(sizeof(anonymized_res_st));
+                        res_st->data = res_st->static_buffer;
+                        res_st->is_large = false;
+                        res_st->len = 0;
+                        res_st->quoting = QUOTE_AS_INPUT;
+                        res_st->data[0] = '\0';
+                        break;
+                    }
                     int result_len = strlen(result);
                     
                     /* Allocate based on result size */
