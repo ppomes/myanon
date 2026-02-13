@@ -226,6 +226,7 @@ char *mysubstr(char *dest, const char *src, size_t dst_size, size_t num_chars)
     size_t srccount = 0;
     size_t dstcount = 0;
     size_t copied_chars = 0;
+    size_t src_len = strlen(src);
     memset(dest, 0, dst_size);
 
     while (src[srccount] != '\0' && dstcount < dst_size - 1 && copied_chars < num_chars)
@@ -246,7 +247,7 @@ char *mysubstr(char *dest, const char *src, size_t dst_size, size_t num_chars)
         else
         {
             size_t char_length = utf8_char_length((unsigned char)src[srccount]);
-            if (char_length == 0 || srccount + char_length > strlen(src) ||
+            if (char_length == 0 || srccount + char_length > src_len ||
                 !is_valid_utf8_sequence(&src[srccount], char_length))
             {
                 break; /* Invalid UTF-8 sequence or end of string */
