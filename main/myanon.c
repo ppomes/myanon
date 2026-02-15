@@ -345,6 +345,43 @@ void anonymized_res_free(anonymized_res_st *res)
     }
 }
 
+/* Allocate an anonymized_res_st with MySQL-escaped content.
+   Escapes single quotes and backslashes for safe SQL output. */
+static anonymized_res_st *mysql_escaped_result(const char *src, int srclen)
+{
+    anonymized_res_st *res_st;
+
+    /* Count characters needing escaping */
+    int extra = 0;
+    for (int i = 0; i < srclen; i++) {
+        if (src[i] == '\'' || src[i] == '\\')
+            extra++;
+    }
+
+    int totallen = srclen + extra;
+
+    if (totallen < (int)sizeof(((anonymized_res_st*)0)->static_buffer)) {
+        res_st = mymalloc(sizeof(anonymized_res_st));
+        res_st->data = res_st->static_buffer;
+        res_st->is_large = false;
+    } else {
+        res_st = mymalloc(sizeof(anonymized_res_st) + totallen + 1);
+        res_st->data = (unsigned char *)(res_st + 1);
+        res_st->is_large = true;
+    }
+
+    /* Copy with escaping (doubling style: ' -> '' and \ -> \\) */
+    for (int i = 0, j = 0; i < srclen; i++) {
+        if (src[i] == '\'' || src[i] == '\\') {
+            res_st->data[j++] = (unsigned char)src[i];
+        }
+        res_st->data[j++] = (unsigned char)src[i];
+    }
+    res_st->len = totallen;
+
+    return res_st;
+}
+
 anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *token, int tokenlen,
                                    anon_context_st *ctx)
 {
@@ -400,18 +437,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
     case AM_FIXEDUNQUOTED:
     case AM_FIXEDQUOTED:
         {
-            int datalen = config->fixedvaluelen;
-            if (datalen < (int)sizeof(((anonymized_res_st*)0)->static_buffer)) {
-                res_st = mymalloc(sizeof(anonymized_res_st));
-                res_st->data = res_st->static_buffer;
-                res_st->is_large = false;
-            } else {
-                res_st = mymalloc(sizeof(anonymized_res_st) + datalen + 1);
-                res_st->data = (unsigned char *)(res_st + 1);
-                res_st->is_large = true;
-            }
-            memcpy(res_st->data, config->fixedvalue, datalen);
-            res_st->len = datalen;
+            res_st = mysql_escaped_result(config->fixedvalue, config->fixedvaluelen);
             if (config->type == AM_FIXEDQUOTED)
                 res_st->quoting = QUOTE_FORCE_TRUE;
             else if (config->type == AM_FIXEDUNQUOTED)
@@ -633,7 +659,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
                         break;
                     }
                     int result_len = strlen(result);
-                    
+
                     /* Allocate based on result size */
                     if (result_len < sizeof(((anonymized_res_st*)0)->static_buffer)) {
                         /* Use static buffer */
@@ -646,7 +672,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
                         res_st->data = (unsigned char*)(res_st + 1); /* Point after struct */
                         res_st->is_large = true;
                     }
-                    
+
                     res_st->len = result_len;
                     res_st->quoting = QUOTE_AS_INPUT;
                     memcpy(res_st->data, result, result_len);
