@@ -99,7 +99,7 @@ static void set_working_table() {
 %option full
 %option pointer
 
-%x ST_TABLE ST_TRUNCATE ST_VALUES
+%x ST_TABLE ST_TRUNCATE ST_TRUNCATE_SKIP ST_VALUES
 
 %%
 ^CREATE\ TABLE\ `[^`]+`           { DUPOUT
@@ -149,9 +149,13 @@ static void set_working_table() {
                                         }
                                       }
 
-<ST_TRUNCATE>^(INSERT|REPLACE).*  { /* In truncate mode, skip statements */}
+<ST_TRUNCATE>^(INSERT|REPLACE)  { BEGIN(ST_TRUNCATE_SKIP); }
 <ST_TRUNCATE>\n                   { DUPOUT dump_line_nb++; }
 <ST_TRUNCATE>.                    { DUPOUT }
+
+<ST_TRUNCATE_SKIP>;               { BEGIN(ST_TRUNCATE); }
+<ST_TRUNCATE_SKIP>\n              { dump_line_nb++; }
+<ST_TRUNCATE_SKIP>.               { /* consume silently */ }
 
 
 <ST_TABLE>`[^`]+`                       { DUPOUT return IDENTIFIER ;}
