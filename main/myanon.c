@@ -751,8 +751,6 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
         free(worktoken);
     }
 
-    config->nbhits++;
-
     return res_st;
 }
 
