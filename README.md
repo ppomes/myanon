@@ -3,7 +3,7 @@
 Fast MySQL dump anonymizer.
 
 - **Deterministic hashing**: built-in HMAC-SHA256 rules always produce the same output for the same input -- foreign key relationships are preserved automatically
-- **Fast**: written in C, processes dumps as a stream with zero intermediate storage
+- **Fast**: processes dumps as a stream with zero intermediate storage
 - **JSON-aware**: built-in parser for anonymizing fields inside JSON columns
 - **Extensible**: optional Python support for custom anonymization logic (e.g. Faker)
 
@@ -75,7 +75,7 @@ docker run -it --rm -v ${PWD}:/app myanon sh -c '/bin/myanon -f /app/myanon.conf
 
 See [Docker details](#docker-build--run) below for Apple Silicon notes and more.
 
-### Building from source
+### Building from source (C)
 
 Requirements: autoconf, automake, make, a C compiler (gcc or clang), flex, bison. Optional: python3-dev.
 
@@ -88,6 +88,17 @@ make install
 ```
 
 See [full build instructions](#installation-from-sources) below for per-distro packages and more options.
+
+### Building from source (Rust)
+
+An alternative Rust implementation is available in the `rust/` directory. It produces identical output to the C version and requires only a Rust toolchain (no flex/bison/autotools).
+
+```
+cd rust
+cargo build --release
+```
+
+The binary is at `rust/target/release/myanon`. Usage is the same as the C version. Python support (`pydef`) is not yet available in the Rust build.
 
 ## Configuration
 
