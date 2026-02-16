@@ -1,27 +1,83 @@
 use std::env;
 use std::fs;
+use std::io::{self, BufWriter, Write};
 use std::process;
+use std::time::Instant;
 
-use myanon::config::{AnonType, Parser, TableAction};
+use myanon::config::Parser;
+use myanon::dump::DumpProcessor;
+
+const VERSION: &str = "0.8.1";
+const PACKAGE_NAME: &str = "myanon";
+const STDOUT_BUFFER_SIZE: usize = 1048576;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
-        eprintln!("Usage: {} <config-file>", args[0]);
-        process::exit(1);
+
+    let mut config_file: Option<String> = None;
+    let mut debug = false;
+
+    let mut i = 1;
+    while i < args.len() {
+        match args[i].as_str() {
+            "-f" => {
+                i += 1;
+                if i >= args.len() {
+                    eprintln!("Option -f requires a config file as argument.");
+                    process::exit(1);
+                }
+                config_file = Some(args[i].clone());
+            }
+            "-d" => {
+                debug = true;
+            }
+            "-v" | "--version" => {
+                println!("{} {}", PACKAGE_NAME, VERSION);
+                process::exit(0);
+            }
+            "-h" | "--help" => {
+                println!("Usage: {} -f config_file [-d]", args[0]);
+                println!("\nOptions:");
+                println!("  -f <file>      Configuration file");
+                println!("  -d             Debug mode");
+                println!("  -v, --version  Show version");
+                println!("  -h, --help     Show this help");
+                process::exit(0);
+            }
+            _ => {
+                eprintln!("Unknown option: {}", args[i]);
+                process::exit(1);
+            }
+        }
+        i += 1;
     }
 
-    let filename = &args[1];
-    let input = match fs::read_to_string(filename) {
+    let config_file = match config_file {
+        Some(f) => f,
+        None => {
+            eprintln!("Usage: {} -f config_file [-d]", args[0]);
+            eprintln!("\nOptions:");
+            eprintln!("  -f <file>      Configuration file");
+            eprintln!("  -d             Debug mode");
+            eprintln!("  -v, --version  Show version");
+            eprintln!("  -h, --help     Show this help");
+            process::exit(1);
+        }
+    };
+
+    let ts_beg = Instant::now();
+
+    // Load config
+    let input = match fs::read_to_string(&config_file) {
         Ok(s) => s,
-        Err(e) => {
-            eprintln!("Error reading {}: {}", filename, e);
+        Err(_) => {
+            eprintln!("Unable to load config {}", config_file);
             process::exit(1);
         }
     };
 
     let mut parser = Parser::new(&input);
-    let config = match parser.parse() {
+    let mut config = match parser.parse() {
         Ok(c) => c,
         Err(e) => {
             eprintln!("{}", e);
@@ -29,79 +85,67 @@ fn main() {
         }
     };
 
-    // Print parsed config summary
-    if !config.secret.is_empty() {
-        println!("Secret: (set, {} chars)", config.secret.len());
-    }
-    println!("Stats: {}", if config.stats { "yes" } else { "no" });
-    if !config.pypath.is_empty() {
-        println!("PyPath: {}", config.pypath);
-    }
-    if !config.pyscript.is_empty() {
-        println!("PyScript: {}", config.pyscript);
-    }
-    println!("Tables: {}", config.tables.len());
+    // Process dump
+    let stdin = io::stdin();
+    let stdout = io::stdout();
 
+    let result = if debug {
+        let mut writer = stdout.lock();
+        let mut processor = DumpProcessor::new(&mut config);
+        processor.process(stdin.lock(), &mut writer)
+    } else {
+        let mut writer = BufWriter::with_capacity(STDOUT_BUFFER_SIZE, stdout.lock());
+        let mut processor = DumpProcessor::new(&mut config);
+        let result = processor.process(stdin.lock(), &mut writer);
+        writer.flush().ok();
+        result
+    };
+
+    if let Err(e) = result {
+        let stdout = io::stdout();
+        let _ = stdout.lock().flush();
+        eprintln!("\nDump parsing error: {}", e);
+        process::exit(1);
+    }
+
+    // Report warnings for fields not found
     for table in &config.tables {
-        let regex_tag = if table.regex.is_some() { " (regex)" } else { "" };
-        match table.action {
-            TableAction::Truncate => {
-                println!("  {} = truncate{}", table.name, regex_tag);
-            }
-            TableAction::Anon => {
-                println!("  {}{} = {{ {} fields }}", table.name, regex_tag, table.fields.len());
-                for field in &table.fields {
-                    let type_desc = match &field.infos.anon_type {
-                        AnonType::FixedNull => "fixed null".to_string(),
-                        AnonType::Fixed => format!("fixed '{}'", field.infos.fixed_value),
-                        AnonType::FixedQuoted => {
-                            format!("fixed quoted '{}'", field.infos.fixed_value)
-                        }
-                        AnonType::FixedUnquoted => {
-                            format!("fixed unquoted '{}'", field.infos.fixed_value)
-                        }
-                        AnonType::TextHash => format!("texthash {}", field.infos.len),
-                        AnonType::EmailHash => {
-                            format!("emailhash '{}' {}", field.infos.domain, field.infos.len)
-                        }
-                        AnonType::IntHash => format!("inthash {}", field.infos.len),
-                        AnonType::Key => "key".to_string(),
-                        AnonType::AppendKey => {
-                            format!("appendkey '{}'", field.infos.fixed_value)
-                        }
-                        AnonType::PrependKey => {
-                            format!("prependkey '{}'", field.infos.fixed_value)
-                        }
-                        AnonType::AppendIndex => {
-                            format!("appendindex '{}'", field.infos.fixed_value)
-                        }
-                        AnonType::PrependIndex => {
-                            format!("prependindex '{}'", field.infos.fixed_value)
-                        }
-                        AnonType::Substring => format!("substring {}", field.infos.len),
-                        AnonType::Json => format!("json {{ {} paths }}", field.json.len()),
-                        AnonType::Py => format!("pydef '{}'", field.infos.pydef),
-                    };
-                    let sep = match field.infos.separator {
-                        Some(c) => format!(" separated by '{}'", c),
-                        None => String::new(),
-                    };
-                    println!("    {} = {}{}", field.name, type_desc, sep);
-                    for j in &field.json {
-                        let jtype = match &j.infos.anon_type {
-                            AnonType::Fixed => format!("fixed '{}'", j.infos.fixed_value),
-                            AnonType::TextHash => format!("texthash {}", j.infos.len),
-                            AnonType::EmailHash => {
-                                format!("emailhash '{}' {}", j.infos.domain, j.infos.len)
-                            }
-                            AnonType::IntHash => format!("inthash {}", j.infos.len),
-                            AnonType::Py => format!("pydef '{}'", j.infos.pydef),
-                            other => format!("{:?}", other),
-                        };
-                        println!("      path '{}' = {}", j.filter, jtype);
-                    }
+        for field in &table.fields {
+            for json_rule in &field.json {
+                if json_rule.infos.nbhits == 0 {
+                    eprintln!(
+                        "WARNING! Field {}:{} - JSON path '{}' from config file has not been found in dump. Maybe a config file error?",
+                        table.name, field.name, json_rule.filter
+                    );
                 }
             }
+            if field.infos.nbhits == 0 {
+                eprintln!(
+                    "WARNING! Field {}:{} from config file has not been found in dump. Maybe a config file error?",
+                    table.name, field.name
+                );
+            }
         }
+    }
+
+    // Stats
+    if config.stats {
+        let ts_end = ts_beg.elapsed().as_millis() as u64;
+        let stdout = io::stdout();
+        let mut out = stdout.lock();
+        let _ = writeln!(out, "-- Total execution time: {} ms", ts_end);
+        let _ = writeln!(out, "-- Time spent for anonymization: 0 ms");
+        let mut total_anon: u64 = 0;
+        for table in &config.tables {
+            for field in &table.fields {
+                let _ = writeln!(
+                    out,
+                    "-- Field {}:{} anonymized {} time(s)",
+                    table.name, field.name, field.infos.nbhits
+                );
+                total_anon += field.infos.nbhits;
+            }
+        }
+        let _ = writeln!(out, "-- TOTAL Number of anonymization(s): {}", total_anon);
     }
 }

@@ -5,3 +5,5 @@ edition = "2021"
 
 [dependencies]
 regex = "1"
+hmac = "0.12"
+sha2 = "0.10"
