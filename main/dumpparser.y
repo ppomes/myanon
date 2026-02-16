@@ -115,16 +115,10 @@ fields: field
       | fields field;
 
 field: IDENTIFIER {
-    anon_field_st *tmp;
     bool found = false;
 
-    HASH_ITER(hh, currenttableconfig->infos, curfield, tmp) {
-      DEBUG_MSG("Comparing field '%s' with config key '%s'\n", dump_text, curfield->key);
-      if (strncmp(dump_text,curfield->key,ID_LEN)==0) {
-        found=true;
-        break;
-      }
-    }
+    HASH_FIND_STR(currenttableconfig->infos, dump_text, curfield);
+    found = (curfield != NULL);
 
     if (found) {
       curfield->pos = currentfieldpos;
@@ -156,7 +150,7 @@ valueline: value
 value: LEFTPAR {
                  currentfieldpos =0;
                  rowindex++;
-                 memset(tablekey,0,sizeof(tablekey));
+                 tablekey[0] = '\0';
                }  fieldv RIGHTPAR {
                                     bfirstinsert=false;
                                   }
@@ -242,10 +236,10 @@ static void quoted_output_helper (char *s, unsigned short len, bool quoted)
 }
 
 static void remove_json_backslash(char *dst, const char *src, size_t size) {
-    memset(dst, 0, size);
     size_t len = strlen(src);
+    size_t j = 0;
     short backslash = 0;
-    for (size_t i = 0, j = 0; i < len; i++) {
+    for (size_t i = 0; i < len; i++) {
         if (src[i] != '\\') {
           if (backslash == 1 ) {
              backslash = 0;
@@ -261,13 +255,14 @@ static void remove_json_backslash(char *dst, const char *src, size_t size) {
           }
         }
     }
+    dst[j] = '\0';
 }
 
 static void add_json_backslash(char *dst, const char *src, size_t size) {
-    memset(dst, 0, size);
     size_t len = strlen(src);
+    size_t j = 0;
 
-    for (size_t i = 0, j = 0; i < len && j < size - 1; i++) {
+    for (size_t i = 0; i < len && j < size - 1; i++) {
       bool needs_escape = (src[i] == '\"' ||
                            src[i] == '\'' ||
                            src[i] == '\\' ||
@@ -282,6 +277,7 @@ static void add_json_backslash(char *dst, const char *src, size_t size) {
 
       dst[j++] = src[i];
     }
+    dst[j] = '\0';
 }
 
 /* Handle JSON field anonymization.
@@ -291,6 +287,7 @@ static bool handle_json_anonymization(char *field, int leng, anon_field_st *curf
     remove_quote(unquoted_json_str, field, leng + 1);
     char *unbackslash_json_str = mymalloc(leng + 1);
     remove_json_backslash(unbackslash_json_str, unquoted_json_str, leng + 1);
+    free(unquoted_json_str);
 
     DEBUG_MSG("Json before: %s - after: %s\n", field, unbackslash_json_str);
 
@@ -338,13 +335,13 @@ static bool handle_json_anonymization(char *field, int leng, anon_field_st *curf
     }
 
     char *resultstr = json_to_string(parsed_json);
-    char *newjsonbackslash_str = mymalloc(strlen(resultstr) * 2 + 1);
-    add_json_backslash(newjsonbackslash_str, resultstr, strlen(resultstr) * 2 + 1);
+    size_t resultstr_len = strlen(resultstr);
+    char *newjsonbackslash_str = mymalloc(resultstr_len * 2 + 1);
+    add_json_backslash(newjsonbackslash_str, resultstr, resultstr_len * 2 + 1);
     quoted_output_helper(newjsonbackslash_str, strlen(newjsonbackslash_str), true);
 
     free(resultstr);
     json_free_value(parsed_json);
-    free(unquoted_json_str);
     free(unbackslash_json_str);
     free(newjsonbackslash_str);
 

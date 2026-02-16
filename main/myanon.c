@@ -51,6 +51,9 @@
 #define STDOUT_BUFFER_SIZE 1048576
 static char buffer[STDOUT_BUFFER_SIZE];
 
+/* Reusable result struct for small anonymization results (avoids malloc/free per call) */
+static anonymized_res_st reusable_res;
+
 #ifdef HAVE_PYTHON
 static bool pyinitialized = false;
 static PyObject *pModule;
@@ -177,8 +180,8 @@ void *mymalloc(size_t size)
 
 char *mystrcpy(char *dest, const char *src, size_t size)
 {
-    memset(dest, 0, size);
     strncpy(dest, src, size - 1);
+    dest[size - 1] = '\0';
     return dest;
 }
 
@@ -227,7 +230,6 @@ char *mysubstr(char *dest, const char *src, size_t dst_size, size_t num_chars)
     size_t dstcount = 0;
     size_t copied_chars = 0;
     size_t src_len = strlen(src);
-    memset(dest, 0, dst_size);
 
     while (src[srccount] != '\0' && dstcount < dst_size - 1 && copied_chars < num_chars)
     {
@@ -283,8 +285,6 @@ void remove_quote(char *dst, char *src, size_t size)
     char *pdst = dst;
     size_t src_len = strlen(src);
 
-    memset(dst, 0, size);
-
     /* Check for leading quote */
     if (src_len > 0 && psrc[0] == '\'')
     {
@@ -304,6 +304,7 @@ void remove_quote(char *dst, char *src, size_t size)
         *pdst++ = *psrc++;
         src_len--;
     }
+    *pdst = '\0';
 }
 
 bool config_load(char *filename)
@@ -340,7 +341,7 @@ void make_readable_hash(const unsigned char *token, unsigned int tokenlen,
 
 void anonymized_res_free(anonymized_res_st *res)
 {
-    if (res) {
+    if (res && res != &reusable_res) {
         free(res);
     }
 }
@@ -425,7 +426,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
     switch (config->type)
     {
     case AM_FIXEDNULL:
-        res_st = mymalloc(sizeof(anonymized_res_st));
+        res_st = &reusable_res;
         res_st->data = res_st->static_buffer;
         res_st->is_large = false;
         memcpy(res_st->data, "NULL", 4);
@@ -450,7 +451,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
     case AM_KEY:
         {
             if (worktokenlen < (int)sizeof(((anonymized_res_st*)0)->static_buffer)) {
-                res_st = mymalloc(sizeof(anonymized_res_st));
+                res_st = &reusable_res;
                 res_st->data = res_st->static_buffer;
                 res_st->is_large = false;
             } else {
@@ -562,7 +563,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
     case AM_TEXTHASH:
         {
             int hash_len = MIN(SHA256_DIGEST_SIZE, config->len);
-            res_st = mymalloc(sizeof(anonymized_res_st));
+            res_st = &reusable_res;
             res_st->len = hash_len;
             res_st->data = res_st->static_buffer;
             res_st->is_large = false;
@@ -574,7 +575,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
     case AM_EMAILHASH:
         {
             int total_len = config->len + 1 + config->domainlen; // anon part + '@' + domain
-            res_st = mymalloc(sizeof(anonymized_res_st));
+            res_st = &reusable_res;
             res_st->len = total_len;
             res_st->data = res_st->static_buffer;
             res_st->is_large = false;
@@ -589,7 +590,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
     case AM_INTHASH:
         {
             int hash_len = MIN(SHA256_DIGEST_SIZE, config->len);
-            res_st = mymalloc(sizeof(anonymized_res_st));
+            res_st = &reusable_res;
             res_st->len = hash_len;
             res_st->data = res_st->static_buffer;
             res_st->is_large = false;
@@ -600,7 +601,7 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
 
     case AM_SUBSTRING:
         {
-            res_st = mymalloc(sizeof(anonymized_res_st));
+            res_st = &reusable_res;
             res_st->data = res_st->static_buffer;
             res_st->is_large = false;
             mysubstr((char *)res_st->data, worktoken, sizeof(res_st->static_buffer), config->len);
