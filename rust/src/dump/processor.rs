@@ -1,8 +1,10 @@
 use std::io::{BufRead, BufReader, Read, Write};
 
-use crate::anonymize::{anonymize_token, remove_quote, AnonContext, QuoteMode};
+use crate::anonymize::{anonymize_token, remove_quote, AnonContext, AnonResult, QuoteMode};
 use crate::config::{AnonType, Config, TableAction};
 use crate::json;
+#[cfg(feature = "python")]
+use crate::python::PythonRunner;
 
 const MYSQL_MAX_FIELD_PER_TABLE: usize = 4096;
 
@@ -30,11 +32,24 @@ pub struct DumpProcessor<'a> {
     row_index: i32,
     bfirstinsert: bool,
     line_nb: usize,
+    #[cfg(feature = "python")]
+    python_runner: Option<PythonRunner>,
 }
 
 impl<'a> DumpProcessor<'a> {
-    pub fn new(config: &'a mut Config) -> Self {
-        DumpProcessor {
+    pub fn new(config: &'a mut Config) -> Result<Self, String> {
+        #[cfg(feature = "python")]
+        let python_runner = if !config.pyscript.is_empty() {
+            Some(PythonRunner::new(
+                &config.pypath,
+                &config.pyscript,
+                config.secret.clone(),
+            )?)
+        } else {
+            None
+        };
+
+        Ok(DumpProcessor {
             config,
             state: State::Initial,
             current_table: String::new(),
@@ -45,7 +60,9 @@ impl<'a> DumpProcessor<'a> {
             row_index: 0,
             bfirstinsert: true,
             line_nb: 1,
-        }
+            #[cfg(feature = "python")]
+            python_runner,
+        })
     }
 
     pub fn process<R: Read, W: Write>(
@@ -536,6 +553,18 @@ impl<'a> DumpProcessor<'a> {
             return Ok(());
         }
 
+        // Python anonymization
+        if anon_type == AnonType::Py {
+            let res = self.handle_py_anonymization(raw, field_quoted, table_idx, field_idx);
+            let out_quoted = match res.quoting {
+                QuoteMode::ForceTrue => true,
+                QuoteMode::ForceFalse => false,
+                QuoteMode::AsInput => field_quoted,
+            };
+            self.write_quoted_output(&res.data, out_quoted, writer)?;
+            return Ok(());
+        }
+
         // Separated values
         let has_separator = self.config.tables[table_idx].fields[field_idx]
             .infos
@@ -644,6 +673,51 @@ impl<'a> DumpProcessor<'a> {
         self.write_quoted_output(backslashed.as_bytes(), true, writer)?;
 
         Ok(true)
+    }
+
+    fn handle_py_anonymization(
+        &self,
+        raw: &[u8],
+        field_quoted: bool,
+        table_idx: usize,
+        field_idx: usize,
+    ) -> AnonResult {
+        // Strip quotes like anonymize_token does
+        let worktoken = if field_quoted {
+            remove_quote(raw)
+        } else {
+            raw.to_vec()
+        };
+        let value_str = String::from_utf8_lossy(&worktoken);
+        let pydef = &self.config.tables[table_idx].fields[field_idx].infos.pydef;
+
+        #[cfg(feature = "python")]
+        {
+            if let Some(ref runner) = self.python_runner {
+                match runner.call(pydef, &value_str) {
+                    Ok(result) => {
+                        return AnonResult {
+                            data: result.into_bytes(),
+                            quoting: QuoteMode::AsInput,
+                        };
+                    }
+                    Err(e) => {
+                        eprintln!("{}", e);
+                    }
+                }
+            }
+        }
+
+        #[cfg(not(feature = "python"))]
+        {
+            let _ = (pydef, &value_str);
+            eprintln!("Python support not compiled in, cannot use pydef");
+        }
+
+        AnonResult {
+            data: Vec::new(),
+            quoting: QuoteMode::AsInput,
+        }
     }
 
     fn handle_separated_values<W: Write>(

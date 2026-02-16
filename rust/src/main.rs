@@ -91,11 +91,23 @@ fn main() {
 
     let result = if debug {
         let mut writer = stdout.lock();
-        let mut processor = DumpProcessor::new(&mut config);
+        let mut processor = match DumpProcessor::new(&mut config) {
+            Ok(p) => p,
+            Err(e) => {
+                eprintln!("{}", e);
+                process::exit(1);
+            }
+        };
         processor.process(stdin.lock(), &mut writer)
     } else {
         let mut writer = BufWriter::with_capacity(STDOUT_BUFFER_SIZE, stdout.lock());
-        let mut processor = DumpProcessor::new(&mut config);
+        let mut processor = match DumpProcessor::new(&mut config) {
+            Ok(p) => p,
+            Err(e) => {
+                eprintln!("{}", e);
+                process::exit(1);
+            }
+        };
         let result = processor.process(stdin.lock(), &mut writer);
         writer.flush().ok();
         result
