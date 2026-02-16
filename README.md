@@ -89,16 +89,17 @@ make install
 
 See [full build instructions](#installation-from-sources) below for per-distro packages and more options.
 
-### Building from source (Rust)
+### Building from source (Rust — vibe-coding experiment)
 
-An alternative Rust implementation is available in the `rust/` directory. It produces identical output to the C version and requires only a Rust toolchain (no flex/bison/autotools).
+An alternative Rust implementation is available in the `rust/` directory, created entirely through vibe-coding with Claude Code. It produces identical output to the C version and passes all 14 tests, requiring only a Rust toolchain (no flex/bison/autotools).
 
 ```
 cd rust
-cargo build --release
+cargo build --release                   # Without Python support
+cargo build --release --features python # With Python support (requires python3-dev)
 ```
 
-The binary is at `rust/target/release/myanon`. Usage is the same as the C version. Python support (`pydef`) is not yet available in the Rust build.
+The binary is at `rust/target/release/myanon`. Usage is the same as the C version.
 
 ## Configuration
 
