@@ -297,7 +297,6 @@ static bool handle_json_anonymization(char *field, int leng, anon_field_st *curf
     if (!parsed_json) {
         fprintf(stderr, "WARNING! Table/field %s: Unable to parse json field '%s' at line %d, skip anonymization\n",
                 curfield->key, unbackslash_json_str, dump_line_nb);
-        free(unquoted_json_str);
         free(unbackslash_json_str);
         return false;
     }
