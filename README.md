@@ -89,18 +89,6 @@ make install
 
 See [full build instructions](#installation-from-sources) below for per-distro packages and more options.
 
-### Building from source (Rust — vibe-coding experiment)
-
-An alternative Rust implementation is available in the `rust/` directory, created entirely through vibe-coding with Claude Code. It produces identical output to the C version and passes all 14 tests, requiring only a Rust toolchain (no flex/bison/autotools).
-
-```
-cd rust
-cargo build --release                   # Without Python support
-cargo build --release --features python # With Python support (requires python3-dev)
-```
-
-The binary is at `rust/target/release/myanon`. Usage is the same as the C version.
-
 ## Configuration
 
 A self-documented sample config is provided in [`main/myanon-sample.conf`](main/myanon-sample.conf).
@@ -268,3 +256,15 @@ main/myanon -f tests/test1.conf < tests/test1.sql
 zcat tests/test2.sql.gz | main/myanon -f tests/test2.conf
 ```
 The tests directory contains examples with basic hmac anonymization, and with python rules (faker).
+
+## Rust implementation (vibe-coding experiment)
+
+An alternative Rust implementation is available in the `rust/` directory, created entirely through vibe-coding with [Claude Code](https://claude.com/claude-code). It produces identical output to the C version and passes all 14 tests, requiring only a Rust toolchain (no flex/bison/autotools).
+
+```
+cd rust
+cargo build --release                   # Without Python support
+cargo build --release --features python # With Python support (requires python3-dev)
+```
+
+The binary is at `rust/target/release/myanon`. Usage is the same as the C version.
