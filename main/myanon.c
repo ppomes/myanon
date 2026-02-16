@@ -47,10 +47,6 @@
 #include "Python.h"
 #endif
 
-/* stdout buffering */
-#define STDOUT_BUFFER_SIZE 1048576
-static char buffer[STDOUT_BUFFER_SIZE];
-
 /* Reusable result struct for small anonymization results (avoids malloc/free per call) */
 static anonymized_res_st reusable_res;
 
@@ -779,8 +775,7 @@ void config_error(const char *s)
 
 void dump_error(const char *s)
 {
-    // flush (buffered) stdout and report error
-    fflush(stdout);
+    out_flush();
     fprintf(stderr, "\nDump parsing error at line %d: %s - Unexpected [%s]\n",
             dump_line_nb, s, dump_text);
 }
@@ -811,6 +806,7 @@ int main(int argc, char **argv)
     anon_time = 0;
     config_line_nb = 1;
     dump_line_nb = 1;
+    out_pos = 0;
 
     /* For stats */
     ts_beg = get_ts_in_ms();
@@ -851,12 +847,6 @@ int main(int argc, char **argv)
             }
             goto failure;
         }
-    }
-
-    /* Activate buffering on stdout */
-    if (!debug)
-    {
-        setvbuf(stdout, &buffer[0], _IOFBF, STDOUT_BUFFER_SIZE);
     }
 
     if (fvalue == NULL)
@@ -907,6 +897,8 @@ int main(int argc, char **argv)
             }
         }
     }
+
+    out_flush();
 
     /* Include stats if requested in config file */
     if (stats)
@@ -963,5 +955,6 @@ int main(int argc, char **argv)
     exit(EXIT_SUCCESS);
 
 failure:
+    out_flush();
     exit(EXIT_FAILURE);
 }

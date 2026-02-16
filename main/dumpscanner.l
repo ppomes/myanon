@@ -33,7 +33,7 @@
 #include "uthash.h"
 
 /* Used to duplicate flex input to stdout */
-#define DUPOUT fwrite(dump_text,dump_leng,1,stdout);
+#define DUPOUT out_write(dump_text,dump_leng);
 
 /* Current table */
 char currenttable[ID_SIZE];

@@ -33,6 +33,8 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <regex.h>
+#include <unistd.h>
+#include <string.h>
 
 #include "uthash.h"
 #include "sha2.h"
@@ -211,6 +213,51 @@ EXTERN bool debug;
 
 /* Time spent to anonymize */
 EXTERN unsigned long anon_time;
+
+/*
+ * Manual output buffer (bypasses stdio for hot-path writes)
+ */
+#define OUT_BUFFER_SIZE 1048576
+EXTERN char out_buf[OUT_BUFFER_SIZE];
+EXTERN size_t out_pos;
+
+static inline void out_flush(void)
+{
+    size_t written = 0;
+    while (written < out_pos) {
+        ssize_t n = write(STDOUT_FILENO, out_buf + written, out_pos - written);
+        if (__builtin_expect(n < 0, 0))
+            break;
+        written += (size_t)n;
+    }
+    out_pos = 0;
+}
+
+static inline void out_write(const char *data, size_t len)
+{
+    if (__builtin_expect(len >= OUT_BUFFER_SIZE, 0)) {
+        out_flush();
+        size_t written = 0;
+        while (written < len) {
+            ssize_t n = write(STDOUT_FILENO, data + written, len - written);
+            if (__builtin_expect(n < 0, 0))
+                break;
+            written += (size_t)n;
+        }
+        return;
+    }
+    if (__builtin_expect(out_pos + len > OUT_BUFFER_SIZE, 0))
+        out_flush();
+    memcpy(out_buf + out_pos, data, len);
+    out_pos += len;
+}
+
+static inline void out_putc(char c)
+{
+    if (__builtin_expect(out_pos >= OUT_BUFFER_SIZE, 0))
+        out_flush();
+    out_buf[out_pos++] = c;
+}
 
 /*
  * Prototypes

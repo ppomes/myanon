@@ -184,7 +184,7 @@ singlefield : VALUE {
         if (curfield->infos.type == AM_JSON) {
           /* JSON anonymization */
           if (!handle_json_anonymization(dump_text, dump_leng, curfield)) {
-            fwrite(dump_text,dump_leng,1,stdout);
+            out_write(dump_text,dump_leng);
           }
         } else if (curfield->infos.separator[0]) {
           /* Separated values */
@@ -217,7 +217,7 @@ singlefield : VALUE {
           anonymized_res_free(res_st);
         }
       } else {
-        fwrite(dump_text,dump_leng,1,stdout);
+        out_write(dump_text,dump_leng);
       }
       currentfieldpos++;
     }
@@ -229,9 +229,11 @@ singlefield : VALUE {
 static void quoted_output_helper (char *s, unsigned short len, bool quoted)
 {
   if (!quoted) {
-    fwrite(s,len,1,stdout);
+    out_write(s,len);
   } else {
-    fprintf(stdout,"'%.*s'",len,s);
+    out_putc('\'');
+    out_write(s,len);
+    out_putc('\'');
   }
 }
 
@@ -370,17 +372,17 @@ static void handle_separated_values(char *field_text, int field_leng,
     if (!field) {
         fprintf(stderr, "WARNING! Table/field %s: Unable to parse separated field '%s' at line %d, skip anonymization",
                 curfield->key, field_text, dump_line_nb);
-        fwrite(field_text, field_leng, 1, stdout);
+        out_write(field_text, field_leng);
         free(worktext);
         return;
     }
 
-    fprintf(stdout, "'"); /* Opening quote */
+    out_putc('\''); /* Opening quote */
 
     bool first = true;
     while (field) {
         if (!first) {
-            fprintf(stdout, "%s", curfield->infos.separator);
+            out_putc(curfield->infos.separator[0]);
         }
         first = false;
 
@@ -399,7 +401,7 @@ static void handle_separated_values(char *field_text, int field_leng,
         field = strtok(NULL, curfield->infos.separator);
     }
 
-    fprintf(stdout, "'"); /* Closing quote */
+    out_putc('\''); /* Closing quote */
 
     free(worktext);
 }
