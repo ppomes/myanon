@@ -407,9 +407,9 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
 
     if (quoted)
     {
-        worktokenlen = tokenlen - 2;
-        worktoken = mymalloc(worktokenlen + 1);
-        remove_quote(worktoken, token, worktokenlen + 1);
+        worktoken = mymalloc(tokenlen + 1);
+        remove_quote(worktoken, token, tokenlen + 1);
+        worktokenlen = strlen(worktoken);
         needfree = true;
     }
     else
