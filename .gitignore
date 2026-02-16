@@ -64,6 +64,9 @@ main/jsonparser.h
 main/jsonscanner.c
 main/myanon
 
+# Rust build artifacts
+rust/target/
+
 # Debian build artifacts
 debian/.debhelper/
 debian/autoreconf.after
