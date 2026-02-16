@@ -11,4 +11,4 @@ python = ["pyo3"]
 regex = "1"
 hmac = "0.12"
 sha2 = "0.10"
-pyo3 = { version = "0.23", features = ["auto-initialize"], optional = true }
+pyo3 = { version = "0.24", features = ["auto-initialize"], optional = true }
