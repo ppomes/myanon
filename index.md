@@ -81,12 +81,13 @@ See [Docker details](#docker-build--run) below for Apple Silicon notes and more.
 
 ### Building from source (C)
 
-Requirements: autoconf, automake, make, a C compiler (gcc or clang), flex, bison. Optional: python3-dev.
+Requirements: autoconf, automake, make, a C compiler (gcc or clang), flex, bison. Optional: python3-dev, libssl-dev (for `--with-openssl`).
 
 ```
 ./autogen.sh
 ./configure                     # Minimal build (includes JSON support)
 ./configure --enable-python     # With optional Python support
+./configure --with-openssl      # Use OpenSSL for hardware-accelerated HMAC-SHA256
 make
 make install
 ```
@@ -193,25 +194,29 @@ docker run -it --rm --platform linux/amd64 -v ${PWD}:/app myanon sh -c '/bin/mya
 - flex
 - bison
 - python (optional)
+- libssl-dev / openssl-devel (optional, for `--with-openssl`)
 
 Example on a Fedora system:
 
 ```shell
 $ sudo dnf install autoconf automake gcc make flex bison
-$ sudo dnf install python3-devel # For optional python support
+$ sudo dnf install python3-devel   # For optional python support
+$ sudo dnf install openssl-devel   # For optional --with-openssl
 [...]
 ```
 Example on a Debian/Ubuntu system:
 
 ```shell
 $ sudo apt-get install autoconf automake flex bison build-essential
-$ sudo apt-get install python3-dev # For optional python support
+$ sudo apt-get install python3-dev  # For optional python support
+$ sudo apt-get install libssl-dev   # For optional --with-openssl
 [...]
 ```
 On macOS, you need to install Xcode and homebrew, and then:
 ```shell
 $ brew install autoconf automake flex bison m4
-$ brew install python3 # For optional python support
+$ brew install python3  # For optional python support
+$ brew install openssl  # For optional --with-openssl
 [...]
 ```
 
@@ -237,6 +242,7 @@ export LDFLAGS=-L/opt/homebrew/lib
 ./autogen.sh
 ./configure                             # Minimal build (includes JSON support)
 ./configure --enable-python             # With optional python support
+./configure --with-openssl              # Use OpenSSL for hardware-accelerated HMAC-SHA256
 make
 make install
 ```
