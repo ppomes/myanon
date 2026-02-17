@@ -15,7 +15,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: install dependencies
-      run: sudo apt-get update && sudo apt-get install -y python3-dev valgrind
+      run: sudo apt-get update && sudo apt-get install -y python3-dev valgrind libssl-dev
 
     - name: autogen
       run: ./autogen.sh
@@ -30,4 +30,16 @@ jobs:
       run: make check
 
     - name: Run valgrind checks
+      run: make valgrind-check
+
+    - name: configure with OpenSSL
+      run: ./configure --with-openssl
+
+    - name: build with OpenSSL
+      run: make clean && make
+
+    - name: Run tests with OpenSSL
+      run: make check
+
+    - name: Run valgrind checks with OpenSSL
       run: make valgrind-check
