@@ -39,8 +39,13 @@
 
 #include "config.h"
 #include "uthash.h"
+#ifdef HAVE_OPENSSL
+#include <openssl/evp.h>
+#include <openssl/core_names.h>
+#else
 #include "sha2.h"
 #include "hmac_sha2.h"
+#endif
 #include "myanon.h"
 
 #ifdef HAVE_PYTHON
@@ -49,6 +54,39 @@
 
 /* Reusable result struct for small anonymization results (avoids malloc/free per call) */
 static anonymized_res_st reusable_res;
+
+#ifdef HAVE_OPENSSL
+static EVP_MAC *hmac_mac = NULL;
+static EVP_MAC_CTX *hmac_ctx = NULL;
+
+static void openssl_hmac_init(void)
+{
+    hmac_mac = EVP_MAC_fetch(NULL, "HMAC", NULL);
+    if (!hmac_mac) {
+        fprintf(stderr, "EVP_MAC_fetch failed\n");
+        exit(EXIT_FAILURE);
+    }
+    hmac_ctx = EVP_MAC_CTX_new(hmac_mac);
+    if (!hmac_ctx) {
+        fprintf(stderr, "EVP_MAC_CTX_new failed\n");
+        exit(EXIT_FAILURE);
+    }
+    OSSL_PARAM params[] = {
+        OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, "SHA256", 0),
+        OSSL_PARAM_END
+    };
+    if (!EVP_MAC_init(hmac_ctx, (unsigned char *)secret, secretlen, params)) {
+        fprintf(stderr, "EVP_MAC_init failed\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void openssl_hmac_cleanup(void)
+{
+    if (hmac_ctx) EVP_MAC_CTX_free(hmac_ctx);
+    if (hmac_mac) EVP_MAC_free(hmac_mac);
+}
+#endif
 
 #ifdef HAVE_PYTHON
 static bool pyinitialized = false;
@@ -327,7 +365,14 @@ void make_readable_hash(const unsigned char *token, unsigned int tokenlen,
 {
     int i;
 
+#ifdef HAVE_OPENSSL
+    size_t md_len = SHA256_DIGEST_SIZE;
+    EVP_MAC_init(hmac_ctx, NULL, 0, NULL);
+    EVP_MAC_update(hmac_ctx, (unsigned char *)token, tokenlen);
+    EVP_MAC_final(hmac_ctx, res_st->data, &md_len, SHA256_DIGEST_SIZE);
+#else
     hmac_sha256((const unsigned char *)&secret[0], secretlen, (unsigned char *)token, tokenlen, res_st->data, SHA256_DIGEST_SIZE);
+#endif
 
     for (i = 0; i < res_st->len; i++)
     {
@@ -867,6 +912,10 @@ int main(int argc, char **argv)
         goto failure;
     }
 
+#ifdef HAVE_OPENSSL
+    openssl_hmac_init();
+#endif
+
     /* Process dump: the value returned by yyparse is 0 if parsing was successful */
     if (dump_parse())
     {
@@ -942,6 +991,10 @@ int main(int argc, char **argv)
         HASH_DEL(infos, curtable);
         free(curtable);
     }
+
+#ifdef HAVE_OPENSSL
+    openssl_hmac_cleanup();
+#endif
 
 #ifdef HAVE_PYTHON
     if (pyinitialized)

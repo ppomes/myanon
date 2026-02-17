@@ -18,8 +18,11 @@ noinst_HEADERS = myanon.h json.h
 AM_YFLAGS = -d -Wno-yacc
 AM_LFLAGS = -8
 
-# include flags
+# include flags and linking
+if USE_OPENSSL
+myanon_CFLAGS = -I$(top_srcdir)/uthash $(OPENSSL_CFLAGS) $(PYTHON_INCLUDE)
+myanon_LDADD = $(LIBLEX) $(OPENSSL_LIBS) $(PYTHON_LIBS)
+else
 myanon_CFLAGS = -I$(top_srcdir)/uthash -I$(top_srcdir)/hmac $(PYTHON_INCLUDE)
-
-# link with flex and other libs
 myanon_LDADD = $(LIBLEX) $(top_builddir)/hmac/libhmac.a $(PYTHON_LIBS)
+endif

@@ -25,6 +25,18 @@ AC_ARG_ENABLE([jq],
                               [Deprecated - JSON support is now built-in])],
               [AC_MSG_WARN([--enable-jq is deprecated and has no effect. JSON support is now built-in without external dependencies.])])
 
+AC_ARG_WITH([openssl],
+            [AS_HELP_STRING([--with-openssl],
+                            [use OpenSSL for HMAC-SHA256 instead of bundled implementation])],
+            [with_openssl=$withval],
+            [with_openssl="no"])
+
+if test "$with_openssl" = "yes"; then
+    PKG_CHECK_MODULES([OPENSSL], [libcrypto], [],
+                      [AC_MSG_ERROR([OpenSSL libcrypto not found])])
+    AC_DEFINE([HAVE_OPENSSL], [1], [Define to 1 if using OpenSSL for HMAC.])
+fi
+AM_CONDITIONAL([USE_OPENSSL], [test "$with_openssl" = "yes"])
 
 # Checks flex/bison version
 AC_PATH_PROG([FLEX],[flex])

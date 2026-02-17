@@ -37,9 +37,14 @@
 #include <string.h>
 
 #include "uthash.h"
-#include "sha2.h"
 
 #include "config.h"
+
+#ifdef HAVE_OPENSSL
+#define SHA256_DIGEST_SIZE 32
+#else
+#include "sha2.h"
+#endif
 
 
 
