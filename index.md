@@ -86,7 +86,7 @@ Requirements: autoconf, automake, make, a C compiler (gcc or clang), flex, bison
 ```
 ./autogen.sh
 ./configure                     # Minimal build (includes JSON support)
-./configure --enable-python     # With optional Python support
+./configure --with-python       # With optional Python support
 ./configure --with-openssl      # Use OpenSSL for hardware-accelerated HMAC-SHA256
 make
 make install
@@ -115,7 +115,7 @@ mysqldump mydb | tee >(myanon -f myanon.cfg | gzip > mydb_anon.sql.gz) | gpg -e 
 
 ## Python support
 
-When Python support is enabled (`--enable-python`), custom anonymization functions can be defined in Python scripts. These scripts have access to a `myanon_utils` module that provides utility functions:
+When Python support is enabled (`--with-python`), custom anonymization functions can be defined in Python scripts. These scripts have access to a `myanon_utils` module that provides utility functions:
 
 - `get_secret()`: Returns the HMAC secret defined in the configuration file
 - `escape_sql_string(str)`: Escapes a string for safe SQL insertion
@@ -241,7 +241,7 @@ export LDFLAGS=-L/opt/homebrew/lib
 ```
 ./autogen.sh
 ./configure                             # Minimal build (includes JSON support)
-./configure --enable-python             # With optional python support
+./configure --with-python               # With optional python support
 ./configure --with-openssl              # Use OpenSSL for hardware-accelerated HMAC-SHA256
 make
 make install
