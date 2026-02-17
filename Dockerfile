@@ -10,7 +10,7 @@ RUN apk update && apk add --no-cache \
 WORKDIR /app
 COPY . .
 RUN ./autogen.sh && \
-    ./configure --enable-python && \
+    ./configure --with-python && \
     make
 
 FROM alpine:latest

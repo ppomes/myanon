@@ -13,11 +13,11 @@ AM_PROG_AR
 AC_PROG_RANLIB
 
 # Arguments
-AC_ARG_ENABLE([python],
-              [AS_HELP_STRING([--enable-python],
-                              [enable @<:@default=no@:>@ Python support @<:@default=no@:>@])],
-              [enable_python=$enableval],
-              [enable_python="no"])
+AC_ARG_WITH([python],
+            [AS_HELP_STRING([--with-python@<:@=DIR@:>@],
+                            [enable Python support @<:@default=no@:>@, optionally specify python install prefix])],
+            [with_python=$withval],
+            [with_python="no"])
 
 # Legacy jq option (deprecated)
 AC_ARG_ENABLE([jq],
@@ -26,17 +26,20 @@ AC_ARG_ENABLE([jq],
               [AC_MSG_WARN([--enable-jq is deprecated and has no effect. JSON support is now built-in without external dependencies.])])
 
 AC_ARG_WITH([openssl],
-            [AS_HELP_STRING([--with-openssl],
-                            [use OpenSSL for HMAC-SHA256 instead of bundled implementation])],
+            [AS_HELP_STRING([--with-openssl@<:@=DIR@:>@],
+                            [use OpenSSL for HMAC-SHA256 instead of bundled implementation, optionally specify install prefix])],
             [with_openssl=$withval],
             [with_openssl="no"])
 
-if test "$with_openssl" = "yes"; then
+if test "$with_openssl" != "no"; then
+    if test "$with_openssl" != "yes"; then
+        export PKG_CONFIG_PATH="$with_openssl/lib/pkgconfig:$PKG_CONFIG_PATH"
+    fi
     PKG_CHECK_MODULES([OPENSSL], [libcrypto], [],
                       [AC_MSG_ERROR([OpenSSL libcrypto not found])])
     AC_DEFINE([HAVE_OPENSSL], [1], [Define to 1 if using OpenSSL for HMAC.])
 fi
-AM_CONDITIONAL([USE_OPENSSL], [test "$with_openssl" = "yes"])
+AM_CONDITIONAL([USE_OPENSSL], [test "$with_openssl" != "no"])
 
 # Checks flex/bison version
 AC_PATH_PROG([FLEX],[flex])
@@ -57,7 +60,10 @@ AC_CHECK_HEADERS(getopt.h, ,[AC_MSG_ERROR([Cannot find getopt.h header])])
 AC_CHECK_HEADERS(sys/time.h, ,[AC_MSG_ERROR([Cannot find sys/time.h header])])
 
 # Check python dependencies
-if test "$enable_python" = "yes"; then
+if test "$with_python" != "no"; then
+    if test "$with_python" != "yes"; then
+        export PATH="$with_python/bin:$PATH"
+    fi
     AM_PATH_PYTHON([3])
     AC_ARG_VAR([PYTHON_INCLUDE], [Include flags for python, bypassing python-config])
     AC_ARG_VAR([PYTHON_LIBS], [ldflags flags for python, bypassing python-config])
@@ -79,7 +85,7 @@ if test "$enable_python" = "yes"; then
     LDFLAGS="$LDFLAGS $PYTHON_LIBS"
 
     AC_DEFINE([HAVE_PYTHON], ["yes"], [Define to "yes" if Python support is enabled.])
-    AC_SUBST([PYTHON_SUPPORT], [$enable_python])
+    AC_SUBST([PYTHON_SUPPORT], [yes])
 fi
 
 
