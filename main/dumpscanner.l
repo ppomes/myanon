@@ -212,7 +212,8 @@ static void set_working_table() {
 <ST_VALUES>0x[0-9a-fA-F]+                   { return VALUE; }
 <ST_VALUES>_binary\ '(\\.|[^'\\])*'         { return VALUE; }
 <ST_VALUES>'(\\.|[^'\\])*'                  { return VALUE; }
-<ST_VALUES>[0-9\-\.e]+                      { return VALUE; }
+<ST_VALUES>-?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?  { return VALUE; }
+<ST_VALUES>"-- ".*                          { DUPOUT }
 <ST_VALUES>[ ]                              { DUPOUT }
 <ST_VALUES>\n                               { DUPOUT dump_line_nb++;}
 <ST_VALUES>^(INSERT|REPLACE)\ (\ IGNORE\ )?\INTO\ `[^`]+`(?:\ \([^\)]+\))? { DUPOUT
