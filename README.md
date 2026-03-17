@@ -115,6 +115,7 @@ When Python support is enabled (`--with-python`), custom anonymization functions
 
 - `get_secret()`: Returns the HMAC secret defined in the configuration file
 - `get_row()`: Returns the current row as a dictionary (`{field_name: value}`), allowing cross-field logic (e.g., skip anonymization based on another field's value)
+- `get_table()`: Returns the current table name, useful when sharing Python functions across multiple tables
 - `escape_sql_string(str)`: Escapes a string for safe SQL insertion
 - `unescape_sql_string(str)`: Unescapes a SQL-escaped string
 

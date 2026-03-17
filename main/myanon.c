@@ -96,6 +96,11 @@ static PyObject* get_secret(PyObject* self, PyObject* args) {
     return PyUnicode_DecodeFSDefault(secret);
 }
 
+extern char currenttable[];
+static PyObject* get_table(PyObject* self, PyObject* args) {
+    return PyUnicode_DecodeFSDefault(currenttable);
+}
+
 static PyObject* get_row(PyObject* self, PyObject* args) {
     PyObject *dict = PyDict_New();
     if (!dict) return NULL;
@@ -214,6 +219,7 @@ static PyObject* escape_sql_string(PyObject* self, PyObject* args) {
 static PyMethodDef MyanonUtilsMethods[] = {
     {"get_secret", get_secret, METH_NOARGS, "Get HMAC secret"},
     {"get_row", get_row, METH_NOARGS, "Get current row as a dict (field_name -> value)"},
+    {"get_table", get_table, METH_NOARGS, "Get current table name"},
     {"unescape_sql_string", unescape_sql_string, METH_VARARGS, "Unescape a SQL string (converts '' to ' and \\\\ to \\)"},
     {"escape_sql_string", escape_sql_string, METH_VARARGS, "Escape a string for SQL (doubles quotes and backslashes)"},
     {NULL, NULL, 0, NULL}
