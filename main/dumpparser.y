@@ -39,10 +39,10 @@
 /* Maximum number of fields in a table */
 #define MYSQL_MAX_FIELD_PER_TABLE 4096
 
-/* When parsing a table, each field need to be mapped 
+/* When parsing a table, each field need to be mapped
    to anonymisation config.
    This is computed on first insert statement */
-static anon_field_st* fieldconfig[MYSQL_MAX_FIELD_PER_TABLE]; 
+static anon_field_st* fieldconfig[MYSQL_MAX_FIELD_PER_TABLE];
 
 /* Current table (shared with flex) */
 extern char currenttable[];
@@ -64,6 +64,20 @@ static bool bfirstinsert;
 
 /* Current row position in current table */
 static int rowindex;
+
+/* Row buffer: stores raw field values for the current row */
+typedef struct raw_field_st {
+    char *text;       /* raw token text (malloc'd copy) */
+    int leng;         /* token length */
+    int fieldpos;     /* position in the row */
+} raw_field_st;
+
+static raw_field_st row_fields[MYSQL_MAX_FIELD_PER_TABLE];
+static int row_field_count;
+static row_buffer_st row_buffer;
+
+/* Forward declaration */
+static void flush_row(void);
 
 static void quoted_output_helper (char *s, unsigned short len, bool quoted);
 
@@ -151,7 +165,10 @@ value: LEFTPAR {
                  currentfieldpos =0;
                  rowindex++;
                  tablekey[0] = '\0';
+                 row_field_count = 0;
+                 memset(&row_buffer, 0, sizeof(row_buffer));
                }  fieldv RIGHTPAR {
+                                    flush_row();
                                     bfirstinsert=false;
                                   }
 
@@ -159,65 +176,32 @@ fieldv: singlefield
     | fieldv COMA singlefield
 
 singlefield : VALUE {
-      bool found=false;
+      /* Buffer the raw field value — anonymization happens in flush_row() */
+      if (row_field_count < MYSQL_MAX_FIELD_PER_TABLE) {
+        raw_field_st *rf = &row_fields[row_field_count];
+        rf->text = mymalloc(dump_leng + 1);
+        memcpy(rf->text, dump_text, dump_leng);
+        rf->text[dump_leng] = '\0';
+        rf->leng = dump_leng;
+        rf->fieldpos = currentfieldpos;
 
-      /* Lookup field config (cached after first insert) */
-      if (bfirstinsert) {
-        for (curfield=currenttableconfig->infos;curfield!=NULL;curfield=curfield->hh.next) {
-          if (curfield->pos == currentfieldpos) {
-            found=true;
-            fieldconfig[currentfieldpos]=curfield;
-            break;
+        /* Cache field config on first insert */
+        if (bfirstinsert) {
+          for (curfield=currenttableconfig->infos;curfield!=NULL;curfield=curfield->hh.next) {
+            if (curfield->pos == currentfieldpos) {
+              fieldconfig[currentfieldpos]=curfield;
+              break;
+            }
           }
         }
-      } else {
-        if (fieldconfig[currentfieldpos] != NULL) {
-          curfield = fieldconfig[currentfieldpos];
-          found=true;
-        }
-      }
 
-      /* NULL values should remain NULL — skip anonymisation on NULL values */
-      if ((found) && (strncmp(dump_text,"NULL",dump_leng))) {
-        curfield->infos.nbhits++;
+        /* Populate row_buffer for Python get_row() */
+        anon_field_st *fc = fieldconfig[currentfieldpos];
+        row_buffer.fields[row_field_count].name = fc ? fc->key : NULL;
+        row_buffer.fields[row_field_count].value = rf->text;
+        row_buffer.fields[row_field_count].valuelen = rf->leng;
 
-        if (curfield->infos.type == AM_JSON) {
-          /* JSON anonymization */
-          if (!handle_json_anonymization(dump_text, dump_leng, curfield)) {
-            out_write(dump_text,dump_leng);
-          }
-        } else if (curfield->infos.separator[0]) {
-          /* Separated values */
-          anon_context_st ctx = {
-            .tablekey = tablekey,
-            .tablekey_size = sizeof(tablekey),
-            .rowindex = rowindex,
-            .bfirstinsert = bfirstinsert,
-            .tablename = currenttable
-          };
-          handle_separated_values(dump_text, dump_leng, curfield, &ctx);
-        } else {
-          /* Single value */
-          anon_context_st ctx = {
-            .tablekey = tablekey,
-            .tablekey_size = sizeof(tablekey),
-            .rowindex = rowindex,
-            .bfirstinsert = bfirstinsert,
-            .tablename = currenttable
-          };
-          anonymized_res_st *res_st = anonymize_token(curfield->quoted, &curfield->infos,
-                                                      dump_text, dump_leng, &ctx);
-          bool out_quoted;
-          switch (res_st->quoting) {
-            case QUOTE_FORCE_TRUE:  out_quoted = true; break;
-            case QUOTE_FORCE_FALSE: out_quoted = false; break;
-            default:                out_quoted = curfield->quoted; break;
-          }
-          quoted_output_helper((char *)res_st->data, res_st->len, out_quoted);
-          anonymized_res_free(res_st);
-        }
-      } else {
-        out_write(dump_text,dump_leng);
+        row_field_count++;
       }
       currentfieldpos++;
     }
@@ -347,6 +331,78 @@ static bool handle_json_anonymization(char *field, int leng, anon_field_st *curf
     free(newjsonbackslash_str);
 
     return true;
+}
+
+/* Flush a buffered row: anonymize all fields and output them */
+static void flush_row(void) {
+    /* Expose row buffer to Python via global pointer */
+    row_buffer.count = row_field_count;
+    current_row_buffer = &row_buffer;
+
+    out_putc('(');
+
+    for (int i = 0; i < row_field_count; i++) {
+        raw_field_st *rf = &row_fields[i];
+        anon_field_st *curfield = fieldconfig[rf->fieldpos];
+        bool found = (curfield != NULL);
+
+        if (i > 0) {
+            out_putc(',');
+        }
+
+        /* NULL values should remain NULL — skip anonymisation on NULL values */
+        if ((found) && (strncmp(rf->text, "NULL", rf->leng))) {
+            curfield->infos.nbhits++;
+
+            if (curfield->infos.type == AM_JSON) {
+                /* JSON anonymization */
+                if (!handle_json_anonymization(rf->text, rf->leng, curfield)) {
+                    out_write(rf->text, rf->leng);
+                }
+            } else if (curfield->infos.separator[0]) {
+                /* Separated values */
+                anon_context_st ctx = {
+                    .tablekey = tablekey,
+                    .tablekey_size = sizeof(tablekey),
+                    .rowindex = rowindex,
+                    .bfirstinsert = bfirstinsert,
+                    .tablename = currenttable
+                };
+                handle_separated_values(rf->text, rf->leng, curfield, &ctx);
+            } else {
+                /* Single value */
+                anon_context_st ctx = {
+                    .tablekey = tablekey,
+                    .tablekey_size = sizeof(tablekey),
+                    .rowindex = rowindex,
+                    .bfirstinsert = bfirstinsert,
+                    .tablename = currenttable
+                };
+                anonymized_res_st *res_st = anonymize_token(curfield->quoted, &curfield->infos,
+                                                            rf->text, rf->leng, &ctx);
+                bool out_quoted;
+                switch (res_st->quoting) {
+                    case QUOTE_FORCE_TRUE:  out_quoted = true; break;
+                    case QUOTE_FORCE_FALSE: out_quoted = false; break;
+                    default:                out_quoted = curfield->quoted; break;
+                }
+                quoted_output_helper((char *)res_st->data, res_st->len, out_quoted);
+                anonymized_res_free(res_st);
+            }
+        } else {
+            out_write(rf->text, rf->leng);
+        }
+    }
+
+    out_putc(')');
+
+    /* Free buffered values */
+    for (int i = 0; i < row_field_count; i++) {
+        free(row_fields[i].text);
+        row_fields[i].text = NULL;
+    }
+
+    current_row_buffer = NULL;
 }
 
 /* Handle separated values (fields with a separator character).

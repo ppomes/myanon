@@ -32,8 +32,8 @@
 #include "myanon.h"
 #include "uthash.h"
 
-/* Used to duplicate flex input to stdout */
-#define DUPOUT out_write(dump_text,dump_leng);
+/* Used to duplicate flex input to stdout (suppressed inside value rows) */
+#define DUPOUT if (!suppress_row_output) out_write(dump_text,dump_leng);
 
 /* Current table */
 char currenttable[ID_SIZE];
@@ -204,8 +204,8 @@ static void set_working_table() {
 
 <ST_VALUES>VALUES                           { DUPOUT return VALUES ;}
 <ST_VALUES>`[^`]+`                          { DUPOUT return IDENTIFIER ;}
-<ST_VALUES>\(                               { DUPOUT return LEFTPAR; }
-<ST_VALUES>\)                               { DUPOUT return RIGHTPAR; }
+<ST_VALUES>\(                               { suppress_row_output = true; return LEFTPAR; }
+<ST_VALUES>\)                               { suppress_row_output = false; return RIGHTPAR; }
 <ST_VALUES>;                                { DUPOUT return SEMICOLUMN; }
 <ST_VALUES>,                                { DUPOUT return COMA; }
 <ST_VALUES>NULL                             { return VALUE; }

@@ -96,6 +96,36 @@ static PyObject* get_secret(PyObject* self, PyObject* args) {
     return PyUnicode_DecodeFSDefault(secret);
 }
 
+static PyObject* get_row(PyObject* self, PyObject* args) {
+    PyObject *dict = PyDict_New();
+    if (!dict) return NULL;
+
+    if (current_row_buffer) {
+        for (int i = 0; i < current_row_buffer->count; i++) {
+            row_field_st *f = &current_row_buffer->fields[i];
+            if (!f->name || !f->value) continue;
+
+            /* Strip surrounding quotes from value if present */
+            const char *val = f->value;
+            int vlen = f->valuelen;
+            if (vlen >= 2 && val[0] == '\'' && val[vlen-1] == '\'') {
+                val++;
+                vlen -= 2;
+            }
+
+            /* Use backtick-quoted field name as key (matches config format) */
+            PyObject *key = PyUnicode_FromString(f->name);
+            PyObject *value = PyUnicode_FromStringAndSize(val, vlen);
+            if (key && value) {
+                PyDict_SetItem(dict, key, value);
+            }
+            Py_XDECREF(key);
+            Py_XDECREF(value);
+        }
+    }
+    return dict;
+}
+
 static PyObject* unescape_sql_string(PyObject* self, PyObject* args) {
     const char *input;
     if (!PyArg_ParseTuple(args, "s", &input)) {
@@ -183,6 +213,7 @@ static PyObject* escape_sql_string(PyObject* self, PyObject* args) {
 
 static PyMethodDef MyanonUtilsMethods[] = {
     {"get_secret", get_secret, METH_NOARGS, "Get HMAC secret"},
+    {"get_row", get_row, METH_NOARGS, "Get current row as a dict (field_name -> value)"},
     {"unescape_sql_string", unescape_sql_string, METH_VARARGS, "Unescape a SQL string (converts '' to ' and \\\\ to \\)"},
     {"escape_sql_string", escape_sql_string, METH_VARARGS, "Escape a string for SQL (doubles quotes and backslashes)"},
     {NULL, NULL, 0, NULL}

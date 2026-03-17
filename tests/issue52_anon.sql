@@ -39,7 +39,7 @@ CREATE TABLE `user` (
 --
 
 INSERT INTO `user` (`id`, `email`, `firstname`, `lastname`) VALUES
-(1, 'rfzdhnwdcq@example.com', 'gtnnomfhmy', 'hbtlehnycy');
+(1,'rfzdhnwdcq@example.com','gtnnomfhmy','hbtlehnycy');
 
 --
 -- Indexes for dumped tables
