@@ -999,7 +999,7 @@ int main(int argc, char **argv)
 #ifdef HAVE_PYTHON
     if (pyinitialized)
     {
-        Py_DECREF(pModule);
+        Py_XDECREF(pModule);
         Py_Finalize();
     }
 
