@@ -1,3 +1,29 @@
+myanon (0.8.2-1) unstable; urgency=medium
+
+  * New upstream release
+  * Bug fixes:
+    - Fix parsing of phpMyAdmin SQL dumps (Closes: #52)
+    - Fix segfault on Python module import failure (#50)
+    - Fix double-free of JSON string on parse error
+    - Fix truncated hash for _binary values in quoted fields
+    - Fix double-counting of anonymization statistics
+    - Fix escaping of single quotes and backslashes in fixed values
+    - Fix truncate mode for MariaDB multi-line INSERT format
+    - Fix missing null terminator in emailhash domain
+    - Fix strtok corrupting buffer in separated values
+    - Fix O(n²) strlen call in mysubstr
+    - Fix off-by-one buffer overflow in JSON backslash escaping
+    - Fix NULL pointer dereference on Python string conversion
+  * New features:
+    - Add myanon_utils.get_row() for cross-field Python access
+    - Add myanon_utils.get_table() for cross-table Python functions
+    - Add --with-openssl for hardware-accelerated HMAC-SHA256
+  * Performance:
+    - Replace stdio with manual output buffer
+    - O(1) field lookup and static result buffer
+
+ -- Pierre POMES <pierre.pomes@gmail.com>  Thu, 19 Mar 2026 13:05:00 -0400
+
 myanon (0.8.1-3) unstable; urgency=medium
 
   * Update Standards-Version to 4.7.3
