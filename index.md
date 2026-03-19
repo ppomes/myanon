@@ -118,10 +118,24 @@ mysqldump mydb | tee >(myanon -f myanon.cfg | gzip > mydb_anon.sql.gz) | gpg -e 
 When Python support is enabled (`--with-python`), custom anonymization functions can be defined in Python scripts. These scripts have access to a `myanon_utils` module that provides utility functions:
 
 - `get_secret()`: Returns the HMAC secret defined in the configuration file
+- `get_row()`: Returns the current row as a dictionary (`{field_name: value}`), allowing cross-field logic (e.g., skip anonymization based on another field's value)
+- `get_table()`: Returns the current table name, useful when sharing Python functions across multiple tables
 - `escape_sql_string(str)`: Escapes a string for safe SQL insertion
 - `unescape_sql_string(str)`: Unescapes a SQL-escaped string
 
-This allows Python anonymization functions to handle SQL strings properly and use the same secret as the core anonymization process, ensuring consistency across all anonymized fields.
+Example using `get_row()` to conditionally anonymize names based on email domain:
+
+```python
+import myanon_utils
+
+def anonymize_name(name):
+    row = myanon_utils.get_row()
+    if row.get('`email`', '').endswith('@company.ext'):
+        return name  # keep internal users as-is
+    import hashlib, hmac
+    secret = myanon_utils.get_secret()
+    return hmac.new(secret.encode(), name.encode(), hashlib.sha256).hexdigest()[:len(name)]
+```
 
 ## Docker build / run
 
