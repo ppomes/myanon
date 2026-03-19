@@ -32,8 +32,12 @@
 #include "myanon.h"
 #include "uthash.h"
 
-/* Used to duplicate flex input to stdout (suppressed inside value rows) */
+/* Used to duplicate flex input to stdout (suppressed inside value rows when Python buffering) */
+#ifdef HAVE_PYTHON
 #define DUPOUT if (!suppress_row_output) out_write(dump_text,dump_leng);
+#else
+#define DUPOUT out_write(dump_text,dump_leng);
+#endif
 
 /* Current table */
 char currenttable[ID_SIZE];
@@ -204,8 +208,8 @@ static void set_working_table() {
 
 <ST_VALUES>VALUES                           { DUPOUT return VALUES ;}
 <ST_VALUES>`[^`]+`                          { DUPOUT return IDENTIFIER ;}
-<ST_VALUES>\(                               { suppress_row_output = true; return LEFTPAR; }
-<ST_VALUES>\)                               { suppress_row_output = false; return RIGHTPAR; }
+<ST_VALUES>\(                               { return LEFTPAR; }
+<ST_VALUES>\)                               { return RIGHTPAR; }
 <ST_VALUES>;                                { DUPOUT return SEMICOLUMN; }
 <ST_VALUES>,                                { DUPOUT return COMA; }
 <ST_VALUES>NULL                             { return VALUE; }

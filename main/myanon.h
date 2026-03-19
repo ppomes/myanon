@@ -216,10 +216,11 @@ EXTERN bool stats;
 /* Debug mode */
 EXTERN bool debug;
 
+#ifdef HAVE_PYTHON
 /* Row buffer for cross-field access (used by Python get_row()) */
 #define ROW_MAX_FIELDS 4096
 typedef struct row_field_st {
-    const char *name;     /* field name (points into anon_field_st.key) */
+    const char *name;     /* field name (points into fieldnames array) */
     char *value;          /* raw field value (malloc'd copy) */
     int valuelen;         /* field value length */
 } row_field_st;
@@ -231,8 +232,9 @@ typedef struct row_buffer_st {
 
 EXTERN row_buffer_st *current_row_buffer;
 
-/* Flag to suppress DUPOUT inside value rows (set by scanner, checked by DUPOUT) */
+/* Flag to suppress DUPOUT inside value rows (set by parser, checked by DUPOUT) */
 EXTERN bool suppress_row_output;
+#endif
 
 /* Time spent to anonymize */
 EXTERN unsigned long anon_time;

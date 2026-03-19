@@ -65,6 +65,13 @@ static bool bfirstinsert;
 /* Current row position in current table */
 static int rowindex;
 
+#ifdef HAVE_PYTHON
+/* All field names from CREATE TABLE, indexed by position */
+static char fieldnames[MYSQL_MAX_FIELD_PER_TABLE][ID_SIZE];
+
+/* True if current table has at least one pydef field (needs row buffering) */
+static bool needs_row_buffer;
+
 /* Row buffer: stores raw field values for the current row */
 typedef struct raw_field_st {
     char *text;       /* raw token text (malloc'd copy) */
@@ -78,6 +85,7 @@ static row_buffer_st row_buffer;
 
 /* Forward declaration */
 static void flush_row(void);
+#endif
 
 static void quoted_output_helper (char *s, unsigned short len, bool quoted);
 
@@ -123,6 +131,10 @@ create: CREATE_TABLE {
                        bfirstinsert=true;
                        rowindex=0;
                        memset(fieldconfig,0,sizeof(fieldconfig));
+#ifdef HAVE_PYTHON
+                       needs_row_buffer=false;
+                       memset(fieldnames,0,sizeof(fieldnames));
+#endif
                      } LEFTPAR fields RIGHTPAR ENGINE
        
 fields: field
@@ -137,9 +149,16 @@ field: IDENTIFIER {
     if (found) {
       curfield->pos = currentfieldpos;
       DEBUG_MSG("Found field '%s' at position %d\n", curfield->key, currentfieldpos);
+#ifdef HAVE_PYTHON
+      if (curfield->infos.type == AM_PY)
+        needs_row_buffer = true;
+#endif
     } else {
       DEBUG_MSG("Field '%s' not found in config at position %d\n", dump_text, currentfieldpos);
     }
+#ifdef HAVE_PYTHON
+    mystrcpy(fieldnames[currentfieldpos], dump_text, ID_SIZE);
+#endif
     currentfieldpos++;
   } type
 
@@ -165,10 +184,26 @@ value: LEFTPAR {
                  currentfieldpos =0;
                  rowindex++;
                  tablekey[0] = '\0';
-                 row_field_count = 0;
-                 memset(&row_buffer, 0, sizeof(row_buffer));
+#ifdef HAVE_PYTHON
+                 if (needs_row_buffer) {
+                   suppress_row_output = true;
+                   row_field_count = 0;
+                   memset(&row_buffer, 0, sizeof(row_buffer));
+                 } else
+#endif
+                 {
+                   out_putc('(');
+                 }
                }  fieldv RIGHTPAR {
-                                    flush_row();
+#ifdef HAVE_PYTHON
+                                    if (needs_row_buffer) {
+                                      suppress_row_output = false;
+                                      flush_row();
+                                    } else
+#endif
+                                    {
+                                      out_putc(')');
+                                    }
                                     bfirstinsert=false;
                                   }
 
@@ -176,32 +211,88 @@ fieldv: singlefield
     | fieldv COMA singlefield
 
 singlefield : VALUE {
-      /* Buffer the raw field value — anonymization happens in flush_row() */
-      if (row_field_count < MYSQL_MAX_FIELD_PER_TABLE) {
-        raw_field_st *rf = &row_fields[row_field_count];
-        rf->text = mymalloc(dump_leng + 1);
-        memcpy(rf->text, dump_text, dump_leng);
-        rf->text[dump_leng] = '\0';
-        rf->leng = dump_leng;
-        rf->fieldpos = currentfieldpos;
+      bool found=false;
 
-        /* Cache field config on first insert */
-        if (bfirstinsert) {
-          for (curfield=currenttableconfig->infos;curfield!=NULL;curfield=curfield->hh.next) {
-            if (curfield->pos == currentfieldpos) {
-              fieldconfig[currentfieldpos]=curfield;
-              break;
-            }
+      /* Lookup field config (cached after first insert) */
+      if (bfirstinsert) {
+        for (curfield=currenttableconfig->infos;curfield!=NULL;curfield=curfield->hh.next) {
+          if (curfield->pos == currentfieldpos) {
+            found=true;
+            fieldconfig[currentfieldpos]=curfield;
+            break;
           }
         }
+      } else {
+        if (fieldconfig[currentfieldpos] != NULL) {
+          curfield = fieldconfig[currentfieldpos];
+          found=true;
+        }
+      }
 
-        /* Populate row_buffer for Python get_row() */
-        anon_field_st *fc = fieldconfig[currentfieldpos];
-        row_buffer.fields[row_field_count].name = fc ? fc->key : NULL;
-        row_buffer.fields[row_field_count].value = rf->text;
-        row_buffer.fields[row_field_count].valuelen = rf->leng;
+#ifdef HAVE_PYTHON
+      if (needs_row_buffer) {
+        /* Buffer the raw field value — anonymization happens in flush_row() */
+        if (row_field_count < MYSQL_MAX_FIELD_PER_TABLE) {
+          raw_field_st *rf = &row_fields[row_field_count];
+          rf->text = mymalloc(dump_leng + 1);
+          memcpy(rf->text, dump_text, dump_leng);
+          rf->text[dump_leng] = '\0';
+          rf->leng = dump_leng;
+          rf->fieldpos = currentfieldpos;
 
-        row_field_count++;
+          /* Populate row_buffer for Python get_row() — all fields */
+          row_buffer.fields[row_field_count].name = fieldnames[currentfieldpos];
+          row_buffer.fields[row_field_count].value = rf->text;
+          row_buffer.fields[row_field_count].valuelen = rf->leng;
+
+          row_field_count++;
+        }
+      } else
+#endif
+      {
+        /* Direct output path (no Python or no pydef in this table) */
+        /* NULL values should remain NULL — skip anonymisation on NULL values */
+        if ((found) && (strncmp(dump_text,"NULL",dump_leng))) {
+          curfield->infos.nbhits++;
+
+          if (curfield->infos.type == AM_JSON) {
+            /* JSON anonymization */
+            if (!handle_json_anonymization(dump_text, dump_leng, curfield)) {
+              out_write(dump_text,dump_leng);
+            }
+          } else if (curfield->infos.separator[0]) {
+            /* Separated values */
+            anon_context_st ctx = {
+              .tablekey = tablekey,
+              .tablekey_size = sizeof(tablekey),
+              .rowindex = rowindex,
+              .bfirstinsert = bfirstinsert,
+              .tablename = currenttable
+            };
+            handle_separated_values(dump_text, dump_leng, curfield, &ctx);
+          } else {
+            /* Single value */
+            anon_context_st ctx = {
+              .tablekey = tablekey,
+              .tablekey_size = sizeof(tablekey),
+              .rowindex = rowindex,
+              .bfirstinsert = bfirstinsert,
+              .tablename = currenttable
+            };
+            anonymized_res_st *res_st = anonymize_token(curfield->quoted, &curfield->infos,
+                                                        dump_text, dump_leng, &ctx);
+            bool out_quoted;
+            switch (res_st->quoting) {
+              case QUOTE_FORCE_TRUE:  out_quoted = true; break;
+              case QUOTE_FORCE_FALSE: out_quoted = false; break;
+              default:                out_quoted = curfield->quoted; break;
+            }
+            quoted_output_helper((char *)res_st->data, res_st->len, out_quoted);
+            anonymized_res_free(res_st);
+          }
+        } else {
+          out_write(dump_text,dump_leng);
+        }
       }
       currentfieldpos++;
     }
@@ -333,6 +424,7 @@ static bool handle_json_anonymization(char *field, int leng, anon_field_st *curf
     return true;
 }
 
+#ifdef HAVE_PYTHON
 /* Flush a buffered row: anonymize all fields and output them */
 static void flush_row(void) {
     /* Expose row buffer to Python via global pointer */
@@ -404,6 +496,7 @@ static void flush_row(void) {
 
     current_row_buffer = NULL;
 }
+#endif
 
 /* Handle separated values (fields with a separator character).
    Splits the field by separator and anonymizes each sub-value. */
