@@ -132,6 +132,7 @@ typedef struct anon_base_st
     unsigned short fixedvaluelen;  /* Length of fixed value */
 #ifdef HAVE_PYTHON
     char pydef[CONFIG_SIZE];       /* Python function name used to anonymize */
+    char pyargs[CONFIG_SIZE];      /* Optional arguments to pass to Python function */
 #endif
 } anon_base_st;
 

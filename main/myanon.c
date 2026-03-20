@@ -717,7 +717,10 @@ anonymized_res_st *anonymize_token(bool quoted, anon_base_st *config, char *toke
             pFunc = PyObject_GetAttrString(pModule, config->pydef);
             if (pFunc && PyCallable_Check(pFunc))
             {
-                pArgs = Py_BuildValue("(s)", worktoken);
+                if (config->pyargs[0])
+                    pArgs = Py_BuildValue("(ss)", worktoken, config->pyargs);
+                else
+                    pArgs = Py_BuildValue("(s)", worktoken);
                 pResult = PyObject_CallObject(pFunc, pArgs);
                 Py_DECREF(pArgs);
 
