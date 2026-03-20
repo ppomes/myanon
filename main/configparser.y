@@ -318,6 +318,16 @@ pydef:
                  #ifdef HAVE_PYTHON
                  basework.type = AM_PY;
                  remove_quote(basework.pydef,$2,sizeof(basework.pydef));
+                 basework.pyargs[0] = '\0';
+                 #else
+                 fprintf(stderr, "Python support disabled, ignoring pydef directive at line %d\n",config_line_nb);
+                 #endif
+               }
+  | PYDEF STRING STRING {
+                 #ifdef HAVE_PYTHON
+                 basework.type = AM_PY;
+                 remove_quote(basework.pydef,$2,sizeof(basework.pydef));
+                 remove_quote(basework.pyargs,$3,sizeof(basework.pyargs));
                  #else
                  fprintf(stderr, "Python support disabled, ignoring pydef directive at line %d\n",config_line_nb);
                  #endif
