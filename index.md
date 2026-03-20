@@ -60,7 +60,7 @@ Referential integrity is preserved: if `bob.johnson@corp.com` appears in another
 | `substring N` | Truncate the field value to the first N characters |
 | `json { path 'x.y' = ... }` | Anonymize specific paths inside JSON columns (supports nested objects and arrays with `[]`) |
 | `truncate` | Drop all data from a table (removes INSERT/UPDATE statements) |
-| `pydef 'func'` | Call a custom Python function |
+| `pydef 'func'` or `pydef 'func' 'params'` | Call a custom Python function, with optional parameters |
 | `separated by ','` | Modifier: apply the rule to each value in a delimited field |
 | `regex` table names | Match multiple tables with a single rule (e.g. `` regex `(prod\|test)users` ``) |
 
@@ -135,6 +135,22 @@ def anonymize_name(name):
     import hashlib, hmac
     secret = myanon_utils.get_secret()
     return hmac.new(secret.encode(), name.encode(), hashlib.sha256).hexdigest()[:len(name)]
+```
+
+Optional parameters can be passed from the config to Python functions:
+
+```
+`description` = pydef 'fake_text' '255,fixed'
+```
+
+The parameters are received as a second argument:
+
+```python
+def fake_text(value, params=None):
+    parts = (params or '').split(',')
+    max_length = int(parts[0]) if parts else 200
+    fixed = 'fixed' in parts
+    ...
 ```
 
 ## Docker build / run
