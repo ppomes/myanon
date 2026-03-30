@@ -186,6 +186,7 @@ static void set_working_table() {
 <ST_TABLE>time.*                        { DUPOUT return QTYPE; }
 <ST_TABLE>bit.*                         { DUPOUT return TYPE; }
 <ST_TABLE>json.*                        { DUPOUT return QTYPE; }
+<ST_TABLE>uuid.*                        { DUPOUT return QTYPE; }
 <ST_TABLE>set.*                         { DUPOUT return QTYPE; }
 <ST_TABLE>point.*                       { DUPOUT return TYPE; }
 <ST_TABLE>geometry.*                    { DUPOUT return TYPE; }
