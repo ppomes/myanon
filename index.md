@@ -299,7 +299,7 @@ The tests directory contains examples with basic hmac anonymization, and with py
 
 ## Rust implementation (vibe-coding experiment)
 
-An alternative Rust implementation is available in the `rust/` directory, created entirely through vibe-coding with [Claude Code](https://claude.com/claude-code). It produces identical output to the C version and passes all 14 tests, requiring only a Rust toolchain (no flex/bison/autotools).
+An alternative Rust implementation is available in the `rust/` directory, created entirely through vibe-coding with [Claude Code](https://claude.com/claude-code). It requires only a Rust toolchain (no flex/bison/autotools) and currently produces byte-identical output to the C version on all 19 reference tests (14 core + 5 Python). The optional `python` feature exposes the same `myanon_utils` API as the C build (`get_secret`, `get_row`, `get_table`, `escape_sql_string`, `unescape_sql_string`) and supports `pydef` with optional parameters.
 
 ```
 cd rust
@@ -308,3 +308,5 @@ cargo build --release --features python # With Python support (requires python3-
 ```
 
 The binary is at `rust/target/release/myanon`. Usage is the same as the C version.
+
+The C implementation is canonical: new features and fixes land there first, and the Rust port is brought back in sync periodically. Expect the Rust port to lag the C version between releases — check `rust/Cargo.toml` against `configure.ac` to see the gap.
