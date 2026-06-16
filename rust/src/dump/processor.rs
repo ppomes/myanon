@@ -36,6 +36,8 @@ pub struct DumpProcessor<'a> {
     line_nb: usize,
     values_field_pos: usize,
     values_in_tuple: bool,
+    table_needs_row_buffer: Vec<bool>,
+    tuple_buffer: Vec<u8>,
     #[cfg(feature = "python")]
     python_runner: Option<PythonRunner>,
 }
@@ -53,6 +55,12 @@ impl<'a> DumpProcessor<'a> {
             None
         };
 
+        let table_needs_row_buffer: Vec<bool> = config
+            .tables
+            .iter()
+            .map(|t| t.fields.iter().any(|f| f.infos.anon_type == AnonType::Py))
+            .collect();
+
         Ok(DumpProcessor {
             config,
             state: State::Initial,
@@ -66,6 +74,8 @@ impl<'a> DumpProcessor<'a> {
             line_nb: 1,
             values_field_pos: 0,
             values_in_tuple: false,
+            table_needs_row_buffer,
+            tuple_buffer: Vec::new(),
             #[cfg(feature = "python")]
             python_runner,
         })
@@ -353,6 +363,8 @@ impl<'a> DumpProcessor<'a> {
     }
 
     /// Streamed value parser. Returns true if it consumed the `;` terminator.
+    /// If the table has any pydef rule, tuples are buffered between `(` and `)`
+    /// so that the full row context can be exposed to Python before any pydef call.
     fn parse_values<W: Write>(
         &mut self,
         bytes: &[u8],
@@ -362,13 +374,41 @@ impl<'a> DumpProcessor<'a> {
         let len = bytes.len();
         let mut pos = 0;
         let mut terminated = false;
+        let buffered = self
+            .table_needs_row_buffer
+            .get(table_idx)
+            .copied()
+            .unwrap_or(false);
 
         while pos < len {
             let b = bytes[pos];
 
+            // Buffered-tuple fast path: collect every byte until ')'.
+            if buffered && self.values_in_tuple {
+                if b == b')' {
+                    self.tuple_buffer.push(b')');
+                    pos += 1;
+                    self.values_in_tuple = false;
+                    self.flush_buffered_tuple(table_idx, writer)?;
+                    self.bfirstinsert = false;
+                } else {
+                    if b == b'\n' {
+                        self.line_nb += 1;
+                    }
+                    self.tuple_buffer.push(b);
+                    pos += 1;
+                }
+                continue;
+            }
+
             match b {
                 b'(' => {
-                    writer.write_all(b"(").map_err(|e| e.to_string())?;
+                    if buffered {
+                        self.tuple_buffer.clear();
+                        self.tuple_buffer.push(b'(');
+                    } else {
+                        writer.write_all(b"(").map_err(|e| e.to_string())?;
+                    }
                     pos += 1;
                     self.values_field_pos = 0;
                     self.row_index += 1;
@@ -427,6 +467,118 @@ impl<'a> DumpProcessor<'a> {
         }
 
         Ok(terminated)
+    }
+
+    /// Walk a buffered tuple `( v0 , v1 , ... )` to extract the (field, raw-value)
+    /// pairs, expose them to Python via `myanon_utils.{_current_row,_current_table}`,
+    /// then walk it again and emit each value through `handle_value`.
+    fn flush_buffered_tuple<W: Write>(
+        &mut self,
+        table_idx: usize,
+        writer: &mut W,
+    ) -> Result<(), String> {
+        let buf = std::mem::take(&mut self.tuple_buffer);
+
+        // Pass 1 — extract row values into a (field_name, unquoted_value) list.
+        #[cfg(feature = "python")]
+        {
+            let row = self.extract_row_from_buffer(&buf)?;
+            if let Some(ref runner) = self.python_runner {
+                runner.set_row(&self.current_table, &row)?;
+            }
+        }
+
+        // Pass 2 — re-walk the buffer to write the tuple, anonymizing per field.
+        let mut pos = 0;
+        let mut field_pos: usize = 0;
+        let mut in_tuple = false;
+        while pos < buf.len() {
+            let b = buf[pos];
+            match b {
+                b'(' => {
+                    writer.write_all(b"(").map_err(|e| e.to_string())?;
+                    pos += 1;
+                    in_tuple = true;
+                    field_pos = 0;
+                }
+                b')' => {
+                    writer.write_all(b")").map_err(|e| e.to_string())?;
+                    pos += 1;
+                    in_tuple = false;
+                }
+                b',' => {
+                    writer.write_all(b",").map_err(|e| e.to_string())?;
+                    pos += 1;
+                    if in_tuple {
+                        field_pos += 1;
+                    }
+                }
+                b' ' | b'\n' => {
+                    writer.write_all(&[b]).map_err(|e| e.to_string())?;
+                    pos += 1;
+                }
+                _ if in_tuple => {
+                    let (token_type, end_pos) = self.scan_value(&buf, pos)?;
+                    let raw = &buf[pos..end_pos];
+                    self.handle_value(&token_type, raw, field_pos, table_idx, writer)?;
+                    pos = end_pos;
+                }
+                _ => {
+                    writer.write_all(&[b]).map_err(|e| e.to_string())?;
+                    pos += 1;
+                }
+            }
+        }
+
+        self.tuple_buffer = buf;
+        self.tuple_buffer.clear();
+        Ok(())
+    }
+
+    /// Tokenize a buffered tuple to extract (field_name_with_backticks, unquoted_value)
+    /// pairs. Used to expose the row context to Python.
+    #[cfg(feature = "python")]
+    fn extract_row_from_buffer(&self, buf: &[u8]) -> Result<Vec<(String, String)>, String> {
+        let mut row: Vec<(String, String)> = Vec::with_capacity(self.fields.len());
+        let mut pos = 0;
+        let mut field_pos: usize = 0;
+        let mut in_tuple = false;
+        while pos < buf.len() {
+            let b = buf[pos];
+            match b {
+                b'(' => {
+                    in_tuple = true;
+                    field_pos = 0;
+                    pos += 1;
+                }
+                b')' => {
+                    in_tuple = false;
+                    pos += 1;
+                }
+                b',' => {
+                    if in_tuple {
+                        field_pos += 1;
+                    }
+                    pos += 1;
+                }
+                b' ' | b'\n' => pos += 1,
+                _ if in_tuple => {
+                    let (_token_type, end_pos) = self.scan_value(buf, pos)?;
+                    let raw = &buf[pos..end_pos];
+                    if let Some(field) = self.fields.get(field_pos) {
+                        let unquoted = if raw.len() >= 2 && raw[0] == b'\'' && raw[raw.len() - 1] == b'\'' {
+                            String::from_utf8_lossy(&raw[1..raw.len() - 1]).into_owned()
+                        } else {
+                            String::from_utf8_lossy(raw).into_owned()
+                        };
+                        row.push((format!("`{}`", field.name), unquoted));
+                    }
+                    pos = end_pos;
+                }
+                _ => pos += 1,
+            }
+        }
+        Ok(row)
     }
 
     /// Continuation lines of a multi-line INSERT statement.

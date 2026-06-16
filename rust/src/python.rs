@@ -1,11 +1,12 @@
 use pyo3::prelude::*;
-use pyo3::types::PyModule;
+use pyo3::types::{PyDict, PyModule};
 use std::ffi::CString;
 use std::path::Path;
 
 /// Holds a reference to the imported Python module and the HMAC secret.
 pub struct PythonRunner {
     module: Py<PyModule>,
+    utils_module: Py<PyModule>,
 }
 
 impl PythonRunner {
@@ -24,11 +25,21 @@ impl PythonRunner {
         };
 
         Python::attach(|py| {
-            // Create the myanon_utils module with get_secret, unescape_sql_string, escape_sql_string
+            // Create the myanon_utils module with get_secret, get_row, get_table,
+            // unescape_sql_string, escape_sql_string
             let utils_code = format!(
                 r#"
+_current_row = {{}}
+_current_table = ""
+
 def get_secret():
     return {secret_repr}
+
+def get_row():
+    return _current_row
+
+def get_table():
+    return _current_table
 
 def unescape_sql_string(s):
     result = []
@@ -95,7 +106,7 @@ def escape_sql_string(s):
                 "Failed to get sys.modules".to_string()
             })?;
             modules
-                .set_item("myanon_utils", utils_module)
+                .set_item("myanon_utils", &utils_module)
                 .map_err(|e| {
                     e.print(py);
                     "Failed to register myanon_utils in sys.modules".to_string()
@@ -119,7 +130,33 @@ def escape_sql_string(s):
 
             Ok(PythonRunner {
                 module: module.into(),
+                utils_module: utils_module.into(),
             })
+        })
+    }
+
+    /// Publish the current row context (table name + field/value pairs) into
+    /// `myanon_utils._current_table` and `myanon_utils._current_row`.
+    /// Field names are passed with surrounding backticks to match the C API.
+    pub fn set_row(&self, table: &str, row: &[(String, String)]) -> Result<(), String> {
+        Python::attach(|py| {
+            let utils = self.utils_module.bind(py);
+            let dict = PyDict::new(py);
+            for (k, v) in row {
+                dict.set_item(k, v).map_err(|e| {
+                    e.print(py);
+                    "Failed to set row item".to_string()
+                })?;
+            }
+            utils.setattr("_current_row", dict).map_err(|e| {
+                e.print(py);
+                "Failed to publish _current_row".to_string()
+            })?;
+            utils.setattr("_current_table", table).map_err(|e| {
+                e.print(py);
+                "Failed to publish _current_table".to_string()
+            })?;
+            Ok(())
         })
     }
 
