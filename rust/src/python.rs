@@ -23,7 +23,7 @@ impl PythonRunner {
                 .to_string()
         };
 
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             // Create the myanon_utils module with get_secret, unescape_sql_string, escape_sql_string
             let utils_code = format!(
                 r#"
@@ -126,7 +126,7 @@ def escape_sql_string(s):
     /// Call a named function in the user's Python module with a single string argument.
     /// Returns the result as a String.
     pub fn call(&self, func_name: &str, value: &str) -> Result<String, String> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let module = self.module.bind(py);
             let func = module.getattr(func_name).map_err(|e| {
                 e.print(py);
@@ -136,7 +136,7 @@ def escape_sql_string(s):
                 e.print(py);
                 format!("Python function '{}' call failed", func_name)
             })?;
-            let result_str: String = result.extract().map_err(|e| {
+            let result_str: String = result.extract::<String>().map_err(|e| {
                 e.print(py);
                 format!(
                     "Python function '{}' did not return a string",
