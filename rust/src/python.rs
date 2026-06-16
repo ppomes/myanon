@@ -123,16 +123,22 @@ def escape_sql_string(s):
         })
     }
 
-    /// Call a named function in the user's Python module with a single string argument.
-    /// Returns the result as a String.
-    pub fn call(&self, func_name: &str, value: &str) -> Result<String, String> {
+    /// Call a named function in the user's Python module.
+    /// If `params` is empty, the function is called with a single string argument `(value,)`.
+    /// Otherwise it is called with `(value, params)`.
+    pub fn call(&self, func_name: &str, value: &str, params: &str) -> Result<String, String> {
         Python::attach(|py| {
             let module = self.module.bind(py);
             let func = module.getattr(func_name).map_err(|e| {
                 e.print(py);
                 format!("Python function '{}' not found", func_name)
             })?;
-            let result = func.call1((value,)).map_err(|e| {
+            let result = if params.is_empty() {
+                func.call1((value,))
+            } else {
+                func.call1((value, params))
+            }
+            .map_err(|e| {
                 e.print(py);
                 format!("Python function '{}' call failed", func_name)
             })?;

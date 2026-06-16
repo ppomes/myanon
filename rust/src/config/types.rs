@@ -39,6 +39,7 @@ pub struct AnonBase {
     pub separator: Option<char>,
     pub fixed_value: String,
     pub pydef: String,
+    pub pyargs: String,
     pub nbhits: u64,
 }
 
@@ -51,6 +52,7 @@ impl Default for AnonBase {
             separator: None,
             fixed_value: String::new(),
             pydef: String::new(),
+            pyargs: String::new(),
             nbhits: 0,
         }
     }

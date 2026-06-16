@@ -284,6 +284,9 @@ impl Parser {
             Token::PyDef => {
                 infos.anon_type = AnonType::Py;
                 infos.pydef = self.expect_string()?;
+                if matches!(self.lexer.peek_token()?, Token::Str(_)) {
+                    infos.pyargs = self.expect_string()?;
+                }
             }
             Token::Json => {
                 infos.anon_type = AnonType::Json;
@@ -417,6 +420,9 @@ impl Parser {
             Token::PyDef => {
                 infos.anon_type = AnonType::Py;
                 infos.pydef = self.expect_string()?;
+                if matches!(self.lexer.peek_token()?, Token::Str(_)) {
+                    infos.pyargs = self.expect_string()?;
+                }
             }
             _ => {
                 return Err(self.error(&format!(

@@ -741,11 +741,12 @@ impl<'a> DumpProcessor<'a> {
         };
         let value_str = String::from_utf8_lossy(&worktoken);
         let pydef = &self.config.tables[table_idx].fields[field_idx].infos.pydef;
+        let pyargs = &self.config.tables[table_idx].fields[field_idx].infos.pyargs;
 
         #[cfg(feature = "python")]
         {
             if let Some(ref runner) = self.python_runner {
-                match runner.call(pydef, &value_str) {
+                match runner.call(pydef, &value_str, pyargs) {
                     Ok(result) => {
                         return AnonResult {
                             data: result.into_bytes(),
@@ -761,7 +762,7 @@ impl<'a> DumpProcessor<'a> {
 
         #[cfg(not(feature = "python"))]
         {
-            let _ = (pydef, &value_str);
+            let _ = (pydef, pyargs, &value_str);
             eprintln!("Python support not compiled in, cannot use pydef");
         }
 
