@@ -12,7 +12,9 @@ const MYSQL_MAX_FIELD_PER_TABLE: usize = 4096;
 enum State {
     Initial,
     InTable,
+    InValues,
     Truncate,
+    TruncateInValues,
 }
 
 /// Field info captured during CREATE TABLE parsing
@@ -32,6 +34,8 @@ pub struct DumpProcessor<'a> {
     row_index: i32,
     bfirstinsert: bool,
     line_nb: usize,
+    values_field_pos: usize,
+    values_in_tuple: bool,
     #[cfg(feature = "python")]
     python_runner: Option<PythonRunner>,
 }
@@ -60,6 +64,8 @@ impl<'a> DumpProcessor<'a> {
             row_index: 0,
             bfirstinsert: true,
             line_nb: 1,
+            values_field_pos: 0,
+            values_in_tuple: false,
             #[cfg(feature = "python")]
             python_runner,
         })
@@ -92,7 +98,9 @@ impl<'a> DumpProcessor<'a> {
         match self.state {
             State::Initial => self.process_initial(line, writer),
             State::InTable => self.process_in_table(line, writer),
+            State::InValues => self.process_in_values(line, writer),
             State::Truncate => self.process_truncate(line, writer),
+            State::TruncateInValues => self.process_truncate_in_values(line, writer),
         }
     }
 
@@ -151,8 +159,11 @@ impl<'a> DumpProcessor<'a> {
 
         if Self::is_insert_replace_line(line) {
             if self.current_table_config_idx.is_some() {
-                self.process_insert_line(line, writer)?;
+                let terminated = self.process_insert_line(line, writer)?;
                 self.count_newlines(line);
+                if !terminated {
+                    self.state = State::InValues;
+                }
                 return Ok(());
             }
         }
@@ -228,6 +239,7 @@ impl<'a> DumpProcessor<'a> {
             || lower.starts_with("timestamp")
             || lower.starts_with("time")
             || lower.starts_with("json")
+            || lower.starts_with("uuid")
             || lower.starts_with("set")
     }
 
@@ -282,6 +294,10 @@ impl<'a> DumpProcessor<'a> {
                 writer.write_all(b"\n").map_err(|e| e.to_string())?;
             }
             self.count_newlines(line);
+            // If the statement isn't terminated on this line, swallow continuations until `;`
+            if !line.contains(&b';') {
+                self.state = State::TruncateInValues;
+            }
             return Ok(());
         }
 
@@ -303,46 +319,49 @@ impl<'a> DumpProcessor<'a> {
     }
 
     /// Process an INSERT/REPLACE line with value anonymization.
-    fn process_insert_line<W: Write>(&mut self, line: &[u8], writer: &mut W) -> Result<(), String> {
+    /// Returns true if the statement terminator (`;`) was seen on this line.
+    fn process_insert_line<W: Write>(&mut self, line: &[u8], writer: &mut W) -> Result<bool, String> {
         let table_idx = match self.current_table_config_idx {
             Some(idx) => idx,
             None => {
                 writer.write_all(line).map_err(|e| e.to_string())?;
-                return Ok(());
+                return Ok(true);
             }
         };
 
-        // Find the " VALUES " keyword
-        let values_pos = match Self::find_bytes(line, b" VALUES ") {
+        // Find the " VALUES" keyword (mysqldump may follow it with space, newline, or '(')
+        let values_pos = match Self::find_bytes(line, b" VALUES") {
             Some(pos) => pos,
             None => {
                 writer.write_all(line).map_err(|e| e.to_string())?;
-                return Ok(());
+                return Ok(true);
             }
         };
 
-        // Write prefix including " VALUES "
-        let prefix_end = values_pos + 8;
+        // Write prefix including " VALUES"
+        let prefix_end = values_pos + 7;
         writer
             .write_all(&line[..prefix_end])
             .map_err(|e| e.to_string())?;
 
-        // Parse values portion
-        self.parse_values(&line[prefix_end..], table_idx, writer)?;
+        // Reset per-statement parser state
+        self.values_field_pos = 0;
+        self.values_in_tuple = false;
 
-        Ok(())
+        // Parse values portion
+        self.parse_values(&line[prefix_end..], table_idx, writer)
     }
 
+    /// Streamed value parser. Returns true if it consumed the `;` terminator.
     fn parse_values<W: Write>(
         &mut self,
         bytes: &[u8],
         table_idx: usize,
         writer: &mut W,
-    ) -> Result<(), String> {
+    ) -> Result<bool, String> {
         let len = bytes.len();
         let mut pos = 0;
-        let mut current_field_pos: usize = 0;
-        let mut in_tuple = false;
+        let mut terminated = false;
 
         while pos < len {
             let b = bytes[pos];
@@ -351,29 +370,30 @@ impl<'a> DumpProcessor<'a> {
                 b'(' => {
                     writer.write_all(b"(").map_err(|e| e.to_string())?;
                     pos += 1;
-                    current_field_pos = 0;
+                    self.values_field_pos = 0;
                     self.row_index += 1;
                     self.tablekey.clear();
-                    in_tuple = true;
+                    self.values_in_tuple = true;
                 }
                 b')' => {
                     writer.write_all(b")").map_err(|e| e.to_string())?;
                     pos += 1;
                     self.bfirstinsert = false;
-                    in_tuple = false;
+                    self.values_in_tuple = false;
                 }
                 b',' => {
                     writer.write_all(b",").map_err(|e| e.to_string())?;
                     pos += 1;
-                    if in_tuple {
+                    if self.values_in_tuple {
                         // Comma between fields in a tuple
-                        current_field_pos += 1;
+                        self.values_field_pos += 1;
                     }
                     // If not in tuple, comma between tuples
                 }
                 b';' => {
                     writer.write_all(b";").map_err(|e| e.to_string())?;
                     pos += 1;
+                    terminated = true;
                 }
                 b'\n' => {
                     writer.write_all(b"\n").map_err(|e| e.to_string())?;
@@ -384,14 +404,15 @@ impl<'a> DumpProcessor<'a> {
                     writer.write_all(b" ").map_err(|e| e.to_string())?;
                     pos += 1;
                 }
-                _ if in_tuple => {
+                _ if self.values_in_tuple => {
                     // Parse a value token
                     let (token_type, end_pos) = self.scan_value(bytes, pos)?;
                     let raw = &bytes[pos..end_pos];
+                    let field_pos = self.values_field_pos;
                     self.handle_value(
                         &token_type,
                         raw,
-                        current_field_pos,
+                        field_pos,
                         table_idx,
                         writer,
                     )?;
@@ -405,6 +426,36 @@ impl<'a> DumpProcessor<'a> {
             }
         }
 
+        Ok(terminated)
+    }
+
+    /// Continuation lines of a multi-line INSERT statement.
+    fn process_in_values<W: Write>(&mut self, line: &[u8], writer: &mut W) -> Result<(), String> {
+        let table_idx = match self.current_table_config_idx {
+            Some(idx) => idx,
+            None => {
+                writer.write_all(line).map_err(|e| e.to_string())?;
+                self.state = State::Initial;
+                return Ok(());
+            }
+        };
+        let terminated = self.parse_values(line, table_idx, writer)?;
+        if terminated {
+            self.state = State::InTable;
+        }
+        Ok(())
+    }
+
+    /// Continuation lines of a multi-line INSERT in truncate mode (all suppressed until `;`).
+    fn process_truncate_in_values<W: Write>(
+        &mut self,
+        line: &[u8],
+        _writer: &mut W,
+    ) -> Result<(), String> {
+        self.count_newlines(line);
+        if line.contains(&b';') {
+            self.state = State::Truncate;
+        }
         Ok(())
     }
 
