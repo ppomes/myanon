@@ -1,6 +1,8 @@
 use std::io::{BufRead, BufReader, Read, Write};
 
-use crate::anonymize::{anonymize_token, remove_quote, AnonContext, AnonResult, QuoteMode};
+use crate::anonymize::{
+    anonymize_token, anonymize_token_into, remove_quote, AnonContext, AnonResult, QuoteMode,
+};
 use crate::config::{AnonType, Config, TableAction};
 use crate::json;
 #[cfg(feature = "python")]
@@ -38,6 +40,8 @@ pub struct DumpProcessor<'a> {
     values_in_tuple: bool,
     table_needs_row_buffer: Vec<bool>,
     tuple_buffer: Vec<u8>,
+    secret_bytes: Vec<u8>,
+    anon_scratch: Vec<u8>,
     #[cfg(feature = "python")]
     python_runner: Option<PythonRunner>,
 }
@@ -60,6 +64,7 @@ impl<'a> DumpProcessor<'a> {
             .iter()
             .map(|t| t.fields.iter().any(|f| f.infos.anon_type == AnonType::Py))
             .collect();
+        let secret_bytes = config.secret.as_bytes().to_vec();
 
         Ok(DumpProcessor {
             config,
@@ -76,6 +81,8 @@ impl<'a> DumpProcessor<'a> {
             values_in_tuple: false,
             table_needs_row_buffer,
             tuple_buffer: Vec::new(),
+            secret_bytes,
+            anon_scratch: Vec::with_capacity(64),
             #[cfg(feature = "python")]
             python_runner,
         })
@@ -780,26 +787,40 @@ impl<'a> DumpProcessor<'a> {
         }
 
         // Normal anonymization
-        let secret = self.config.secret.as_bytes().to_vec();
         let mut ctx = AnonContext {
-            tablekey: self.tablekey.clone(),
+            tablekey: &mut self.tablekey,
             rowindex: self.row_index,
             bfirstinsert: self.bfirstinsert,
-            tablename: self.current_table.clone(),
+            tablename: &self.current_table,
         };
 
         let config = &self.config.tables[table_idx].fields[field_idx].infos;
-        let res = anonymize_token(field_quoted, config, raw, &secret, Some(&mut ctx));
+        let quoting = anonymize_token_into(
+            &mut self.anon_scratch,
+            field_quoted,
+            config,
+            raw,
+            &self.secret_bytes,
+            Some(&mut ctx),
+        );
 
-        self.tablekey = ctx.tablekey;
-
-        let out_quoted = match res.quoting {
+        let out_quoted = match quoting {
             QuoteMode::ForceTrue => true,
             QuoteMode::ForceFalse => false,
             QuoteMode::AsInput => field_quoted,
         };
 
-        self.write_quoted_output(&res.data, out_quoted, writer)?;
+        if out_quoted {
+            writer.write_all(b"'").map_err(|e| e.to_string())?;
+            writer
+                .write_all(&self.anon_scratch)
+                .map_err(|e| e.to_string())?;
+            writer.write_all(b"'").map_err(|e| e.to_string())?;
+        } else {
+            writer
+                .write_all(&self.anon_scratch)
+                .map_err(|e| e.to_string())?;
+        }
         Ok(())
     }
 
@@ -829,8 +850,6 @@ impl<'a> DumpProcessor<'a> {
             }
         };
 
-        let secret = self.config.secret.clone();
-
         // Collect JSON rules
         let json_rules: Vec<(String, crate::config::AnonBase)> = self.config.tables[table_idx]
             .fields[field_idx]
@@ -841,7 +860,7 @@ impl<'a> DumpProcessor<'a> {
 
         for (i, (filter, rule_config)) in json_rules.iter().enumerate() {
             if json::json_path_has_wildcards(filter) {
-                json::json_anonymize_path(&mut parsed, filter, rule_config, secret.as_bytes());
+                json::json_anonymize_path(&mut parsed, filter, rule_config, &self.secret_bytes);
             } else {
                 let current_value = json::json_get_string_at_path(&parsed, filter);
                 if current_value.is_none() {
@@ -856,7 +875,7 @@ impl<'a> DumpProcessor<'a> {
                         false,
                         rule_config,
                         current_value.as_bytes(),
-                        secret.as_bytes(),
+                        &self.secret_bytes,
                         None,
                     );
                     String::from_utf8(res.data).unwrap_or_default()
@@ -950,8 +969,6 @@ impl<'a> DumpProcessor<'a> {
             return Ok(());
         }
 
-        let secret = self.config.secret.as_bytes().to_vec();
-
         writer.write_all(b"'").map_err(|e| e.to_string())?;
 
         for (i, part) in parts.iter().enumerate() {
@@ -962,15 +979,14 @@ impl<'a> DumpProcessor<'a> {
             }
 
             let mut ctx = AnonContext {
-                tablekey: self.tablekey.clone(),
+                tablekey: &mut self.tablekey,
                 rowindex: self.row_index,
                 bfirstinsert: self.bfirstinsert,
-                tablename: self.current_table.clone(),
+                tablename: &self.current_table,
             };
 
             let config = &self.config.tables[table_idx].fields[field_idx].infos;
-            let res = anonymize_token(false, config, part.as_bytes(), &secret, Some(&mut ctx));
-            self.tablekey = ctx.tablekey;
+            let res = anonymize_token(false, config, part.as_bytes(), &self.secret_bytes, Some(&mut ctx));
 
             let out_quoted = match res.quoting {
                 QuoteMode::ForceTrue => true,

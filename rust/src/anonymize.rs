@@ -18,29 +18,39 @@ pub struct AnonResult {
     pub quoting: QuoteMode,
 }
 
-pub struct AnonContext {
-    pub tablekey: String,
+pub struct AnonContext<'a> {
+    pub tablekey: &'a mut String,
     pub rowindex: i32,
     pub bfirstinsert: bool,
-    pub tablename: String,
+    pub tablename: &'a str,
 }
 
 /// Escape single quotes and backslashes for MySQL output (doubling style).
 pub fn mysql_escape(src: &str) -> Vec<u8> {
     let mut out = Vec::with_capacity(src.len());
+    mysql_escape_into(&mut out, src);
+    out
+}
+
+/// Append the MySQL-escaped form of `src` to `out`.
+pub fn mysql_escape_into(out: &mut Vec<u8>, src: &str) {
     for &b in src.as_bytes() {
         if b == b'\'' || b == b'\\' {
             out.push(b);
         }
         out.push(b);
     }
-    out
 }
 
 /// Strip leading/trailing single quotes from a SQL string value.
 pub fn remove_quote(src: &[u8]) -> Vec<u8> {
+    remove_quote_slice(src).to_vec()
+}
+
+/// Zero-copy variant of `remove_quote`.
+pub fn remove_quote_slice(src: &[u8]) -> &[u8] {
     if src.is_empty() {
-        return Vec::new();
+        return src;
     }
     let mut start = 0;
     let mut end = src.len();
@@ -50,7 +60,7 @@ pub fn remove_quote(src: &[u8]) -> Vec<u8> {
     if end > start && src[end - 1] == b'\'' {
         end -= 1;
     }
-    src[start..end].to_vec()
+    &src[start..end]
 }
 
 fn is_escape_char(c: u8) -> bool {
@@ -94,6 +104,12 @@ fn is_valid_utf8_sequence(src: &[u8]) -> bool {
 /// Substring that respects UTF-8 boundaries and escape sequences (\x counts as 1 char).
 pub fn mysubstr(src: &[u8], num_chars: usize) -> Vec<u8> {
     let mut result = Vec::new();
+    mysubstr_into(&mut result, src, num_chars);
+    result
+}
+
+/// Same as `mysubstr` but appends into a caller-provided buffer.
+pub fn mysubstr_into(result: &mut Vec<u8>, src: &[u8], num_chars: usize) {
     let mut srccount = 0;
     let mut copied_chars = 0;
     let src_len = src.len();
@@ -123,24 +139,28 @@ pub fn mysubstr(src: &[u8], num_chars: usize) -> Vec<u8> {
             copied_chars += 1;
         }
     }
-
-    result
 }
 
-/// Compute HMAC-SHA256 and map each byte to the range [begin, end].
-fn make_readable_hash(token: &[u8], secret: &[u8], len: u16, begin: u8, end: u8) -> Vec<u8> {
-    let hash_len = std::cmp::min(32, len as usize);
+/// Compute HMAC-SHA256 and map each byte to the range [begin, end], appending
+/// into the caller-provided buffer.
+fn make_readable_hash_into(
+    out: &mut Vec<u8>,
+    token: &[u8],
+    secret: &[u8],
+    hash_len: usize,
+    begin: u8,
+    end: u8,
+) {
     let mut mac = HmacSha256::new_from_slice(secret).expect("HMAC accepts any key length");
     mac.update(token);
     let result = mac.finalize();
     let digest = result.into_bytes();
 
     let range = (end - begin + 1) as u8;
-    let mut out = Vec::with_capacity(hash_len);
+    out.reserve(hash_len);
     for i in 0..hash_len {
         out.push((digest[i] % range) + begin);
     }
-    out
 }
 
 pub fn anonymize_token(
@@ -148,145 +168,130 @@ pub fn anonymize_token(
     config: &AnonBase,
     token: &[u8],
     secret: &[u8],
-    ctx: Option<&mut AnonContext>,
+    ctx: Option<&mut AnonContext<'_>>,
 ) -> AnonResult {
-    // If quoted, strip the surrounding quotes
+    let mut data = Vec::new();
+    let quoting = anonymize_token_into(&mut data, quoted, config, token, secret, ctx);
+    AnonResult { data, quoting }
+}
+
+/// Hot-path variant: writes the anonymized bytes into the caller-provided buffer
+/// (cleared first) and returns just the `QuoteMode`. Avoids per-call allocation
+/// of an `AnonResult`/`Vec`.
+pub fn anonymize_token_into(
+    out: &mut Vec<u8>,
+    quoted: bool,
+    config: &AnonBase,
+    token: &[u8],
+    secret: &[u8],
+    ctx: Option<&mut AnonContext<'_>>,
+) -> QuoteMode {
+    out.clear();
     let worktoken = if quoted {
-        remove_quote(token)
+        remove_quote_slice(token)
     } else {
-        token.to_vec()
+        token
     };
 
     match config.anon_type {
-        AnonType::FixedNull => AnonResult {
-            data: b"NULL".to_vec(),
-            quoting: QuoteMode::ForceFalse,
-        },
+        AnonType::FixedNull => {
+            out.extend_from_slice(b"NULL");
+            QuoteMode::ForceFalse
+        }
 
         AnonType::Fixed | AnonType::FixedQuoted | AnonType::FixedUnquoted => {
-            let escaped = mysql_escape(&config.fixed_value);
-            let quoting = match config.anon_type {
+            mysql_escape_into(out, &config.fixed_value);
+            match config.anon_type {
                 AnonType::FixedQuoted => QuoteMode::ForceTrue,
                 AnonType::FixedUnquoted => QuoteMode::ForceFalse,
                 _ => QuoteMode::AsInput,
-            };
-            AnonResult {
-                data: escaped,
-                quoting,
             }
         }
 
         AnonType::Key => {
             if let Some(ctx) = ctx {
-                ctx.tablekey = String::from_utf8_lossy(&worktoken).to_string();
+                ctx.tablekey.clear();
+                ctx.tablekey
+                    .push_str(&String::from_utf8_lossy(worktoken));
             }
-            AnonResult {
-                data: worktoken,
-                quoting: QuoteMode::AsInput,
-            }
+            out.extend_from_slice(worktoken);
+            QuoteMode::AsInput
         }
 
         AnonType::AppendKey => {
-            let key = ctx
-                .as_ref()
-                .map(|c| c.tablekey.as_str())
-                .unwrap_or("");
-            let concat = format!("{}{}", config.fixed_value, key);
-            if let Some(ctx) = ctx {
-                if ctx.tablekey.is_empty() && ctx.bfirstinsert {
+            if let Some(c) = ctx.as_deref() {
+                if c.tablekey.is_empty() && c.bfirstinsert {
                     eprintln!(
                         "WARNING! Table {} fields order: for appendkey mode, the key must be defined before the field to anonymize",
-                        ctx.tablename
+                        c.tablename
                     );
                 }
             }
-            AnonResult {
-                data: concat.into_bytes(),
-                quoting: QuoteMode::ForceTrue,
+            out.extend_from_slice(config.fixed_value.as_bytes());
+            if let Some(c) = ctx.as_deref() {
+                out.extend_from_slice(c.tablekey.as_bytes());
             }
+            QuoteMode::ForceTrue
         }
 
         AnonType::PrependKey => {
-            let key = ctx
-                .as_ref()
-                .map(|c| c.tablekey.as_str())
-                .unwrap_or("");
-            let concat = format!("{}{}", key, config.fixed_value);
-            if let Some(ctx) = ctx {
-                if ctx.tablekey.is_empty() && ctx.bfirstinsert {
+            if let Some(c) = ctx.as_deref() {
+                if c.tablekey.is_empty() && c.bfirstinsert {
                     eprintln!(
                         "WARNING! Table {} fields order: for prependkey mode, the key must be defined before the field to anonymize",
-                        ctx.tablename
+                        c.tablename
                     );
                 }
+                out.extend_from_slice(c.tablekey.as_bytes());
             }
-            AnonResult {
-                data: concat.into_bytes(),
-                quoting: QuoteMode::ForceTrue,
-            }
+            out.extend_from_slice(config.fixed_value.as_bytes());
+            QuoteMode::ForceTrue
         }
 
         AnonType::AppendIndex => {
-            let index = ctx.as_ref().map(|c| c.rowindex).unwrap_or(0);
-            let concat = format!("{}{}", config.fixed_value, index);
-            AnonResult {
-                data: concat.into_bytes(),
-                quoting: QuoteMode::ForceTrue,
-            }
+            let index = ctx.as_deref().map(|c| c.rowindex).unwrap_or(0);
+            out.extend_from_slice(config.fixed_value.as_bytes());
+            use std::io::Write as _;
+            let _ = write!(out, "{}", index);
+            QuoteMode::ForceTrue
         }
 
         AnonType::PrependIndex => {
-            let index = ctx.as_ref().map(|c| c.rowindex).unwrap_or(0);
-            let concat = format!("{}{}", index, config.fixed_value);
-            AnonResult {
-                data: concat.into_bytes(),
-                quoting: QuoteMode::ForceTrue,
-            }
+            let index = ctx.as_deref().map(|c| c.rowindex).unwrap_or(0);
+            use std::io::Write as _;
+            let _ = write!(out, "{}", index);
+            out.extend_from_slice(config.fixed_value.as_bytes());
+            QuoteMode::ForceTrue
         }
 
         AnonType::TextHash => {
-            let hash_len = std::cmp::min(32, config.len) as u16;
-            let data = make_readable_hash(&worktoken, secret, hash_len, b'a', b'z');
-            AnonResult {
-                data,
-                quoting: QuoteMode::AsInput,
-            }
+            let hash_len = std::cmp::min(32, config.len as usize);
+            make_readable_hash_into(out, worktoken, secret, hash_len, b'a', b'z');
+            QuoteMode::AsInput
         }
 
         AnonType::EmailHash => {
-            let hash_len = std::cmp::min(32, config.len) as u16;
-            let mut data = make_readable_hash(&worktoken, secret, hash_len, b'a', b'z');
-            data.push(b'@');
-            data.extend_from_slice(config.domain.as_bytes());
-            AnonResult {
-                data,
-                quoting: QuoteMode::AsInput,
-            }
+            let hash_len = std::cmp::min(32, config.len as usize);
+            make_readable_hash_into(out, worktoken, secret, hash_len, b'a', b'z');
+            out.push(b'@');
+            out.extend_from_slice(config.domain.as_bytes());
+            QuoteMode::AsInput
         }
 
         AnonType::IntHash => {
-            let hash_len = std::cmp::min(32, config.len) as u16;
-            let data = make_readable_hash(&worktoken, secret, hash_len, b'1', b'9');
-            AnonResult {
-                data,
-                quoting: QuoteMode::AsInput,
-            }
+            let hash_len = std::cmp::min(32, config.len as usize);
+            make_readable_hash_into(out, worktoken, secret, hash_len, b'1', b'9');
+            QuoteMode::AsInput
         }
 
         AnonType::Substring => {
-            let data = mysubstr(&worktoken, config.len as usize);
-            AnonResult {
-                data,
-                quoting: QuoteMode::AsInput,
-            }
+            mysubstr_into(out, worktoken, config.len as usize);
+            QuoteMode::AsInput
         }
 
         AnonType::Json | AnonType::Py => {
             // JSON handled at a higher level; Py not implemented
-            AnonResult {
-                data: Vec::new(),
-                quoting: QuoteMode::AsInput,
-            }
+            QuoteMode::AsInput
         }
     }
 }
@@ -310,9 +315,16 @@ mod tests {
         assert_eq!(mysql_escape("a\\b"), b"a\\\\b");
     }
 
+    fn make_readable_hash_test(token: &[u8], secret: &[u8], len: u16, begin: u8, end: u8) -> Vec<u8> {
+        let mut out = Vec::new();
+        let hash_len = std::cmp::min(32, len as usize);
+        make_readable_hash_into(&mut out, token, secret, hash_len, begin, end);
+        out
+    }
+
     #[test]
     fn test_make_readable_hash_text() {
-        let hash = make_readable_hash(b"test", b"lapin", 5, b'a', b'z');
+        let hash = make_readable_hash_test(b"test", b"lapin", 5, b'a', b'z');
         assert_eq!(hash.len(), 5);
         for &b in &hash {
             assert!(b >= b'a' && b <= b'z');
@@ -321,7 +333,7 @@ mod tests {
 
     #[test]
     fn test_make_readable_hash_int() {
-        let hash = make_readable_hash(b"test", b"lapin", 3, b'1', b'9');
+        let hash = make_readable_hash_test(b"test", b"lapin", 3, b'1', b'9');
         assert_eq!(hash.len(), 3);
         for &b in &hash {
             assert!(b >= b'1' && b <= b'9');
@@ -330,8 +342,8 @@ mod tests {
 
     #[test]
     fn test_make_readable_hash_deterministic() {
-        let h1 = make_readable_hash(b"hello", b"secret", 10, b'a', b'z');
-        let h2 = make_readable_hash(b"hello", b"secret", 10, b'a', b'z');
+        let h1 = make_readable_hash_test(b"hello", b"secret", 10, b'a', b'z');
+        let h2 = make_readable_hash_test(b"hello", b"secret", 10, b'a', b'z');
         assert_eq!(h1, h2);
     }
 
@@ -380,15 +392,16 @@ mod tests {
             anon_type: AnonType::Key,
             ..Default::default()
         };
+        let mut tablekey = String::new();
         let mut ctx = AnonContext {
-            tablekey: String::new(),
+            tablekey: &mut tablekey,
             rowindex: 0,
             bfirstinsert: true,
-            tablename: "test".to_string(),
+            tablename: "test",
         };
         let result = anonymize_token(false, &config, b"42", b"secret", Some(&mut ctx));
         assert_eq!(result.data, b"42");
-        assert_eq!(ctx.tablekey, "42");
+        assert_eq!(tablekey, "42");
     }
 
     #[test]
@@ -398,11 +411,12 @@ mod tests {
             fixed_value: "player".to_string(),
             ..Default::default()
         };
+        let mut tablekey = "10".to_string();
         let mut ctx = AnonContext {
-            tablekey: "10".to_string(),
+            tablekey: &mut tablekey,
             rowindex: 0,
             bfirstinsert: false,
-            tablename: "test".to_string(),
+            tablename: "test",
         };
         let result = anonymize_token(false, &config, b"Roger", b"secret", Some(&mut ctx));
         assert_eq!(result.data, b"player10");
