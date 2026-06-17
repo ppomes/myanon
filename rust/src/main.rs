@@ -7,8 +7,8 @@ use std::time::Instant;
 use myanon::config::Parser;
 use myanon::dump::DumpProcessor;
 
-const VERSION: &str = "0.8.2-dev";
-const PACKAGE_NAME: &str = "myanon";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+const PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");
 const STDOUT_BUFFER_SIZE: usize = 1048576;
 
 fn main() {
