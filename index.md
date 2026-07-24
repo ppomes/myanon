@@ -123,6 +123,24 @@ When Python support is enabled (`--with-python`), custom anonymization functions
 - `escape_sql_string(str)`: Escapes a string for safe SQL insertion
 - `unescape_sql_string(str)`: Unescapes a SQL-escaped string
 
+### Non-UTF-8 dumps
+
+Dump values are decoded with Python's `surrogateescape` error handler, so dumps
+in latin1 or any other non-UTF-8 encoding are passed through unchanged rather
+than failing or being mangled. Each undecodable byte appears as a lone
+surrogate (`\udc80`-`\udcff`), and whatever a `pydef` returns is encoded back
+the same way, restoring the original bytes.
+
+Two consequences for `pydef` authors: `len()` and slicing count one character
+per raw byte for such values, and a bare `value.encode()` raises
+`UnicodeEncodeError`. Pass the error handler explicitly when you need the
+underlying bytes:
+
+```python
+digest = hmac.new(secret, value.encode('utf-8', 'surrogateescape'),
+                  hashlib.sha256).hexdigest()
+```
+
 Example using `get_row()` to conditionally anonymize names based on email domain:
 
 ```python
@@ -299,7 +317,7 @@ The tests directory contains examples with basic hmac anonymization, and with py
 
 ## Rust implementation (vibe-coding experiment)
 
-An alternative Rust implementation is available in the `rust/` directory, created entirely through vibe-coding with [Claude Code](https://claude.com/claude-code). It requires only a Rust toolchain (no flex/bison/autotools) and currently produces byte-identical output to the C version on all 19 reference tests (14 core + 5 Python). The optional `python` feature exposes the same `myanon_utils` API as the C build (`get_secret`, `get_row`, `get_table`, `escape_sql_string`, `unescape_sql_string`) and supports `pydef` with optional parameters.
+An alternative Rust implementation is available in the `rust/` directory, created entirely through vibe-coding with [Claude Code](https://claude.com/claude-code). It requires only a Rust toolchain (no flex/bison/autotools) and currently produces byte-identical output to the C version on all 20 reference tests (14 core + 6 Python). The optional `python` feature exposes the same `myanon_utils` API as the C build (`get_secret`, `get_row`, `get_table`, `escape_sql_string`, `unescape_sql_string`) and supports `pydef` with optional parameters.
 
 ```
 cd rust
