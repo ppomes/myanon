@@ -317,7 +317,7 @@ The tests directory contains examples with basic hmac anonymization, and with py
 
 ## Rust implementation (vibe-coding experiment)
 
-An alternative Rust implementation is available in the `rust/` directory, created entirely through vibe-coding with [Claude Code](https://claude.com/claude-code). It requires only a Rust toolchain (no flex/bison/autotools) and currently produces byte-identical output to the C version on all 20 reference tests (14 core + 6 Python). The optional `python` feature exposes the same `myanon_utils` API as the C build (`get_secret`, `get_row`, `get_table`, `escape_sql_string`, `unescape_sql_string`) and supports `pydef` with optional parameters.
+An alternative Rust implementation is available in the `rust/` directory, created entirely through vibe-coding with [Claude Code](https://claude.com/claude-code). It requires only a Rust toolchain (no flex/bison/autotools) and currently produces byte-identical output to the C version on all 21 reference tests (15 core + 6 Python). The optional `python` feature exposes the same `myanon_utils` API as the C build (`get_secret`, `get_row`, `get_table`, `escape_sql_string`, `unescape_sql_string`) and supports `pydef` with optional parameters.
 
 ```
 cd rust
