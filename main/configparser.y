@@ -366,6 +366,9 @@ jsonline:
     }
     if (!is_valid_json_path(jscur->filter)) {
       fprintf(stderr, "Invalid json path '%s', ignoring it\n",jscur->filter);
+      /* Not added to the hash, so the final cleanup would never free it */
+      free(jscur);
+      jscur = NULL;
     }
     else
     {
@@ -391,7 +394,7 @@ static bool is_valid_json_path(const char *path) {
   if (!path || !*path) return false;
 
   while (*path) {
-    if (!((isalnum(*path) || *path == '_' || *path == '.'))) {
+    if (!((isalnum(*path) || *path == '_' || *path == '.' || *path == '-'))) {
       if (*path == '[') {
         path++;
         if (*path != ']') {
