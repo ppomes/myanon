@@ -107,12 +107,12 @@ impl Default for Config {
 }
 
 /// Validates a JSON path string.
-/// Valid characters: alphanumeric, underscore, dot, brackets `[` and `]`.
+/// Valid characters: alphanumeric, underscore, hyphen, dot, brackets `[` and `]`.
 pub fn is_valid_json_path(path: &str) -> bool {
     let mut chars = path.chars().peekable();
     while let Some(c) = chars.next() {
         match c {
-            'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '.' => {}
+            'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '-' | '.' => {}
             '[' => {
                 if chars.next() != Some(']') {
                     return false;
@@ -138,6 +138,9 @@ mod tests {
         assert!(is_valid_json_path("email_changes[][]"));
         assert!(is_valid_json_path("[]"));
         assert!(is_valid_json_path(".full_name"));
+        assert!(is_valid_json_path("a1b2c3d4-e5f6-7890-abcd-ef1234567890"));
+        assert!(is_valid_json_path("meta.author-email"));
+        assert!(is_valid_json_path("tag-list[]"));
     }
 
     #[test]

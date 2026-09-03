@@ -29,6 +29,7 @@ fn test_all_configs_parse() {
         "test_substring.conf",
         "test_regex.conf",
         "complex.conf",
+        "test_json_hyphen_path.conf",
         "test_python.conf",
         "faker_test.conf",
         "test_large_python.conf",
