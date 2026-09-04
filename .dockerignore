@@ -1,0 +1,49 @@
+# Keep the Docker build context small and free of host build artifacts.
+# The image builds from source (autogen.sh + configure + make), so only
+# the sources, the build system and the vendored uthash header are needed.
+#
+# Note: a bare "*.o" only matches at the root; "**/" is needed to match
+# inside subdirectories such as main/ and hmac/.
+
+.git
+.github
+.claude
+rust/
+debian/
+examples/
+
+# Host build outputs. Shipping them is harmful: object files and libhmac.a
+# built with the host toolchain (LTO) do not link under Alpine's gcc.
+**/*.o
+**/*.a
+**/*.la
+**/*.lo
+**/.deps
+**/Makefile
+**/Makefile.in
+main/myanon
+main/configparser.c
+main/configparser.h
+main/configscanner.c
+main/dumpparser.c
+main/dumpparser.h
+main/dumpscanner.c
+main/jsonparser.c
+main/jsonparser.h
+main/jsonscanner.c
+config.h
+config.h.in
+config.log
+config.status
+configure
+configure~
+aclocal.m4
+autom4te.cache
+stamp-h1
+ylwrap
+compile
+depcomp
+install-sh
+missing
+**/__pycache__
+valgrind_*.log
