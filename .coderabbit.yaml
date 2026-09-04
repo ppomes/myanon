@@ -1,0 +1,50 @@
+# CodeRabbit configuration - https://docs.coderabbit.ai/reference/configuration
+# Free for public repositories. Reviews pull requests only.
+language: en-US
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    - "!tests/*.sql"
+    - "!tests/*.sql.gz"
+    - "!rust/target/**"
+    - "!uthash/**"
+  path_instructions:
+    - path: "main/**"
+      instructions: >
+        C code with flex/bison grammars. Fixed-size buffers (CONFIG_SIZE,
+        ID_SIZE) are used throughout: check bounds on every copy. Entries are
+        stored in uthash tables and freed at exit: check that any new
+        allocation is either added to a table or freed on every path.
+        Output must stay byte-identical for existing tests under tests/.
+        The C implementation is canonical.
+    - path: "rust/**"
+      instructions: >
+        Rust port of the C implementation in main/. It must produce
+        byte-identical output. When a PR changes C behaviour without a
+        matching Rust change, or vice versa, point out the divergence.
+    - path: "tests/*.conf"
+      instructions: >
+        Test config files. A new test must also be added to TULIST or
+        PYTULIST in Makefile.am and come with matching .sql and _anon.sql
+        fixtures.
+  tools:
+    cppcheck:
+      enabled: true
+    clang:
+      enabled: true
+    shellcheck:
+      enabled: true
+    yamllint:
+      enabled: true
+    gitleaks:
+      enabled: true
+
+chat:
+  auto_reply: true
