@@ -87,3 +87,7 @@ configure~
 # Files that might appear on external disk
 .Spotlight-V100
 .Trashes
+
+# Fuzzing corpus and findings
+fuzz/in/
+fuzz/out/
