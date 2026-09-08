@@ -67,7 +67,14 @@ static void set_working_table() {
     end=strchr(beg+1,'`');
 
     if (end) {
-      memcpy(currenttable,beg,(end-beg+1));
+      /* Bound the copy: a table name longer than the buffer (found by
+         fuzzing) must not overflow. The config parser truncates table keys
+         to the same size, so truncated names still match. */
+      size_t len = (size_t)(end - beg + 1);
+      if (len > sizeof(currenttable) - 1) {
+        len = sizeof(currenttable) - 1;
+      }
+      memcpy(currenttable,beg,len);
 
       DEBUG_MSG("FOUND TABLE %s\n",currenttable);
     }
