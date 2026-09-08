@@ -67,7 +67,7 @@ static int rowindex;
 
 #ifdef HAVE_PYTHON
 /* All field names from CREATE TABLE, indexed by position */
-static char fieldnames[MYSQL_MAX_FIELD_PER_TABLE][ID_SIZE];
+static char fieldnames[MYSQL_MAX_FIELD_PER_TABLE][IDENT_SIZE];
 
 /* True if current table has at least one pydef field (needs row buffering) */
 static bool needs_row_buffer;
@@ -157,7 +157,7 @@ field: IDENTIFIER {
       DEBUG_MSG("Field '%s' not found in config at position %d\n", dump_text, currentfieldpos);
     }
 #ifdef HAVE_PYTHON
-    mystrcpy(fieldnames[currentfieldpos], dump_text, ID_SIZE);
+    mystrcpy(fieldnames[currentfieldpos], dump_text, IDENT_SIZE);
 #endif
     currentfieldpos++;
   } type

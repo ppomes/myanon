@@ -57,9 +57,14 @@
  * Some constants here
  */
 
-/* Identifier (table or field) len/size */
+/* Key/index value len/size (appendkey, prependkey, appendindex...) */
 #define ID_LEN 64
 #define ID_SIZE ID_LEN + 1
+
+/* Identifier (table or field) with its backticks: MySQL allows up to
+   64 characters, plus the two backticks */
+#define IDENT_LEN 66
+#define IDENT_SIZE IDENT_LEN + 1
 
 /* Config file value size */
 #define CONFIG_LEN 1026 /* contains up to 1024-char string with beginning and ending quote */
@@ -148,7 +153,7 @@ typedef struct anon_json_st
 /* Structure for anonymization infos of a flat field */
 typedef struct anon_field_st
 {
-    char key[ID_SIZE];  /* key (field name) */
+    char key[IDENT_SIZE];  /* key (field name, with backticks) */
     int pos;            /* field position in table */
     bool quoted;        /* Quoted field ? */
     anon_base_st infos; /* flast Anon infos */
@@ -159,7 +164,7 @@ typedef struct anon_field_st
 /* Structure for anonymization/truncation infos of a table */
 typedef struct anon_table_st
 {
-    char key[ID_SIZE];      /* table name or regep */
+    char key[IDENT_SIZE];   /* table name (with backticks) or regexp */
     regex_t *reg_table;     /* regex for table name if regex */
     table_action_st action; /* Truncate or anon */
     anon_field_st *infos;   /* Anon infos */
