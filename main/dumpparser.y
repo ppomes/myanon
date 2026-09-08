@@ -143,6 +143,14 @@ fields: field
 field: IDENTIFIER {
     bool found = false;
 
+    /* A table definition with more fields than the fixed arrays hold would
+       otherwise overflow fieldconfig[]/fieldnames[]. MySQL's own limit is
+       MYSQL_MAX_FIELD_PER_TABLE, so a valid dump never reaches this. */
+    if (currentfieldpos >= MYSQL_MAX_FIELD_PER_TABLE) {
+      dump_error("too many fields in table definition");
+      exit(EXIT_FAILURE);
+    }
+
     HASH_FIND_STR(currenttableconfig->infos, dump_text, curfield);
     found = (curfield != NULL);
 
@@ -212,6 +220,13 @@ fieldv: singlefield
 
 singlefield : VALUE {
       bool found=false;
+
+      /* A row with more values than the fixed arrays hold would otherwise
+         overflow fieldconfig[]/row_fields[] via currentfieldpos. */
+      if (currentfieldpos >= MYSQL_MAX_FIELD_PER_TABLE) {
+        dump_error("too many values in row");
+        exit(EXIT_FAILURE);
+      }
 
       /* Lookup field config (cached after first insert) */
       if (bfirstinsert) {

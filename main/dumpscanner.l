@@ -72,7 +72,7 @@ static void set_working_table() {
          identifier, so this only triggers on a malformed dump. */
       size_t len = (size_t)(end - beg + 1);
       if (len > sizeof(currenttable) - 1) {
-        fprintf(stderr, "Warning: table name longer than %d characters at line %d, truncating\n", IDENT_LEN, dump_line_nb);
+        fprintf(stderr, "Warning: table name longer than %d characters at line %d, truncating\n", ID_LEN, dump_line_nb);
         len = sizeof(currenttable) - 1;
       }
       memcpy(currenttable,beg,len);
