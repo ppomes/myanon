@@ -13,7 +13,14 @@ cd "$(dirname "$0")/.."
 [ -x main/myanon ] || { echo "run fuzz/build.sh first" >&2; exit 1; }
 main/myanon --version 2>/dev/null | head -1
 
-secs=${1:-0}; [ $# -gt 0 ] && shift
+# Treat the first argument as the duration only when it is a non-negative
+# integer; anything else (e.g. an afl-fuzz option like -M) is left in "$@".
+secs=0
+case ${1-} in
+    '')       ;;
+    *[!0-9]*) ;;
+    *)        secs=$1; shift ;;
+esac
 
 mkdir -p fuzz/in fuzz/out
 for f in tests/*.sql; do
@@ -30,6 +37,9 @@ SQL
 export AFL_SKIP_CPUFREQ=1
 export AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
 export AFL_NO_AFFINITY=1
+# Resume automatically when fuzz/out already holds a campaign; without this
+# afl-fuzz refuses to reuse a non-empty output directory.
+export AFL_AUTORESUME=1
 export ASAN_OPTIONS=abort_on_error=1:symbolize=0:detect_leaks=0:allocator_may_return_null=1
 
 timeout_opt=""
