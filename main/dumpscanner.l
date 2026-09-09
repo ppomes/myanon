@@ -40,7 +40,7 @@
 #endif
 
 /* Current table */
-char currenttable[ID_SIZE];
+char currenttable[IDENT_SIZE];
 
 /* current config element */
 anon_table_st *currenttableconfig;
@@ -67,7 +67,15 @@ static void set_working_table() {
     end=strchr(beg+1,'`');
 
     if (end) {
-      memcpy(currenttable,beg,(end-beg+1));
+      /* Bound the copy: a table name longer than the buffer (found by
+         fuzzing) must not overflow. IDENT_SIZE fits any valid MySQL
+         identifier, so this only triggers on a malformed dump. */
+      size_t len = (size_t)(end - beg + 1);
+      if (len > sizeof(currenttable) - 1) {
+        fprintf(stderr, "Warning: table name longer than %d characters at line %d, truncating\n", ID_LEN, dump_line_nb);
+        len = sizeof(currenttable) - 1;
+      }
+      memcpy(currenttable,beg,len);
 
       DEBUG_MSG("FOUND TABLE %s\n",currenttable);
     }
