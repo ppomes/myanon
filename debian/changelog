@@ -1,3 +1,20 @@
+myanon (0.8.5-1) unstable; urgency=high
+
+  * New upstream release
+  * Security fixes (both reachable from an untrusted dump):
+    - Fix global buffer overflow when a table name reaches the maximum
+      length in the dump scanner
+    - Fix out-of-bounds write on table definitions or rows with more than
+      4096 fields
+  * New features:
+    - Allow hyphens in JSON paths, so UUID and kebab-case keys are accepted
+      (#56, thanks to daanj1998)
+  * Bug fixes:
+    - Free the JSON config entry rejected as an invalid path, fixing a
+      small memory leak (#56, thanks to daanj1998)
+  * Add an AFL++ fuzzing harness for the dump parser under fuzz/
+
+ -- Pierre POMES <pierre.pomes@gmail.com>  Wed, 23 Sep 2026 14:52:56 -0400
 myanon (0.8.4-1) unstable; urgency=medium
 
   * New upstream release
