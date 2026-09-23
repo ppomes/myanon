@@ -13,9 +13,12 @@ License: BSD-1-Clause
 
 Files: hmac/hmac_sha2.c
        hmac/hmac_sha2.h
-       hmac/sha2.c
-       hmac/sha2.h
 Copyright: 2005 Olivier Gay <olivier.gay@a3.epfl.ch>
+License: BSD-3-Clause
+
+Files: hmac/sha2.c
+       hmac/sha2.h
+Copyright: 2005, 2007 Olivier Gay <olivier.gay@a3.epfl.ch>
 License: BSD-3-Clause
 
 Files: m4/ax_compare_version.m4
