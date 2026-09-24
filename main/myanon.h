@@ -193,7 +193,7 @@ typedef struct anon_context_st
 typedef struct anonymized_res_st
 {
     unsigned char *data;      /* Points to either static_buffer or beyond struct */
-    unsigned short len;
+    unsigned int len;
     bool is_large;            /* True if data points beyond static_buffer */
     quote_mode quoting;       /* How to quote the output */
     unsigned char static_buffer[SHA256_DIGEST_SIZE + 1]; /* Buffer for small results */
