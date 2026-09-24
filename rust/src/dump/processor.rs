@@ -862,7 +862,14 @@ impl<'a> DumpProcessor<'a> {
 
         for (i, (filter, rule_config)) in json_rules.iter().enumerate() {
             if json::json_path_has_wildcards(filter) {
-                json::json_anonymize_path(&mut parsed, filter, rule_config, &self.secret_bytes);
+                if rule_config.anon_type == AnonType::Py {
+                    json::json_transform_path(&mut parsed, filter, &mut |s: &str| {
+                        let res = self.call_pydef(&rule_config.pydef, &rule_config.pyargs, s.as_bytes());
+                        String::from_utf8_lossy(&res).to_string()
+                    });
+                } else {
+                    json::json_anonymize_path(&mut parsed, filter, rule_config, &self.secret_bytes);
+                }
             } else {
                 let current_value = json::json_get_string_at_path(&parsed, filter);
                 if current_value.is_none() {
@@ -872,6 +879,9 @@ impl<'a> DumpProcessor<'a> {
 
                 let new_value = if rule_config.anon_type == AnonType::Fixed {
                     rule_config.fixed_value.clone()
+                } else if rule_config.anon_type == AnonType::Py {
+                    let res = self.call_pydef(&rule_config.pydef, &rule_config.pyargs, current_value.as_bytes());
+                    String::from_utf8_lossy(&res).to_string()
                 } else {
                     let res = anonymize_token(
                         false,
@@ -912,36 +922,33 @@ impl<'a> DumpProcessor<'a> {
         } else {
             raw.to_vec()
         };
-        let pydef = &self.config.tables[table_idx].fields[field_idx].infos.pydef;
-        let pyargs = &self.config.tables[table_idx].fields[field_idx].infos.pyargs;
+        let infos = &self.config.tables[table_idx].fields[field_idx].infos;
+        AnonResult {
+            data: self.call_pydef(&infos.pydef, &infos.pyargs, &worktoken),
+            quoting: QuoteMode::AsInput,
+        }
+    }
 
+    /// Call a Python anonymization function. Like the C version, an error
+    /// yields an empty value.
+    fn call_pydef(&self, pydef: &str, pyargs: &str, worktoken: &[u8]) -> Vec<u8> {
         #[cfg(feature = "python")]
         {
             if let Some(ref runner) = self.python_runner {
-                match runner.call(pydef, &worktoken, pyargs) {
-                    Ok(result) => {
-                        return AnonResult {
-                            data: result,
-                            quoting: QuoteMode::AsInput,
-                        };
-                    }
-                    Err(e) => {
-                        eprintln!("{}", e);
-                    }
+                match runner.call(pydef, worktoken, pyargs) {
+                    Ok(result) => return result,
+                    Err(e) => eprintln!("{}", e),
                 }
             }
         }
 
         #[cfg(not(feature = "python"))]
         {
-            let _ = (pydef, pyargs, &worktoken);
+            let _ = (pydef, pyargs, worktoken);
             eprintln!("Python support not compiled in, cannot use pydef");
         }
 
-        AnonResult {
-            data: Vec::new(),
-            quoting: QuoteMode::AsInput,
-        }
+        Vec::new()
     }
 
     fn handle_separated_values<W: Write>(

@@ -10,15 +10,16 @@ fn repo_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("..")
 }
 
-// Core (non-Python) tests, read from TULIST in Makefile.am so the list
-// stays in sync with `make check`.
-fn core_tests() -> Vec<String> {
+// Test lists are read from Makefile.am so they stay in sync with
+// `make check`: TULIST for core tests, PYTULIST for Python tests.
+fn test_list(var: &str) -> Vec<String> {
     let makefile = fs::read_to_string(repo_dir().join("Makefile.am")).expect("Cannot read Makefile.am");
+    let prefix = format!("{var} =");
     let line = makefile
         .lines()
-        .find(|l| l.starts_with("TULIST ="))
-        .expect("TULIST not found in Makefile.am");
-    line["TULIST =".len()..]
+        .find(|l| l.starts_with(&prefix))
+        .unwrap_or_else(|| panic!("{var} not found in Makefile.am"));
+    line[prefix.len()..]
         .split_whitespace()
         .map(String::from)
         .collect()
@@ -43,13 +44,11 @@ fn run(name: &str) -> Vec<u8> {
     output
 }
 
-#[test]
-fn core_tests_match_reference_output() {
-    let tests = core_tests();
+fn check_all(tests: &[String]) {
     assert!(!tests.is_empty());
 
     let mut failures = Vec::new();
-    for name in &tests {
+    for name in tests {
         let expected = fs::read(repo_dir().join("tests").join(format!("{name}_anon.sql")))
             .unwrap_or_else(|e| panic!("Cannot read {name}_anon.sql: {e}"));
         if run(name) != expected {
@@ -57,4 +56,18 @@ fn core_tests_match_reference_output() {
         }
     }
     assert!(failures.is_empty(), "Output differs from the reference for: {failures:?}");
+}
+
+#[test]
+fn core_tests_match_reference_output() {
+    check_all(&test_list("TULIST"));
+}
+
+// Python configs use pypath = './tests', relative to the repository root,
+// which is where `make check` runs them from.
+#[cfg(feature = "python")]
+#[test]
+fn python_tests_match_reference_output() {
+    std::env::set_current_dir(repo_dir()).expect("Cannot chdir to repository root");
+    check_all(&test_list("PYTULIST"));
 }

@@ -162,25 +162,37 @@ pub fn json_anonymize_path(
     config: &AnonBase,
     secret: &[u8],
 ) {
-    let path = path.strip_prefix('.').unwrap_or(path);
-    anonymize_at_path(root, path, config, secret);
+    use crate::config::AnonType;
+    json_transform_path(root, path, &mut |s: &str| {
+        if config.anon_type == AnonType::Fixed {
+            config.fixed_value.clone()
+        } else {
+            let res = anonymize_token(false, config, s.as_bytes(), secret, None);
+            String::from_utf8_lossy(&res.data).to_string()
+        }
+    });
 }
 
-fn anonymize_at_path(
+/// Replace every string value at a path (supports wildcards) with the
+/// result of `f`. Used for rules that need more than anonymize_token,
+/// such as pydef.
+pub fn json_transform_path(
+    root: &mut JsonValue,
+    path: &str,
+    f: &mut dyn FnMut(&str) -> String,
+) {
+    let path = path.strip_prefix('.').unwrap_or(path);
+    transform_at_path(root, path, f);
+}
+
+fn transform_at_path(
     value: &mut JsonValue,
     path: &str,
-    config: &AnonBase,
-    secret: &[u8],
+    f: &mut dyn FnMut(&str) -> String,
 ) -> bool {
     if path.is_empty() {
         if let JsonValue::String(ref mut s) = value {
-            use crate::config::AnonType;
-            if config.anon_type == AnonType::Fixed {
-                *s = config.fixed_value.clone();
-            } else {
-                let res = anonymize_token(false, config, s.as_bytes(), secret, None);
-                *s = String::from_utf8_lossy(&res.data).to_string();
-            }
+            *s = f(s);
             return true;
         }
         return false;
@@ -193,7 +205,7 @@ fn anonymize_at_path(
             let remaining = remaining.strip_prefix('.').unwrap_or(remaining);
             let mut any_success = false;
             for elem in elements.iter_mut() {
-                if anonymize_at_path(elem, remaining, config, secret) {
+                if transform_at_path(elem, remaining, f) {
                     any_success = true;
                 }
             }
@@ -217,9 +229,7 @@ fn anonymize_at_path(
                                     remaining.strip_prefix('.').unwrap_or(remaining);
                                 let mut any_success = false;
                                 for elem in elements.iter_mut() {
-                                    if anonymize_at_path(
-                                        elem, remaining, config, secret,
-                                    ) {
+                                    if transform_at_path(elem, remaining, f) {
                                         any_success = true;
                                     }
                                 }
@@ -228,7 +238,7 @@ fn anonymize_at_path(
                         }
                         return false;
                     } else {
-                        return anonymize_at_path(val, rest, config, secret);
+                        return transform_at_path(val, rest, f);
                     }
                 }
             }
@@ -239,7 +249,7 @@ fn anonymize_at_path(
                 if segment == "[]" {
                     let mut any_success = false;
                     for elem in elements.iter_mut() {
-                        if anonymize_at_path(elem, rest, config, secret) {
+                        if transform_at_path(elem, rest, f) {
                             any_success = true;
                         }
                     }

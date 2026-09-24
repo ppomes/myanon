@@ -11,7 +11,7 @@ EXTRA_DIST = $(top_srcdir)/uthash/uthash.h \
              $(top_srcdir)/debian/source/format
 
 TULIST = test1 test1-insert-ignore null-example appendkey prependkey issue29 issue52 issue55 issue_semicolon_truncate test_substring appendindex prependindex test_regex complex test_json_hyphen_path test_long_table_name test_json_long_values test_json_utf8
-PYTULIST = test_python test_large_python test_large_python_2 test_row_context test_pyargs test_latin1 test_pydef_json_long
+PYTULIST = test_python test_large_python test_large_python_2 test_row_context test_pyargs test_latin1 test_pydef_json_long test_pydef_json_paths
 PYTHON_SUPPORT = @PYTHON_SUPPORT@
 
 check: all
