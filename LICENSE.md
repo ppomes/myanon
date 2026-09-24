@@ -5,7 +5,7 @@ _Copyright © `2021-2026`, Pierre POMES <pierre.pomes@gmail.com>_
 
 _Copyright © `2003-2018`, Troy D. Hanson, http://troydhanson.github.com/uthash/_
 
-_Copyright © `2005`, Olivier Gay <olivier.gay@a3.epfl.ch>_
+_Copyright © `2005, 2007`, Olivier Gay <olivier.gay@a3.epfl.ch>_
 
 _All rights reserved._
 
