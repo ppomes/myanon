@@ -87,7 +87,7 @@ static row_buffer_st row_buffer;
 static void flush_row(void);
 #endif
 
-static void quoted_output_helper (char *s, unsigned short len, bool quoted);
+static void quoted_output_helper (char *s, unsigned int len, bool quoted);
 
 static void remove_json_backslash(char *dst, const char *src, size_t size);
 
@@ -316,7 +316,7 @@ singlefield : VALUE {
 
 /* Helper to output (un)quoted values
    hash values are not nul terminated !*/
-static void quoted_output_helper (char *s, unsigned short len, bool quoted)
+static void quoted_output_helper (char *s, unsigned int len, bool quoted)
 {
   if (!quoted) {
     out_write(s,len);
