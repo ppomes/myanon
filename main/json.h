@@ -47,6 +47,7 @@ void json_anonymize_path(json_value_st *root, const char *path, anon_base_st *in
 int json_lex();
 int json_parse();
 int json_lex_destroy();
+void json_scanner_cleanup(void);
 void json_error(const char *s);
 extern char *json_text;
 extern int json_leng;
