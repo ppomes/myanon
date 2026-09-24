@@ -56,21 +56,26 @@ impl<'a> Lexer<'a> {
     }
 
     fn read_string(&mut self) -> Result<String, String> {
-        // opening " already consumed
-        let mut s = String::new();
+        // opening " already consumed.
+        // Collect raw bytes and decode once: pushing each byte as a char
+        // would turn every multi-byte UTF-8 character into mojibake.
+        let mut bytes = Vec::new();
         loop {
             match self.advance() {
                 None => return Err("Unterminated string".to_string()),
-                Some(b'"') => return Ok(s),
+                Some(b'"') => {
+                    return String::from_utf8(bytes)
+                        .map_err(|_| "Invalid UTF-8 in string".to_string());
+                }
                 Some(b'\\') => {
                     // Copy escape sequences literally (matching C behavior)
-                    s.push('\\');
+                    bytes.push(b'\\');
                     match self.advance() {
                         None => return Err("Unterminated string escape".to_string()),
-                        Some(c) => s.push(c as char),
+                        Some(c) => bytes.push(c),
                     }
                 }
-                Some(c) => s.push(c as char),
+                Some(c) => bytes.push(c),
             }
         }
     }
