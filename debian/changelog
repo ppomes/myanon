@@ -1,3 +1,18 @@
+myanon (0.8.6-1) unstable; urgency=medium
+
+  * New upstream release
+  * Bug fixes:
+    - Fix values longer than 65535 characters returned by a pydef being
+      truncated (#59, thanks to Benoît Gross)
+    - Fix JSON string values longer than 1026 characters being truncated
+      (#60)
+    - Fix a crash when a pydef in a JSON path returns a long value (#60)
+    - Fix a memory leak on malformed JSON values (#60)
+  * debian/control: build-depend on pkgconf instead of pkg-config
+  * debian/copyright: correct copyright years for hmac/sha2
+
+ -- Pierre POMES <pierre.pomes@gmail.com>  Thu, 24 Sep 2026 12:25:43 -0400
+
 myanon (0.8.5-1) unstable; urgency=high
 
   * New upstream release
