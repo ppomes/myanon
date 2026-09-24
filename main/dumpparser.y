@@ -398,8 +398,8 @@ static bool handle_json_anonymization(char *field, int leng, anon_field_st *curf
             json_anonymize_path(parsed_json, jscur->filter, &jscur->infos,
                               jscur->infos.type == AM_FIXED ? jscur->infos.fixedvalue : NULL);
         } else {
-            char newvalue_buf[CONFIG_SIZE];
             char *newvalue;
+            char *newvalue_alloc = NULL;
 
             char *current_value = json_get_string_at_path(parsed_json, jscur->filter);
             if (!current_value) continue;
@@ -410,17 +410,22 @@ static bool handle_json_anonymization(char *field, int leng, anon_field_st *curf
                     break;
                 default:
                 {
+                    /* The anonymized value has no fixed size limit (e.g. a
+                       pydef may return a long string): allocate exactly. */
                     anonymized_res_st *res_st = anonymize_token(false, &jscur->infos,
                                                                 current_value, strlen(current_value), NULL);
-                    memcpy(newvalue_buf, res_st->data, res_st->len);
-                    newvalue_buf[res_st->len] = '\0';
-                    newvalue = newvalue_buf;
+                    newvalue_alloc = mymalloc(res_st->len + 1);
+                    memcpy(newvalue_alloc, res_st->data, res_st->len);
+                    newvalue_alloc[res_st->len] = '\0';
+                    newvalue = newvalue_alloc;
                     anonymized_res_free(res_st);
                     break;
                 }
             }
 
+            /* json_replace_value_at_path() keeps its own copy */
             json_replace_value_at_path(parsed_json, jscur->filter, newvalue);
+            free(newvalue_alloc);
         }
         jscur->infos.nbhits++;
     }

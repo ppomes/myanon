@@ -85,6 +85,9 @@ static json_array_st *create_json_array(void);
 static void add_member_to_object(json_object_st *obj, char *key, json_value_st *value);
 static void add_element_to_array(json_array_st *arr, json_value_st *value);
 static void free_json_value(json_value_st *value);
+static void free_json_object(json_object_st *obj);
+static void free_json_array(json_array_st *arr);
+static void free_json_members(json_member_st *m);
 static void print_json_value(json_value_st *value, int indent);
 
 typedef void (*json_visitor_fn)(const char *path, json_value_st *value, void *context);
@@ -114,7 +117,7 @@ static void *myrealloc(void *ptr, size_t size) {
 %define api.prefix {json_}
 
 %union {
-    char strval[CONFIG_SIZE];
+    char *strval;          /* heap-allocated by the scanner, owned by the parser */
     long intval;
     double dblval;
     json_value_st *jsonval;
@@ -126,6 +129,16 @@ static void *myrealloc(void *ptr, size_t size) {
 %token LBRACE RBRACE LBRACKET RBRACKET COMMA COLON
 %token TRUE_VAL FALSE_VAL NULL_VAL ERROR
 %token <strval> STRING
+
+/* Values discarded on a syntax error (malformed JSON from the dump) are freed
+   here. Destructors are attached to symbols, not to the <jsonval> type, so the
+   start symbol 'json' is excluded: its value is json_root, which
+   json_parse_string() frees itself. */
+%destructor { free($$); } <strval>
+%destructor { free_json_value($$); } value object array
+%destructor { free_json_object($$); } object_content
+%destructor { free_json_array($$); } array_content
+%destructor { free_json_members($$); } members member
 %token <intval> NUMBER_INT
 %token <dblval> NUMBER_FLOAT
 
@@ -147,7 +160,7 @@ value:
     | array     { $$ = $1; }
     | STRING    { 
                   $$ = create_json_value(JSON_STRING);
-                  $$->data.string = mystrdup($1);
+                  $$->data.string = $1;   /* take ownership */
                 }
     | NUMBER_INT { 
                   $$ = create_json_value(JSON_NUMBER);
@@ -200,7 +213,7 @@ members:
 member:
     STRING COLON value { 
         $$ = mymalloc(sizeof(json_member_st));
-        $$->key = mystrdup($1);
+        $$->key = $1;   /* take ownership */
         $$->value = $3;
         $$->next = NULL;
     }
@@ -284,6 +297,31 @@ static void add_element_to_array(json_array_st *arr, json_value_st *value) {
     arr->elements[arr->size++] = value;
 }
 
+static void free_json_members(json_member_st *m) {
+    while (m) {
+        json_member_st *next = m->next;
+        free(m->key);
+        free_json_value(m->value);
+        free(m);
+        m = next;
+    }
+}
+
+static void free_json_object(json_object_st *obj) {
+    if (!obj) return;
+    free_json_members(obj->members);
+    free(obj);
+}
+
+static void free_json_array(json_array_st *arr) {
+    if (!arr) return;
+    for (size_t i = 0; i < arr->size; i++) {
+        free_json_value(arr->elements[i]);
+    }
+    free(arr->elements);
+    free(arr);
+}
+
 static void free_json_value(json_value_st *value) {
     if (!value) return;
     
@@ -292,26 +330,10 @@ static void free_json_value(json_value_st *value) {
             free(value->data.string);
             break;
         case JSON_OBJECT:
-            if (value->data.object) {
-                json_member_st *m = value->data.object->members;
-                while (m) {
-                    json_member_st *next = m->next;
-                    free(m->key);
-                    free_json_value(m->value);
-                    free(m);
-                    m = next;
-                }
-                free(value->data.object);
-            }
+            free_json_object(value->data.object);
             break;
         case JSON_ARRAY:
-            if (value->data.array) {
-                for (size_t i = 0; i < value->data.array->size; i++) {
-                    free_json_value(value->data.array->elements[i]);
-                }
-                free(value->data.array->elements);
-                free(value->data.array);
-            }
+            free_json_array(value->data.array);
             break;
         default:
             break;
@@ -430,6 +452,7 @@ json_value_st *json_parse_string(const char *input) {
     
     /* Clean up lexer buffers */
     json_lex_destroy();
+    json_scanner_cleanup();
     
     if (ret != 0) {
         if (json_root) {

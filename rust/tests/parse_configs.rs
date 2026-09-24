@@ -30,6 +30,8 @@ fn test_all_configs_parse() {
         "test_regex.conf",
         "complex.conf",
         "test_json_hyphen_path.conf",
+        "test_json_long_values.conf",
+        "test_pydef_json_long.conf",
         "test_python.conf",
         "faker_test.conf",
         "test_large_python.conf",

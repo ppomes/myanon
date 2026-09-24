@@ -36,11 +36,59 @@
 
 void json_error(const char *s);
 
-#define COPYSTR mystrcpy(json_lval.strval,json_text,sizeof(json_lval.strval));
 #define COPYDBL json_lval.dblval=strtod(json_text,NULL);
 #define COPYINT json_lval.intval=strtol(json_text,NULL,10);
 
 extern int json_line_nb;
+
+/* Growable buffer for the JSON string being scanned. JSON string values
+   have no length limit: a fixed CONFIG_SIZE buffer used to truncate them
+   silently. On the closing quote the buffer is handed over to the parser,
+   which owns and frees it. */
+static char *strbuf = NULL;
+static size_t strbuf_len = 0;
+static size_t strbuf_cap = 0;
+
+static void strbuf_append(const char *s, size_t n)
+{
+    if (strbuf_len + n + 1 > strbuf_cap) {
+        size_t newcap = strbuf_cap ? strbuf_cap : 64;
+        while (strbuf_len + n + 1 > newcap)
+            newcap *= 2;
+        char *p = realloc(strbuf, newcap);
+        if (!p) {
+            fprintf(stderr, "Memory allocation failed, exiting\n");
+            exit(EXIT_FAILURE);
+        }
+        strbuf = p;
+        strbuf_cap = newcap;
+    }
+    memcpy(strbuf + strbuf_len, s, n);
+    strbuf_len += n;
+    strbuf[strbuf_len] = '\0';
+}
+
+static void strbuf_reset(void)
+{
+    strbuf_len = 0;
+    strbuf_append("", 0);
+}
+
+static char *strbuf_take(void)
+{
+    char *s = strbuf;
+    strbuf = NULL;
+    strbuf_len = strbuf_cap = 0;
+    return s;
+}
+
+/* Free a string left unterminated by a malformed JSON value */
+void json_scanner_cleanup(void)
+{
+    free(strbuf);
+    strbuf = NULL;
+    strbuf_len = strbuf_cap = 0;
+}
 
 %}
 
@@ -74,15 +122,15 @@ null                    { return NULL_VAL; }
 -?{DIGIT}*"."{DIGIT}+{E}?    { COPYDBL; return NUMBER_FLOAT; }
 -?{DIGIT}+{E}                { COPYDBL; return NUMBER_FLOAT; }
 
-\"                      { BEGIN(IN_STRING); json_lval.strval[0] = '\0'; }
+\"                      { BEGIN(IN_STRING); strbuf_reset(); }
 
 <IN_STRING>{
-    \"                  { BEGIN(INITIAL); return STRING; }
-    \\.                 { /* Skip escape sequences - just copy literally */
-                          strncat(json_lval.strval, json_text, sizeof(json_lval.strval) - strlen(json_lval.strval) - 1); 
+    \"                  { BEGIN(INITIAL); json_lval.strval = strbuf_take(); return STRING; }
+    \\.                 { /* Escape sequences are copied literally */
+                          strbuf_append(json_text, (size_t)json_leng);
                         }
-    [^\\\"\n]+          { strncat(json_lval.strval, json_text, sizeof(json_lval.strval) - strlen(json_lval.strval) - 1); }
-    \n                  { json_line_nb++; strncat(json_lval.strval, json_text, sizeof(json_lval.strval) - strlen(json_lval.strval) - 1); }
+    [^\\\"\n]+          { strbuf_append(json_text, (size_t)json_leng); }
+    \n                  { json_line_nb++; strbuf_append(json_text, (size_t)json_leng); }
 }
 
 [ \t\r]+                ;
