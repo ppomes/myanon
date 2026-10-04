@@ -1,3 +1,17 @@
+myanon (0.8.7-1) unstable; urgency=medium
+
+  * New upstream release
+  * Bug fixes:
+    - Anonymize INSERT IGNORE written with a single space, as dumped by
+      MySQL 9.3+ and MariaDB (#62, thanks to Yves Blake)
+    - Anonymize INSERT DELAYED, as dumped by MariaDB with --delayed-insert
+      (#62)
+  * Rewrite and test the WordPress, Nextcloud, Drupal and phpBB example
+    configurations, and drop the untested GitLab one
+  * debian/rules: install these example configurations
+
+ -- Pierre POMES <pierre.pomes@gmail.com>  Sun, 04 Oct 2026 16:10:01 -0400
+
 myanon (0.8.6-1) unstable; urgency=medium
 
   * New upstream release
