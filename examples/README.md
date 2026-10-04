@@ -1,58 +1,48 @@
 # Myanon Configuration Examples
 
-This directory contains example myanon configuration files for popular open source applications.
+This directory contains myanon configurations for popular open source applications.
 
-## ⚠️ Important Notice
+## Tested configurations
 
-**Except for WordPress, these configurations are AI-generated and have not been tested by me.**
+Each configuration was tested on a real installation filled with recognizable personal data: after anonymization, none of it was left in the dump, and the anonymized dump imported into a working application.
 
-I do not use any of these applications personally. These examples are provided as starting points to help users create their own configurations.
+| Application | Files | Tested with |
+|---|---|---|
+| WordPress + WooCommerce | `wordpress-myanon.conf`, `wordpress_myanon.py` | WordPress 7.1, WooCommerce 11.1, MySQL 8.4 |
+| Nextcloud | `nextcloud-myanon.conf`, `nextcloud_myanon.py` | Nextcloud 35 (with Group folders 23), MariaDB 11 |
+| Drupal | `drupal-myanon.conf`, `drupal_myanon.py` | Drupal 11.4, MariaDB 11 |
+| phpBB | `phpbb-myanon.conf`, `phpbb_myanon.py` | phpBB 3.3.19, MySQL 8.4 |
 
-The WordPress configuration has been tested on a real WordPress 7.1 + WooCommerce 11.1 database: no personal data was left in the dump, and the anonymized dump imported into a working site (roles, logins, orders and serialized settings intact).
-
-## Available Examples
-
-- **wordpress-myanon.conf** + **wordpress_myanon.py** - WordPress CMS with WooCommerce support (requires Python support, see below)
-- **nextcloud-myanon.conf** - Nextcloud file sharing platform
-- **gitlab-myanon.conf** - GitLab DevOps platform
-- **drupal-myanon.conf** - Drupal content management system
-- **phpbb-myanon.conf** - phpBB forum software
+They are still starting points: plugins, modules and apps you add store personal data in tables of their own, which you need to add.
 
 ## Usage
 
-1. Copy the relevant configuration file to your working directory
-2. Modify the `secret` value to your own unique secret
-3. Adjust table prefixes if needed (e.g., change `wp_` to your WordPress prefix)
-4. Review and customize field anonymization rules for your specific needs
-5. Test thoroughly with a small dataset before using on production data
+All four configurations rely on a Python module, because these applications keep personal data in key/value tables, serialized values or copies of user names that can only be handled with some logic. You need myanon built with Python support (the Docker image has it, or `./configure --with-python`).
 
-## WordPress
-
-WordPress keeps much of its personal data in key/value tables (`wp_usermeta`,
-`wp_postmeta`, `wp_options`...), so its configuration relies on the Python
-module `wordpress_myanon.py`. You need myanon built with Python support (the
-Docker image has it, or `./configure --with-python`), and `pypath` in the
-configuration must point to the directory holding the module:
+1. Copy the configuration file and its Python module to the same directory
+2. Change the `secret` value
+3. Set `pypath` to the directory holding the module (relative paths are relative to the directory myanon is run from)
+4. Adjust the table prefix if yours differs from the default
+5. Run it, then check the result before sharing the dump
 
 ```sh
 cd examples
 mysqldump wordpress | myanon -f wordpress-myanon.conf > anonymized.sql
 ```
 
-After anonymization, every account can log in with the password `password`.
+## What the configurations do
 
-## Customization
+- Accounts are renamed (`user<ID>`, or `u<letters>` for Nextcloud) and their password becomes `password`. Accounts that cannot log in keep their state: phpBB bots and the anonymous user, for instance.
+- Names, e-mails, phone numbers, addresses and IP addresses are replaced. The same real value always gets the same fake value, in every table, so relationships between users, orders, comments and so on are kept.
+- IDs, dates, statuses and roles are left intact, so the application keeps working. Serialized values stay readable: the e-mail addresses they contain are replaced, with their lengths updated, but other personal data inside them can remain.
+- Free text written by people (comments, forum posts, private messages) becomes placeholder text.
+- Sessions, tokens, logs, caches and search indexes are deleted.
 
-Each configuration includes:
-- User data anonymization (emails, names, passwords)
-- Preservation of database relationships through deterministic hashing
-- Generic placeholder content for posts/messages
-- Optional table truncation for sensitive logs
+Some application-specific notes:
 
-You may need to:
-- Add tables specific to your plugins/modules
-- Adjust anonymization strategies per your requirements
-- Modify field mappings based on your database schema
+- **Nextcloud**: user file names are renamed too, and contacts and calendar events are deleted. The data directory is not part of the dump, so files are listed but their content is missing. Run `occ dav:sync-system-addressbook` after import.
+- **Drupal**: fields added to users (`user__field_<name>` tables) must each be added to the configuration. Caches are rebuilt on the next request.
+- **phpBB**: bots and the anonymous user are left untouched. Rebuild the search index from the ACP after import.
 
 ## Support
 

@@ -50,7 +50,10 @@ _OPTION_BLANK = {'mailserver_pass'}
 _SYSTEM_COMMENT_TYPES = {'order_note', 'webhook_delivery', 'action_log'}
 _ORDER_POST_TYPES = {'shop_order', 'shop_order_placeholder', 'shop_order_refund'}
 
-_EMAIL_RE = re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
+# \w matches Unicode letters too: josé@exemple.fr, 用户@例子.中国... but not
+# combining accents, as in a decomposed 'jose\u0301@exemple.fr': add them.
+_MARKS = '\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f'
+_EMAIL_RE = re.compile(r'[\w%s.%%+-]+@[\w%s-]+(?:\.[\w%s-]+)+' % ((_MARKS,) * 3))
 # s:<len>:"<string>";   or   C:<len>:"<class>":<len>:{<payload>}
 _SERIALIZED_RE = re.compile(rb's:(\d+):"|C:(\d+):"([^"]*)":(\d+):\{')
 _SERIALIZED_PREFIXES = ('a:', 's:', 'O:', 'C:')
