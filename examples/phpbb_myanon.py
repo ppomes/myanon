@@ -14,6 +14,7 @@
 
 import hashlib
 import hmac
+import mimetypes
 import os
 import re
 
@@ -30,9 +31,15 @@ PASSWORD_HASH = '$2y$10$066meQBh4RMqk5k7Cm.g1e0a8.bjV51oEpkCa22mvqHRAcjX90LPa'
 USER_IGNORE = '2'                # phpBB user_type of bots and the anonymous user
 ANONYMOUS = '1'                  # phpBB user_id of the anonymous user
 
-_EMAIL_RE = re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
+# \w matches Unicode letters too: josé@exemple.fr, 用户@例子.中国...
+_EXTRA_EXT = {'.md', '.odt', '.ods', '.odp', '.docx', '.xlsx', '.pptx', '.mkv', '.heic', '.webp', '.7z', '.log', '.yml', '.yaml', '.json', '.csv', '.sql', '.gz', '.bz2', '.xz'}
+
+_EMAIL_RE = re.compile(r'[\w.%+-]+@[\w-]+(?:\.[\w-]+)+')
 
 _CONFIG_EMAIL = {'board_contact', 'board_email'}
+# Credentials of external services (SMTP, LDAP, Jabber, reCAPTCHA, OAuth...)
+_CONFIG_SECRET_RE = re.compile(r'pass|secret|_key$|token|smtp_user|ldap_user|jab_user')
+GRAVATAR = 'avatar.driver.gravatar'
 
 # newest_user_id is dumped just before newest_username (primary key order)
 _newest_user_id = ''
@@ -80,13 +87,19 @@ def _fake_name(real):
     return _letters(real, 7).capitalize()
 
 
+def _known_ext(ext):
+    """Keep an extension only when it is a real file type ('.pdf', '.jpg'...).
+    A dotted name such as 'Jane.Doe' has no extension worth keeping."""
+    return ext.lower() in mimetypes.types_map or ext.lower() in _EXTRA_EXT
+
+
 def _scrub_text(text):
     return _EMAIL_RE.sub(lambda m: _fake_email(m.group(0)), text)
 
 
 def _poster(user_id, real_name):
     """Name of a poster: user<id> for registered users, a fake name for guests."""
-    if user_id and user_id != ANONYMOUS:
+    if user_id not in ('', '0', ANONYMOUS):
         return 'user' + user_id
     return _fake_name(real_name)
 
@@ -139,6 +152,8 @@ def config_value(value):
     key = _row('config_name')
     if key in _CONFIG_EMAIL:
         return email(value)
+    if _CONFIG_SECRET_RE.search(key):
+        return ''
     if key == 'newest_user_id':
         _newest_user_id = _unesc(value)
         return value
@@ -158,6 +173,14 @@ def filename(value):
     """Attachment names shown to users, renamed with their extension kept."""
     real = _unesc(value)
     stem, ext = os.path.splitext(real)
+    if not stem or not _known_ext(ext):
+        stem, ext = real, ''
     if not stem:
         return value
     return _esc(_letters('file:' + stem, 8) + ext)
+
+
+def avatar(value, type_column):
+    """Gravatar avatars store the e-mail address itself. The parameter names
+    the column holding the avatar type in the same row."""
+    return email(value) if _row(type_column) == GRAVATAR else value

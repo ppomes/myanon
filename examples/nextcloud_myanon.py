@@ -16,6 +16,7 @@
 import hashlib
 import hmac
 import json
+import mimetypes
 import os
 import re
 
@@ -38,7 +39,10 @@ _USER_ROOTS = {'files', 'files_versions', 'uploads'}
 _TRASH_ROOT = 'files_trashbin'           # files_trashbin/<files|versions|keys>/...
 _SUFFIX_RE = re.compile(r'^(.*?)((?:\.v\d+)?(?:\.d\d+)?)$')   # versions, trash
 
-_EMAIL_RE = re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
+# \w matches Unicode letters too: josé@exemple.fr, 用户@例子.中国...
+_EXTRA_EXT = {'.md', '.odt', '.ods', '.odp', '.docx', '.xlsx', '.pptx', '.mkv', '.heic', '.webp', '.7z', '.log', '.yml', '.yaml', '.json', '.csv', '.sql', '.gz', '.bz2', '.xz'}
+
+_EMAIL_RE = re.compile(r'[\w.%+-]+@[\w-]+(?:\.[\w-]+)+')
 
 # Profile properties (oc_accounts.data and oc_accounts_data)
 _PROFILE_NAME = {'displayname'}
@@ -113,6 +117,12 @@ def _fake_digits(real):
     return ''.join(out)
 
 
+def _known_ext(ext):
+    """Keep an extension only when it is a real file type ('.pdf', '.jpg'...).
+    A dotted name such as 'Jane.Doe' has no extension worth keeping."""
+    return ext.lower() in mimetypes.types_map or ext.lower() in _EXTRA_EXT
+
+
 def _scrub_text(text):
     return _EMAIL_RE.sub(lambda m: _fake_email(m.group(0)), text)
 
@@ -125,7 +135,7 @@ def _fake_segment(seg):
     m = _SUFFIX_RE.match(seg)
     base, suffix = m.group(1), m.group(2)
     stem, ext = os.path.splitext(base)
-    if not stem:                      # hidden file such as '.htaccess'
+    if not stem or not _known_ext(ext):   # '.htaccess', 'Jane.Doe'...
         stem, ext = base, ''
     return _letters('file:' + stem, 8) + ext + suffix
 

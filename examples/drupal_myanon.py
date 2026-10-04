@@ -20,7 +20,8 @@ FAKE_DOMAIN = 'example.com'
 FAKE_IP = '192.0.2.1'            # TEST-NET-1 (RFC 5737), never routed
 LOREM = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.'
 
-_EMAIL_RE = re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
+# \w matches Unicode letters too: josé@exemple.fr, 用户@例子.中国...
+_EMAIL_RE = re.compile(r'[\w.%+-]+@[\w-]+(?:\.[\w-]+)+')
 # s:<len>:"<string>";   or   C:<len>:"<class>":<len>:{<payload>}
 _SERIALIZED_RE = re.compile(rb's:(\d+):"|C:(\d+):"([^"]*)":(\d+):\{')
 _SERIALIZED_PREFIXES = ('a:', 's:', 'O:', 'C:')

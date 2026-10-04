@@ -32,9 +32,9 @@ mysqldump wordpress | myanon -f wordpress-myanon.conf > anonymized.sql
 
 ## What the configurations do
 
-- Accounts are renamed (`user<ID>`, or `u<letters>` for Nextcloud) and every password becomes `password`.
+- Accounts are renamed (`user<ID>`, or `u<letters>` for Nextcloud) and their password becomes `password`. Accounts that cannot log in keep their state: phpBB bots and the anonymous user, for instance.
 - Names, e-mails, phone numbers, addresses and IP addresses are replaced. The same real value always gets the same fake value, in every table, so relationships between users, orders, comments and so on are kept.
-- IDs, dates, statuses, roles and serialized data are left intact, so the application keeps working.
+- IDs, dates, statuses and roles are left intact, so the application keeps working. Serialized values stay readable: the e-mail addresses they contain are replaced, with their lengths updated, but other personal data inside them can remain.
 - Free text written by people (comments, forum posts, private messages) becomes placeholder text.
 - Sessions, tokens, logs, caches and search indexes are deleted.
 
