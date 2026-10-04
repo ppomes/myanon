@@ -46,7 +46,8 @@ _CONFIG_SECRET_RE = re.compile(r'(?:pass|password|passwd|secret|_key|privkey|tok
                                r'|^(?:smtp_username|ldap_user|jab_username)$')
 GRAVATAR = 'avatar.driver.gravatar'
 
-# newest_user_id is dumped just before newest_username (primary key order)
+# newest_user_id is dumped just before newest_username, in primary key order
+# (always the case with InnoDB, use mysqldump --order-by-primary with MyISAM)
 _newest_user_id = ''
 
 

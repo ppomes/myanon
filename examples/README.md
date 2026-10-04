@@ -9,7 +9,7 @@ Each configuration was tested on a real installation filled with recognizable pe
 | Application | Files | Tested with |
 |---|---|---|
 | WordPress + WooCommerce | `wordpress-myanon.conf`, `wordpress_myanon.py` | WordPress 7.1, WooCommerce 11.1, MySQL 8.4 |
-| Nextcloud | `nextcloud-myanon.conf`, `nextcloud_myanon.py` | Nextcloud 35, MariaDB 11 |
+| Nextcloud | `nextcloud-myanon.conf`, `nextcloud_myanon.py` | Nextcloud 35 (with Group folders 23), MariaDB 11 |
 | Drupal | `drupal-myanon.conf`, `drupal_myanon.py` | Drupal 11.4, MariaDB 11 |
 | phpBB | `phpbb-myanon.conf`, `phpbb_myanon.py` | phpBB 3.3.19, MySQL 8.4 |
 
