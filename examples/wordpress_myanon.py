@@ -137,6 +137,15 @@ def _scrub_text(text):
     return _EMAIL_RE.sub(lambda m: _fake_email(m.group(0)), text)
 
 
+def _scrub_gap(data):
+    """Text between serialized strings. In real serialized data it only holds
+    structure (a:2:{, i:1;, }...), but a value that merely looks serialized
+    can hold free text, so e-mails are replaced here too."""
+    if b'@' not in data:
+        return data
+    return _scrub_text(data.decode('utf-8', 'surrogateescape')).encode('utf-8', 'surrogateescape')
+
+
 def _scrub_serialized(data):
     """Replace e-mails inside PHP serialized data, fixing the declared byte lengths."""
     out = bytearray()
@@ -151,7 +160,7 @@ def _scrub_serialized(data):
                 continue
             inner = data[start:end]
             new = _scrub_value_bytes(inner)
-            out += data[pos:m.start()] + b's:%d:"' % len(new) + new
+            out += _scrub_gap(data[pos:m.start()]) + b's:%d:"' % len(new) + new
         else:                                           # C:<len>:"<class>":<len>:{...}
             if int(m.group(2)) != len(m.group(3)):
                 continue
@@ -160,9 +169,9 @@ def _scrub_serialized(data):
                 continue
             inner = data[start:end]
             new = _scrub_value_bytes(inner)
-            out += data[pos:m.start()] + b'C:%d:"%s":%d:{' % (len(m.group(3)), m.group(3), len(new)) + new
+            out += _scrub_gap(data[pos:m.start()]) + b'C:%d:"%s":%d:{' % (len(m.group(3)), m.group(3), len(new)) + new
         pos = end
-    out += data[pos:]
+    out += _scrub_gap(data[pos:])
     return bytes(out)
 
 
