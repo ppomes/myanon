@@ -29,7 +29,8 @@ EMPTY_ARRAY = 'a:0:{}'           # PHP serialize(array())
 _NAME = {'first_name', 'last_name', 'billing_first_name', 'billing_last_name',
          'shipping_first_name', 'shipping_last_name'}
 _EMAIL = {'billing_email'}
-_DIGITS = {'billing_phone', 'shipping_phone', 'billing_postcode', 'shipping_postcode'}
+_DIGITS = {'billing_phone', 'shipping_phone'}
+_POSTCODE = {'billing_postcode', 'shipping_postcode'}
 _STREET = {'billing_address_1', 'shipping_address_1'}
 _CITY = {'billing_city', 'shipping_city'}
 _COMPANY = {'billing_company', 'shipping_company'}
@@ -50,7 +51,9 @@ _SYSTEM_COMMENT_TYPES = {'order_note', 'webhook_delivery', 'action_log'}
 _ORDER_POST_TYPES = {'shop_order', 'shop_order_placeholder', 'shop_order_refund'}
 
 _EMAIL_RE = re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
-_SERIALIZED_STRING_RE = re.compile(rb's:(\d+):"')
+# s:<len>:"<string>";   or   C:<len>:"<class>":<len>:{<payload>}
+_SERIALIZED_RE = re.compile(rb's:(\d+):"|C:(\d+):"([^"]*)":(\d+):\{')
+_SERIALIZED_PREFIXES = ('a:', 's:', 'O:', 'C:')
 
 
 # ---------------------------------------------------------------------------
@@ -108,6 +111,22 @@ def _fake_digits(real):
     return ''.join(out)
 
 
+def _fake_postcode(real):
+    """Replace digits and letters (UK, Canadian, Dutch postcodes...), keep case and separators."""
+    d = _digest(real)
+    out = []
+    for i, ch in enumerate(real):
+        b = d[i % len(d)]
+        if ch.isdigit():
+            out.append(str(b % 10))
+        elif 'a' <= ch.lower() <= 'z':
+            c = chr(ord('a') + b % 26)
+            out.append(c.upper() if ch.isupper() else c)
+        else:
+            out.append(ch)
+    return ''.join(out)
+
+
 def _fake_street(real):
     if not real.strip():
         return real
@@ -119,26 +138,41 @@ def _scrub_text(text):
 
 
 def _scrub_serialized(data):
-    """Replace e-mails inside PHP serialized strings, fixing their byte length."""
+    """Replace e-mails inside PHP serialized data, fixing the declared byte lengths."""
     out = bytearray()
     pos = 0
-    for m in _SERIALIZED_STRING_RE.finditer(data):
+    for m in _SERIALIZED_RE.finditer(data):
         if m.start() < pos:
             continue
-        length = int(m.group(1))
         start = m.end()
-        end = start + length
-        if data[end:end + 2] != b'";':
-            continue
-        inner = data[start:end]
-        if inner[:2] in (b'a:', b's:', b'O:'):
-            new = _scrub_serialized(inner)
-        else:
-            new = _scrub_text(inner.decode('utf-8', 'surrogateescape')).encode('utf-8', 'surrogateescape')
-        out += data[pos:m.start()] + b's:%d:"' % len(new) + new
+        if m.group(1) is not None:                      # s:<len>:"..."
+            end = start + int(m.group(1))
+            if data[end:end + 2] != b'";':
+                continue
+            inner = data[start:end]
+            new = _scrub_value_bytes(inner)
+            out += data[pos:m.start()] + b's:%d:"' % len(new) + new
+        else:                                           # C:<len>:"<class>":<len>:{...}
+            if int(m.group(2)) != len(m.group(3)):
+                continue
+            end = start + int(m.group(4))
+            if data[end:end + 1] != b'}':
+                continue
+            inner = data[start:end]
+            new = _scrub_value_bytes(inner)
+            out += data[pos:m.start()] + b'C:%d:"%s":%d:{' % (len(m.group(3)), m.group(3), len(new)) + new
         pos = end
     out += data[pos:]
     return bytes(out)
+
+
+def _scrub_value_bytes(raw):
+    """Scrub a string that may itself contain serialized data."""
+    if '@' not in raw.decode('utf-8', 'surrogateescape'):
+        return raw
+    if raw.decode('utf-8', 'surrogateescape')[:2] in _SERIALIZED_PREFIXES or _SERIALIZED_RE.search(raw):
+        return _scrub_serialized(raw)
+    return _scrub_text(raw.decode('utf-8', 'surrogateescape')).encode('utf-8', 'surrogateescape')
 
 
 def _scrub_any(value):
@@ -146,7 +180,7 @@ def _scrub_any(value):
     if '@' not in value:
         return value
     real = _unesc(value)
-    if real[:2] in ('a:', 's:', 'O:'):
+    if real[:2] in _SERIALIZED_PREFIXES:
         raw = real.encode('utf-8', 'surrogateescape')
         new = _scrub_serialized(raw).decode('utf-8', 'surrogateescape')
     else:
@@ -164,6 +198,8 @@ def _by_key(key, value):
         return _esc(_fake_email(real))
     if k in _DIGITS:
         return _esc(_fake_digits(real))
+    if k in _POSTCODE:
+        return _esc(_fake_postcode(real))
     if k in _STREET:
         return _esc(_fake_street(real))
     if k in _CITY:
@@ -195,6 +231,10 @@ def digits(value):
     return _esc(_fake_digits(_unesc(value)))
 
 
+def postcode(value):
+    return _esc(_fake_postcode(_unesc(value)))
+
+
 def street(value):
     return _esc(_fake_street(_unesc(value)))
 
@@ -224,6 +264,11 @@ def lookup_username(value):
     """wp_wc_customer_lookup.username, consistent with wp_users.user_login."""
     user_id = _row('user_id')
     return 'user' + user_id if user_id and user_id != '0' else ''
+
+
+def scrub(value):
+    """Replace any e-mail in a value, including inside serialized data."""
+    return _scrub_any(value)
 
 
 def meta(value):
