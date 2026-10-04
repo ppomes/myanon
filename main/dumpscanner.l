@@ -131,7 +131,7 @@ static void set_working_table() {
                                     }
                                   }
 
-^(INSERT|REPLACE)\ (\ IGNORE\ )?\INTO\ `[^`]+`(?:\ \([^\)]+\))?  { DUPOUT
+^(INSERT|REPLACE)\ +(DELAYED\ +)?(IGNORE\ +)?INTO\ `[^`]+`(?:\ \([^\)]+\))?  { DUPOUT
                                     if (currenttableconfig) {
                                       BEGIN(ST_VALUES);
                                       DEBUG_MSG("\nENTERING STATE ST_VALUES")
@@ -231,7 +231,7 @@ static void set_working_table() {
 <ST_VALUES>"-- ".*                          { DUPOUT }
 <ST_VALUES>[ ]                              { DUPOUT }
 <ST_VALUES>\n                               { DUPOUT dump_line_nb++;}
-<ST_VALUES>^(INSERT|REPLACE)\ (\ IGNORE\ )?\INTO\ `[^`]+`(?:\ \([^\)]+\))? { DUPOUT
+<ST_VALUES>^(INSERT|REPLACE)\ +(DELAYED\ +)?(IGNORE\ +)?INTO\ `[^`]+`(?:\ \([^\)]+\))? { DUPOUT
                                               if (currenttableconfig) {
                                                 return INSERT_INTO;
                                               }
