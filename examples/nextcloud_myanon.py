@@ -39,10 +39,12 @@ _USER_ROOTS = {'files', 'files_versions', 'uploads'}
 _TRASH_ROOT = 'files_trashbin'           # files_trashbin/<files|versions|keys>/...
 _SUFFIX_RE = re.compile(r'^(.*?)((?:\.v\d+)?(?:\.d\d+)?)$')   # versions, trash
 
-# \w matches Unicode letters too: josé@exemple.fr, 用户@例子.中国...
 _EXTRA_EXT = {'.md', '.odt', '.ods', '.odp', '.docx', '.xlsx', '.pptx', '.mkv', '.heic', '.webp', '.7z', '.log', '.yml', '.yaml', '.json', '.csv', '.sql', '.gz', '.bz2', '.xz'}
 
-_EMAIL_RE = re.compile(r'[\w.%+-]+@[\w-]+(?:\.[\w-]+)+')
+# \w matches Unicode letters too: josé@exemple.fr, 用户@例子.中国... but not
+# combining accents, as in a decomposed 'jose\u0301@exemple.fr': add them.
+_MARKS = '\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f'
+_EMAIL_RE = re.compile(r'[\w%s.%%+-]+@[\w%s-]+(?:\.[\w%s-]+)+' % ((_MARKS,) * 3))
 
 # Profile properties (oc_accounts.data and oc_accounts_data)
 _PROFILE_NAME = {'displayname'}

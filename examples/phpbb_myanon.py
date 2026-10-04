@@ -31,14 +31,19 @@ PASSWORD_HASH = '$2y$10$066meQBh4RMqk5k7Cm.g1e0a8.bjV51oEpkCa22mvqHRAcjX90LPa'
 USER_IGNORE = '2'                # phpBB user_type of bots and the anonymous user
 ANONYMOUS = '1'                  # phpBB user_id of the anonymous user
 
-# \w matches Unicode letters too: josé@exemple.fr, 用户@例子.中国...
 _EXTRA_EXT = {'.md', '.odt', '.ods', '.odp', '.docx', '.xlsx', '.pptx', '.mkv', '.heic', '.webp', '.7z', '.log', '.yml', '.yaml', '.json', '.csv', '.sql', '.gz', '.bz2', '.xz'}
 
-_EMAIL_RE = re.compile(r'[\w.%+-]+@[\w-]+(?:\.[\w-]+)+')
+# \w matches Unicode letters too: josé@exemple.fr, 用户@例子.中国... but not
+# combining accents, as in a decomposed 'jose\u0301@exemple.fr': add them.
+_MARKS = '\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f'
+_EMAIL_RE = re.compile(r'[\w%s.%%+-]+@[\w%s-]+(?:\.[\w%s-]+)+' % ((_MARKS,) * 3))
 
 _CONFIG_EMAIL = {'board_contact', 'board_email'}
-# Credentials of external services (SMTP, LDAP, Jabber, reCAPTCHA, OAuth...)
-_CONFIG_SECRET_RE = re.compile(r'pass|secret|_key$|token|smtp_user|ldap_user|jab_user')
+# Credentials of external services (SMTP, LDAP, Jabber, reCAPTCHA, OAuth...).
+# Settings such as pass_complex, allow_password_reset or form_token_lifetime
+# must keep their value.
+_CONFIG_SECRET_RE = re.compile(r'(?:pass|password|passwd|secret|_key|privkey|token)$'
+                               r'|^(?:smtp_username|ldap_user|jab_username)$')
 GRAVATAR = 'avatar.driver.gravatar'
 
 # newest_user_id is dumped just before newest_username (primary key order)

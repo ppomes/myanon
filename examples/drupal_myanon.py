@@ -20,8 +20,10 @@ FAKE_DOMAIN = 'example.com'
 FAKE_IP = '192.0.2.1'            # TEST-NET-1 (RFC 5737), never routed
 LOREM = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.'
 
-# \w matches Unicode letters too: josé@exemple.fr, 用户@例子.中国...
-_EMAIL_RE = re.compile(r'[\w.%+-]+@[\w-]+(?:\.[\w-]+)+')
+# \w matches Unicode letters too: josé@exemple.fr, 用户@例子.中国... but not
+# combining accents, as in a decomposed 'jose\u0301@exemple.fr': add them.
+_MARKS = '\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f'
+_EMAIL_RE = re.compile(r'[\w%s.%%+-]+@[\w%s-]+(?:\.[\w%s-]+)+' % ((_MARKS,) * 3))
 # s:<len>:"<string>";   or   C:<len>:"<class>":<len>:{<payload>}
 _SERIALIZED_RE = re.compile(rb's:(\d+):"|C:(\d+):"([^"]*)":(\d+):\{')
 _SERIALIZED_PREFIXES = ('a:', 's:', 'O:', 'C:')
