@@ -7,4 +7,4 @@ override_dh_auto_configure:
 		--with-python
 
 override_dh_installexamples:
-	dh_installexamples main/myanon-sample.conf
+	dh_installexamples main/myanon-sample.conf examples/*
