@@ -60,7 +60,7 @@ CREATE TABLE `users` (
                          `bf7` tinyint(1) NOT NULL DEFAULT '0',
                          `cf16` varchar(255) DEFAULT NULL,
                          `bf8` tinyint(1) DEFAULT '0',
-                         `bf8` tinyint(1) DEFAULT '0',
+                         `bf111` tinyint(1) DEFAULT '0',
                          `bf9` tinyint(1) DEFAULT '0',
                          `tf1` text,
                          `cf17` varchar(255) DEFAULT 'not tracked',
