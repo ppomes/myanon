@@ -108,6 +108,12 @@ impl<'a> DumpProcessor<'a> {
             self.process_line(&line_buf, writer)?;
         }
 
+        if self.state == State::InTable {
+            return Err(format!(
+                "Unable to read table definition at line {}",
+                self.line_nb
+            ));
+        }
         Ok(())
     }
 
@@ -191,14 +197,22 @@ impl<'a> DumpProcessor<'a> {
     }
 
     fn process_in_table<W: Write>(&mut self, line: &[u8], writer: &mut W) -> Result<(), String> {
+        // Never copy rows we were supposed to anonymize: stop like the C version
+        if line.starts_with(b"CREATE TABLE `") || Self::is_insert_replace_line(line) {
+            return Err(format!(
+                "Unable to read table definition at line {}",
+                self.line_nb
+            ));
+        }
         writer.write_all(line).map_err(|e| e.to_string())?;
 
         // Line may be binary, but keywords are ASCII. Use lossy conversion for matching.
         let line_str = String::from_utf8_lossy(line);
         let trimmed = line_str.trim_start();
 
-        // Check for ENGINE line or ) ENGINE (end of CREATE TABLE)
-        if trimmed.starts_with("ENGINE") || trimmed.starts_with(") ENGINE") {
+        // End of CREATE TABLE: ENGINE line, ") ENGINE...", or ");" without table
+        // options (mariadb-dump --skip-create-options)
+        if trimmed.starts_with("ENGINE") || trimmed.starts_with(") ENGINE") || trimmed.starts_with(");") {
             self.resolve_field_positions();
             self.state = State::Initial;
             self.count_newlines(line);
@@ -602,7 +616,7 @@ impl<'a> DumpProcessor<'a> {
         };
         let terminated = self.parse_values(line, table_idx, writer)?;
         if terminated {
-            self.state = State::InTable;
+            self.state = State::Initial;
         }
         Ok(())
     }
