@@ -176,7 +176,12 @@ static void set_working_table() {
 <ST_TABLE>VALUES                        { DUPOUT return VALUES ;}
 <ST_TABLE>\(                            { DUPOUT return LEFTPAR; }
 <ST_TABLE>\)                            { DUPOUT return RIGHTPAR; }
-<ST_TABLE>;                             { DUPOUT return SEMICOLUMN; }
+<ST_TABLE>;                             { /* No table options (mariadb-dump --skip-create-options) */
+                                          BEGIN(INITIAL);
+                                          DEBUG_MSG("\nENTERING STATE INITIAL")
+                                          DUPOUT
+                                          return ENGINE;
+                                        }
 <ST_TABLE>,                             { DUPOUT return COMA; }
 <ST_TABLE>(tiny|small|medium|big)?int.* { DUPOUT return TYPE; }
 <ST_TABLE>double.*                      { DUPOUT return TYPE; }
