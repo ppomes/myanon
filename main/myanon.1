@@ -40,15 +40,15 @@ Print a usage summary and exit.
 The configuration file is a text file with the following directives.
 .SS Global directives
 .TP
-.BI secret " = '" key \'
+.BI secret " = '" key \(aq
 HMAC secret, up to 64 characters.
 .TP
-.BI stats " = '" yes\fR|\fPno \'
+.BI stats " = '" yes\fR|\fPno \(aq
 When set to
 .BR yes ,
 statistics are appended as SQL comments at the end of the output.
 .TP
-.BI pypath " = '" path \'
+.BI pypath " = '" path \(aq
 Directory where the Python script is located.
 May be relative or absolute.
 The environment variable
@@ -57,7 +57,7 @@ can also be used.
 Only available when compiled with Python support
 .RB ( \-\-enable\-python ).
 .TP
-.BI pyscript " = '" name \'
+.BI pyscript " = '" name \(aq
 Name of the Python script (without the
 .I .py
 extension).
@@ -95,7 +95,7 @@ regex \(ga(prod|test)players\(ga = {
 .SH ANONYMIZATION RULES
 The following anonymization rules are available.
 An optional
-.BI "separated by '" c \'
+.BI "separated by '" c \(aq
 suffix can be added to most rules to handle multiple values within a
 single field, separated by character
 .IR c .
@@ -116,7 +116,7 @@ Hash the value into an email address ending with
 .I N
 characters long in total (max 32).
 .TP
-.BI "fixed '" value \'
+.BI "fixed '" value \(aq
 Replace the field with a fixed
 .IR value .
 Quoting follows the field type (text fields are quoted, numeric fields are not).
