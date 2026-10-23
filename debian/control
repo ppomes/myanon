@@ -1,12 +1,10 @@
 Source: myanon
 Section: admin
 Maintainer: Pierre POMES <pierre.pomes@gmail.com>
-Priority: optional
-Standards-Version: 4.7.3
-Rules-Requires-Root: no
+Standards-Version: 4.7.4
 Homepage: https://myanon.io
-Vcs-Git: https://github.com/ppomes/myanon.git
-Vcs-Browser: https://github.com/ppomes/myanon
+Vcs-Git: https://salsa.debian.org/ppomes/myanon.git
+Vcs-Browser: https://salsa.debian.org/ppomes/myanon
 Build-Depends: debhelper-compat (= 13), flex (>= 2.6), bison (>= 3), automake (>= 1.15), autoconf (>= 2.69), pkgconf, python3-dev (>= 3.8)
 
 Package: myanon

@@ -1,3 +1,15 @@
+myanon (0.8.8-1) unstable; urgency=medium
+
+  * New upstream release
+  * Bug fixes:
+    - Accept table definitions without table options, as dumped by
+      mariadb-dump --skip-create-options or --skip-opt (#68)
+    - Fix the configuration syntax in the man page, which showed an acute
+      accent instead of a closing apostrophe
+  * Bump Standards-Version to 4.7.4, no changes needed
+
+ -- Pierre POMES <pierre.pomes@gmail.com>  Thu, 22 Oct 2026 22:37:59 -0400
+
 myanon (0.8.7-1) unstable; urgency=medium
 
   * New upstream release
@@ -9,8 +21,11 @@ myanon (0.8.7-1) unstable; urgency=medium
   * Rewrite and test the WordPress, Nextcloud, Drupal and phpBB example
     configurations, and drop the untested GitLab one
   * debian/rules: install these example configurations
+  * Move the packaging to Salsa: Vcs-* fields, gbp.conf, Salsa CI
+  * debian/watch: use format version 5
+  * debian/control: drop the redundant Priority and Rules-Requires-Root fields
 
- -- Pierre POMES <pierre.pomes@gmail.com>  Sun, 04 Oct 2026 16:10:01 -0400
+ -- Pierre POMES <pierre.pomes@gmail.com>  Mon, 19 Oct 2026 22:37:46 -0400
 
 myanon (0.8.6-1) unstable; urgency=medium
 

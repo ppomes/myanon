@@ -1,3 +1,4 @@
-version=4
-opts="dversionmangle=s/\+ds//,repacksuffix=+ds" \
-  https://github.com/ppomes/myanon/tags .*/v?(\d\S+)\.tar\.gz
+Version: 5
+
+Source: https://github.com/ppomes/myanon/tags
+Matching-Pattern: .*/v?@ANY_VERSION@@ARCHIVE_EXT@
