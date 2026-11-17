@@ -45,6 +45,10 @@ char currenttable[IDENT_SIZE];
 /* current config element */
 anon_table_st *currenttableconfig;
 
+/* Pseudo config element used for tables the config file does not match
+   when default = 'truncate' */
+static anon_table_st defaulttruncate = { .action = ACTION_TRUNCATE };
+
 /* Increase Flex buffers */
 #undef YY_READ_BUF_SIZE
 #undef YY_BUF_SIZE
@@ -98,7 +102,13 @@ static void set_working_table() {
   }
 
   if (bfound) {
-    currenttableconfig=walker;
+    /* A kept table is a reviewed table: handled as a table without config */
+    if (walker->action != ACTION_KEEP) {
+      currenttableconfig=walker;
+    }
+  } else if (default_action == ACTION_TRUNCATE && currenttable[0] != 0) {
+    currenttableconfig=&defaulttruncate;
+    fprintf(stderr, "WARNING! Table %s is not in config file: truncated (default = 'truncate')\n", currenttable);
   }
 }
 
@@ -167,6 +177,7 @@ static void set_working_table() {
 
 <ST_TRUNCATE_SKIP>_binary\ '(\\.|[^'\\])*'  { /* consume silently */ }
 <ST_TRUNCATE_SKIP>'(\\.|[^'\\])*'           { /* consume silently */ }
+<ST_TRUNCATE_SKIP>`[^`\n]+`                 { /* identifier: a quote in a name does not open a string */ }
 <ST_TRUNCATE_SKIP>;               { BEGIN(ST_TRUNCATE); }
 <ST_TRUNCATE_SKIP>\n              { dump_line_nb++; }
 <ST_TRUNCATE_SKIP>.               { /* consume silently */ }

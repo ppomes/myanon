@@ -81,7 +81,7 @@ static bool is_valid_json_path(const char *path);
 /* 
  * Flex tokens
  */
-%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEY APPENDKEY PREPENDKEY APPENDINDEX PREPENDINDEX EQ LEFT RIGHT PYPATH PYSCRIPT PYDEF JSON PATH SEPARATEDBY SUBSTRING REGEX
+%token SECRET STATS TABLES YES NO FIXEDNULL FIXED FIXEDQUOTED FIXEDUNQUOTED TEXTHASH EMAILHASH INTHASH TRUNCATE KEEP DEFAULT KEY APPENDKEY PREPENDKEY APPENDINDEX PREPENDINDEX EQ LEFT RIGHT PYPATH PYSCRIPT PYDEF JSON PATH SEPARATEDBY SUBSTRING REGEX
 %token <strval> STRING IDENTIFIER
 %token <shortval> LENGTH
 
@@ -95,6 +95,7 @@ directives: directive |
 directive:
   secretline   |
   statsline    |
+  defaultline  |
   pypathline   |
   pyscriptline |
   tableline
@@ -136,6 +137,20 @@ statsline:
   STATS EQ YES { stats=true; } |
   STATS EQ NO  { stats=false;}
 
+defaultline:
+  DEFAULT EQ STRING {
+                     char value[CONFIG_SIZE];
+                     remove_quote(value,$3,sizeof(value));
+                     if (strcmp(value,"truncate") == 0) {
+                        default_action=ACTION_TRUNCATE;
+                     } else if (strcmp(value,"keep") == 0) {
+                        default_action=ACTION_KEEP;
+                     } else {
+                        fprintf(stderr, "Error: default must be 'keep' or 'truncate' at line %d\n", config_line_nb);
+                        exit(EXIT_FAILURE);
+                     }
+                    }
+
 tableline:
   TABLES EQ LEFT tableslist RIGHT
 
@@ -165,6 +180,16 @@ singletable:
                    } tableaction
 tableaction: TRUNCATE {
                   currenttableconfig->action=ACTION_TRUNCATE;
+                  anon_table_st *dup = NULL;
+                  HASH_FIND_STR(infos, currenttableconfig->key, dup);
+                  if (dup) {
+                      fprintf(stderr, "Error: table %s is defined more than once in config file at line %d\n", currenttableconfig->key, config_line_nb);
+                      exit(EXIT_FAILURE);
+                  }
+                  HASH_ADD_STR(infos, key, currenttableconfig);
+               } |
+             KEEP {
+                  currenttableconfig->action=ACTION_KEEP;
                   anon_table_st *dup = NULL;
                   HASH_FIND_STR(infos, currenttableconfig->key, dup);
                   if (dup) {

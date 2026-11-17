@@ -61,6 +61,8 @@ emailhash               { return EMAILHASH; }
 inthash                 { return INTHASH; }
 substring		            { return SUBSTRING; }
 truncate                { return TRUNCATE; }
+keep                    { return KEEP; }
+default                 { return DEFAULT; }
 key                     { return KEY; }
 appendkey               { return APPENDKEY; }
 prependkey              { return PREPENDKEY; }

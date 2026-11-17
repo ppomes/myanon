@@ -929,6 +929,7 @@ int main(int argc, char **argv)
     memset(pyscript, 0, sizeof(pyscript));
 #endif
     stats = false;
+    default_action = ACTION_KEEP;
     debug = false;
     anon_time = 0;
     config_line_nb = 1;
