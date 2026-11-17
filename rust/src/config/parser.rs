@@ -68,6 +68,7 @@ impl Parser {
                 Token::Eof => break,
                 Token::Secret => self.parse_secret(&mut config)?,
                 Token::Stats => self.parse_stats(&mut config)?,
+                Token::Default => self.parse_default(&mut config)?,
                 Token::PyPath => self.parse_pypath(&mut config)?,
                 Token::PyScript => self.parse_pyscript(&mut config)?,
                 Token::Tables => self.parse_tables(&mut config)?,
@@ -92,6 +93,23 @@ impl Parser {
             Token::No => config.stats = false,
             _ => return Err(self.error(&format!("expected 'yes' or 'no', got {}", tok))),
         }
+        Ok(())
+    }
+
+    fn parse_default(&mut self, config: &mut Config) -> Result<(), String> {
+        self.expect_eq()?;
+        let line = self.lexer.line;
+        let value = self.expect_string()?;
+        config.default_action = match value.as_str() {
+            "truncate" => TableAction::Truncate,
+            "keep" => TableAction::Keep,
+            _ => {
+                return Err(format!(
+                    "Error: default must be 'keep' or 'truncate' at line {}",
+                    line
+                ))
+            }
+        };
         Ok(())
     }
 
@@ -171,6 +189,12 @@ impl Parser {
                 action: TableAction::Truncate,
                 fields: Vec::new(),
             }),
+            Token::Keep => Ok(AnonTable {
+                name: name.to_string(),
+                regex,
+                action: TableAction::Keep,
+                fields: Vec::new(),
+            }),
             Token::LBrace => {
                 let fields = self.parse_field_list(name)?;
                 Ok(AnonTable {
@@ -180,7 +204,7 @@ impl Parser {
                     fields,
                 })
             }
-            _ => Err(self.error(&format!("expected 'truncate' or '{{', got {}", tok))),
+            _ => Err(self.error(&format!("expected 'truncate', 'keep' or '{{', got {}", tok))),
         }
     }
 

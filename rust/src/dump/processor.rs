@@ -30,6 +30,8 @@ pub struct DumpProcessor<'a> {
     state: State,
     current_table: String,
     current_table_config_idx: Option<usize>,
+    /// Current table matches no config entry and default = 'truncate'
+    truncate_by_default: bool,
     fields: Vec<FieldInfo>,
     field_config_cache: Vec<Option<usize>>,
     tablekey: String,
@@ -71,6 +73,7 @@ impl<'a> DumpProcessor<'a> {
             state: State::Initial,
             current_table: String::new(),
             current_table_config_idx: None,
+            truncate_by_default: false,
             fields: Vec::new(),
             field_config_cache: vec![None; MYSQL_MAX_FIELD_PER_TABLE],
             tablekey: String::new(),
@@ -149,7 +152,24 @@ impl<'a> DumpProcessor<'a> {
 
     fn set_working_table(&mut self, line: &[u8]) {
         self.current_table = Self::extract_table_name_bytes(line).unwrap_or_default();
-        self.current_table_config_idx = self.find_table_config(&self.current_table);
+        self.truncate_by_default = false;
+        self.current_table_config_idx = match self.find_table_config(&self.current_table) {
+            // A kept table is a reviewed table: handled as a table without config
+            Some(idx) if self.config.tables[idx].action == TableAction::Keep => None,
+            Some(idx) => Some(idx),
+            None => {
+                if self.config.default_action == TableAction::Truncate
+                    && !self.current_table.is_empty()
+                {
+                    self.truncate_by_default = true;
+                    eprintln!(
+                        "WARNING! Table `{}` is not in config file: truncated (default = 'truncate')",
+                        self.current_table
+                    );
+                }
+                None
+            }
+        };
     }
 
     fn is_insert_replace_line(line: &[u8]) -> bool {
@@ -174,7 +194,11 @@ impl<'a> DumpProcessor<'a> {
                     TableAction::Truncate => {
                         self.state = State::Truncate;
                     }
+                    // Never selected: set_working_table() drops kept tables
+                    TableAction::Keep => {}
                 }
+            } else if self.truncate_by_default {
+                self.state = State::Truncate;
             }
             self.count_newlines(line);
             return Ok(());
@@ -310,7 +334,13 @@ impl<'a> DumpProcessor<'a> {
                     TableAction::Truncate => {
                         self.state = State::Truncate;
                     }
+                    // Never selected: set_working_table() drops kept tables
+                    TableAction::Keep => {
+                        self.state = State::Initial;
+                    }
                 }
+            } else if self.truncate_by_default {
+                self.state = State::Truncate;
             } else {
                 self.state = State::Initial;
             }

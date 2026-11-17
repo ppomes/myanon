@@ -48,6 +48,21 @@ When set to
 .BR yes ,
 statistics are appended as SQL comments at the end of the output.
 .TP
+.BI default " = '" keep\fR|\fPtruncate \(aq
+Action applied to the tables that no entry of the
+.B tables
+block matches.
+With
+.B keep
+(the default), they are copied unchanged.
+With
+.BR truncate ,
+their INSERT statements are removed and a warning naming each of them
+is written to standard error; tables that must be copied unchanged are
+then listed with the
+.B keep
+rule.
+.TP
 .BI pypath " = '" path \(aq
 Directory where the Python script is located.
 May be relative or absolute.
@@ -75,6 +90,7 @@ tables = {
      ...
    }
    \(gaother_table\(ga = truncate
+   \(gareviewed_table\(ga = keep
 }
 .fi
 .RE
@@ -200,6 +216,12 @@ Only available when compiled with Python support.
 .TP
 .B truncate
 Remove all INSERT and UPDATE statements for this table (table-level rule).
+.TP
+.B keep
+Copy this table unchanged (table-level rule).
+Only useful with
+.BR "default = 'truncate'" ,
+to list the tables that have been reviewed.
 .SH EXAMPLES
 Anonymize a dump file:
 .PP

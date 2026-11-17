@@ -28,6 +28,8 @@ pub enum AnonType {
 pub enum TableAction {
     Truncate,
     Anon,
+    /// Reviewed table, copied unchanged
+    Keep,
 }
 
 /// Base anonymization info — matches C anon_base_st
@@ -89,6 +91,8 @@ pub struct AnonTable {
 pub struct Config {
     pub secret: String,
     pub stats: bool,
+    /// Action for tables the config does not match: Keep (default) or Truncate
+    pub default_action: TableAction,
     pub pypath: String,
     pub pyscript: String,
     pub tables: Vec<AnonTable>,
@@ -99,6 +103,7 @@ impl Default for Config {
         Config {
             secret: String::new(),
             stats: false,
+            default_action: TableAction::Keep,
             pypath: String::new(),
             pyscript: String::new(),
             tables: Vec::new(),

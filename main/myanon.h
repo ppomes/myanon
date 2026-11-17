@@ -117,11 +117,12 @@ typedef enum anon_type
 #endif
 } anon_type;
 
-/* Actio on table. Currently anonymisation or truncation */
+/* Action on table: truncation, anonymisation, or keep as is (reviewed table) */
 typedef enum table_action_st
 {
     ACTION_TRUNCATE,
-    ACTION_ANON
+    ACTION_ANON,
+    ACTION_KEEP
 } table_action_st;
 
 /* Structure for anonymization info, used by a flat field or a json field */
@@ -166,7 +167,7 @@ typedef struct anon_table_st
 {
     char key[IDENT_SIZE];   /* table name (with backticks) or regexp */
     regex_t *reg_table;     /* regex for table name if regex */
-    table_action_st action; /* Truncate or anon */
+    table_action_st action; /* Truncate, anon or keep */
     anon_field_st *infos;   /* Anon infos */
     UT_hash_handle hh;      /* uthash handle */
 } anon_table_st;
@@ -218,6 +219,10 @@ EXTERN char pyscript[CONFIG_SIZE];
 
 /* Generate stats ? */
 EXTERN bool stats;
+
+/* Action for tables the config file does not match: ACTION_KEEP (default)
+   or ACTION_TRUNCATE */
+EXTERN table_action_st default_action;
 
 /* Debug mode */
 EXTERN bool debug;

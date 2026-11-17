@@ -56,6 +56,7 @@ Referential integrity is preserved: if `bob.johnson@corp.com` appears in another
 | `substring N` | Truncate the field value to the first N characters |
 | `json { path 'x.y' = ... }` | Anonymize specific paths inside JSON columns (supports nested objects and arrays with `[]`) |
 | `truncate` | Drop all data from a table (removes INSERT/UPDATE statements) |
+| `keep` | Mark a table as reviewed and copy it unchanged (useful with `default = 'truncate'`) |
 | `pydef 'func'` or `pydef 'func' 'params'` | Call a custom Python function, with optional parameters |
 | `separated by ','` | Modifier: apply the rule to each value in a delimited field |
 | `regex` table names | Match multiple tables with a single rule (e.g. `` regex `(prod\|test)users` ``) |
@@ -97,9 +98,31 @@ A self-documented sample config is provided in [`main/myanon-sample.conf`](main/
 **Global directives**:
 - `secret` -- the HMAC secret (up to 64 chars)
 - `stats` -- report anonymization statistics as SQL comments at the end of the dump (`yes`/`no`)
+- `default` -- what to do with tables the config does not match: `'keep'` (copy them unchanged, the default) or `'truncate'` (drop their data)
 - `pypath` / `pyscript` -- path and module name for Python custom functions
 
 **Tables block**: list tables and columns with their anonymization rules. Table names can be literal or regex-matched. Table and column names must be back-quoted (e.g. `` `users` ``), matching the format used by mysqldump output.
+
+When several entries match a table, the first one in the config file is used.
+
+### Truncating unknown tables
+
+By default, a table the config does not mention is copied unchanged. With `default = 'truncate'`, such a table is truncated instead, and a warning naming it is written to stderr. Tables that are safe to copy as they are must then be listed with `keep`:
+
+```
+secret = 'mysecret'
+default = 'truncate'
+
+tables = {
+  `users` = {
+    `email` = emailhash 'example.com' 10
+  }
+  regex `node.*` = keep
+  `config` = keep
+}
+```
+
+This way, a table added to the database later never reaches the anonymized dump until someone reviews it and adds a rule.
 
 ### Simple use case
 
