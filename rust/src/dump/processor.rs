@@ -32,6 +32,9 @@ pub struct DumpProcessor<'a> {
     current_table_config_idx: Option<usize>,
     /// Current table matches no config entry and default = 'truncate'
     truncate_by_default: bool,
+    /// Quote state while skipping a truncated INSERT statement
+    truncate_in_string: bool,
+    truncate_escape: bool,
     fields: Vec<FieldInfo>,
     field_config_cache: Vec<Option<usize>>,
     tablekey: String,
@@ -74,6 +77,8 @@ impl<'a> DumpProcessor<'a> {
             current_table: String::new(),
             current_table_config_idx: None,
             truncate_by_default: false,
+            truncate_in_string: false,
+            truncate_escape: false,
             fields: Vec::new(),
             field_config_cache: vec![None; MYSQL_MAX_FIELD_PER_TABLE],
             tablekey: String::new(),
@@ -144,14 +149,18 @@ impl<'a> DumpProcessor<'a> {
         None
     }
 
-    fn extract_table_name_bytes(line: &[u8]) -> Option<String> {
+    fn extract_table_name_bytes(line: &[u8]) -> Option<&[u8]> {
         let start = line.iter().position(|&b| b == b'`')?;
         let end = line[start + 1..].iter().position(|&b| b == b'`')?;
-        String::from_utf8(line[start + 1..start + 1 + end].to_vec()).ok()
+        Some(&line[start + 1..start + 1 + end])
     }
 
     fn set_working_table(&mut self, line: &[u8]) {
-        self.current_table = Self::extract_table_name_bytes(line).unwrap_or_default();
+        // A name that is not valid UTF-8 (latin1 dump) cannot match a literal
+        // config entry, but it is still a table: keep a lossy name so that it
+        // is not mistaken for "no table" and default truncation applies.
+        let raw_name = Self::extract_table_name_bytes(line).unwrap_or_default();
+        self.current_table = String::from_utf8_lossy(raw_name).into_owned();
         self.truncate_by_default = false;
         self.current_table_config_idx = match self.find_table_config(&self.current_table) {
             // A kept table is a reviewed table: handled as a table without config
@@ -162,10 +171,13 @@ impl<'a> DumpProcessor<'a> {
                     && !self.current_table.is_empty()
                 {
                     self.truncate_by_default = true;
-                    eprintln!(
-                        "WARNING! Table `{}` is not in config file: truncated (default = 'truncate')",
-                        self.current_table
+                    // Raw bytes, like the C version
+                    let mut msg = b"WARNING! Table `".to_vec();
+                    msg.extend_from_slice(raw_name);
+                    msg.extend_from_slice(
+                        b"` is not in config file: truncated (default = 'truncate')\n",
                     );
+                    let _ = std::io::stderr().write_all(&msg);
                 }
                 None
             }
@@ -349,15 +361,17 @@ impl<'a> DumpProcessor<'a> {
         }
 
         if Self::is_insert_replace_line(line) {
-            // Suppress INSERT/REPLACE lines in truncate mode
-            // But output the trailing newline (matching C behavior where \n after ; is DUPOUT'd)
-            if line.last() == Some(&b'\n') {
-                writer.write_all(b"\n").map_err(|e| e.to_string())?;
-            }
+            // Suppress the INSERT/REPLACE statement up to its terminating `;`.
+            // What follows the `;` (the newline) is copied, like the C version.
+            self.truncate_in_string = false;
+            self.truncate_escape = false;
             self.count_newlines(line);
-            // If the statement isn't terminated on this line, swallow continuations until `;`
-            if !line.contains(&b';') {
-                self.state = State::TruncateInValues;
+            match self.find_truncate_statement_end(line) {
+                Some(end) => writer
+                    .write_all(&line[end + 1..])
+                    .map_err(|e| e.to_string())?,
+                // Not terminated on this line: swallow continuations until `;`
+                None => self.state = State::TruncateInValues,
             }
             return Ok(());
         }
@@ -655,13 +669,39 @@ impl<'a> DumpProcessor<'a> {
     fn process_truncate_in_values<W: Write>(
         &mut self,
         line: &[u8],
-        _writer: &mut W,
+        writer: &mut W,
     ) -> Result<(), String> {
         self.count_newlines(line);
-        if line.contains(&b';') {
+        if let Some(end) = self.find_truncate_statement_end(line) {
+            writer
+                .write_all(&line[end + 1..])
+                .map_err(|e| e.to_string())?;
             self.state = State::Truncate;
         }
         Ok(())
+    }
+
+    /// Position of the `;` ending a truncated INSERT/REPLACE statement, if it
+    /// is on this line. A `;` inside a quoted SQL string is not a terminator;
+    /// the quote state is kept across lines for multi-line statements.
+    fn find_truncate_statement_end(&mut self, line: &[u8]) -> Option<usize> {
+        for (i, &b) in line.iter().enumerate() {
+            if self.truncate_in_string {
+                if self.truncate_escape {
+                    self.truncate_escape = false;
+                } else if b == b'\\' {
+                    self.truncate_escape = true;
+                } else if b == b'\'' {
+                    // A doubled quote ('') closes and reopens the string
+                    self.truncate_in_string = false;
+                }
+            } else if b == b'\'' {
+                self.truncate_in_string = true;
+            } else if b == b';' {
+                return Some(i);
+            }
+        }
+        None
     }
 
     fn scan_value(&self, bytes: &[u8], pos: usize) -> Result<(ValueToken, usize), String> {

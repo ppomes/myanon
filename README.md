@@ -107,7 +107,7 @@ When several entries match a table, the first one in the config file is used.
 
 ### Truncating unknown tables
 
-By default, a table the config does not mention is copied unchanged. With `default = 'truncate'`, such a table is truncated instead, and a warning naming it is written to stderr. Tables that are safe to copy as they are must then be listed with `keep`:
+By default, a table the config does not mention is copied unchanged. With `default = 'truncate'`, the data of such a table is removed instead (its `CREATE TABLE` is kept), and a warning naming it is written to stderr. Tables that are safe to copy as they are must then be listed with `keep`:
 
 ```
 secret = 'mysecret'
@@ -122,7 +122,7 @@ tables = {
 }
 ```
 
-This way, a table added to the database later never reaches the anonymized dump until someone reviews it and adds a rule.
+This way, the data of a table added to the database later does not reach the anonymized dump until someone reviews it and adds a rule. This only holds for tables no entry matches: a broad rule such as `` regex `node.*` = keep `` also covers any future table with a matching name, so keep such patterns as narrow as possible.
 
 ### Simple use case
 
