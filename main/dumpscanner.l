@@ -177,6 +177,7 @@ static void set_working_table() {
 
 <ST_TRUNCATE_SKIP>_binary\ '(\\.|[^'\\])*'  { /* consume silently */ }
 <ST_TRUNCATE_SKIP>'(\\.|[^'\\])*'           { /* consume silently */ }
+<ST_TRUNCATE_SKIP>`[^`\n]+`                 { /* identifier: a quote in a name does not open a string */ }
 <ST_TRUNCATE_SKIP>;               { BEGIN(ST_TRUNCATE); }
 <ST_TRUNCATE_SKIP>\n              { dump_line_nb++; }
 <ST_TRUNCATE_SKIP>.               { /* consume silently */ }

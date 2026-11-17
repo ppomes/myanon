@@ -35,6 +35,7 @@ pub struct DumpProcessor<'a> {
     /// Quote state while skipping a truncated INSERT statement
     truncate_in_string: bool,
     truncate_escape: bool,
+    truncate_in_ident: bool,
     fields: Vec<FieldInfo>,
     field_config_cache: Vec<Option<usize>>,
     tablekey: String,
@@ -79,6 +80,7 @@ impl<'a> DumpProcessor<'a> {
             truncate_by_default: false,
             truncate_in_string: false,
             truncate_escape: false,
+            truncate_in_ident: false,
             fields: Vec::new(),
             field_config_cache: vec![None; MYSQL_MAX_FIELD_PER_TABLE],
             tablekey: String::new(),
@@ -135,14 +137,16 @@ impl<'a> DumpProcessor<'a> {
         }
     }
 
-    fn find_table_config(&self, table_name: &str) -> Option<usize> {
+    /// `literal_ok` is false when `table_name` is a lossy copy of a name that
+    /// is not valid UTF-8: such a name cannot be equal to a literal entry.
+    fn find_table_config(&self, table_name: &str, literal_ok: bool) -> Option<usize> {
         for (i, table) in self.config.tables.iter().enumerate() {
             if let Some(ref regex) = table.regex {
                 let with_backticks = format!("`{}`", table_name);
                 if regex.is_match(&with_backticks) {
                     return Some(i);
                 }
-            } else if table.name == table_name {
+            } else if literal_ok && table.name == table_name {
                 return Some(i);
             }
         }
@@ -160,9 +164,11 @@ impl<'a> DumpProcessor<'a> {
         // config entry, but it is still a table: keep a lossy name so that it
         // is not mistaken for "no table" and default truncation applies.
         let raw_name = Self::extract_table_name_bytes(line).unwrap_or_default();
-        self.current_table = String::from_utf8_lossy(raw_name).into_owned();
+        let name = String::from_utf8_lossy(raw_name);
+        let is_utf8 = matches!(name, std::borrow::Cow::Borrowed(_));
+        self.current_table = name.into_owned();
         self.truncate_by_default = false;
-        self.current_table_config_idx = match self.find_table_config(&self.current_table) {
+        self.current_table_config_idx = match self.find_table_config(&self.current_table, is_utf8) {
             // A kept table is a reviewed table: handled as a table without config
             Some(idx) if self.config.tables[idx].action == TableAction::Keep => None,
             Some(idx) => Some(idx),
@@ -365,6 +371,7 @@ impl<'a> DumpProcessor<'a> {
             // What follows the `;` (the newline) is copied, like the C version.
             self.truncate_in_string = false;
             self.truncate_escape = false;
+            self.truncate_in_ident = false;
             self.count_newlines(line);
             match self.find_truncate_statement_end(line) {
                 Some(end) => writer
@@ -684,9 +691,15 @@ impl<'a> DumpProcessor<'a> {
     /// Position of the `;` ending a truncated INSERT/REPLACE statement, if it
     /// is on this line. A `;` inside a quoted SQL string is not a terminator;
     /// the quote state is kept across lines for multi-line statements.
+    /// Back-quoted identifiers are skipped, so that a quote in a table or
+    /// column name does not open a string; they never span lines.
     fn find_truncate_statement_end(&mut self, line: &[u8]) -> Option<usize> {
         for (i, &b) in line.iter().enumerate() {
-            if self.truncate_in_string {
+            if self.truncate_in_ident {
+                if b == b'`' || b == b'\n' {
+                    self.truncate_in_ident = false;
+                }
+            } else if self.truncate_in_string {
                 if self.truncate_escape {
                     self.truncate_escape = false;
                 } else if b == b'\\' {
@@ -697,6 +710,8 @@ impl<'a> DumpProcessor<'a> {
                 }
             } else if b == b'\'' {
                 self.truncate_in_string = true;
+            } else if b == b'`' {
+                self.truncate_in_ident = true;
             } else if b == b';' {
                 return Some(i);
             }
